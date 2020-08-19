@@ -1,0 +1,49 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.960
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EService.Web", "D:\Projectos\SavedByTheMaid\Inventory and Order Management\netcore\EService.Web\EService.Web.csproj", "{BE901BD0-6E3A-419B-AEE6-3F7F9386CF6A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JempSoft.Core", "D:\Projectos\SavedByTheMaid\Inventory and Order Management\netcore\JempSoft.Core\JempSoft.Core.csproj", "{7CE6EA99-3AE4-4753-BD09-1273A9E6DA6A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JempSoft.Applications", "D:\Projectos\SavedByTheMaid\Inventory and Order Management\netcore\JempSoft.Applications\JempSoft.Applications.csproj", "{FD156E41-75C5-4635-8372-AFCDDD36A1C5}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JempSoft.Infraestructure", "D:\Projectos\SavedByTheMaid\Inventory and Order Management\netcore\JempSoft.Infraestructure\JempSoft.Infraestructure.csproj", "{4B62F6BE-7891-4AE3-BEEC-3D6B3D79381C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "netcore", "D:\Projectos\SavedByTheMaid\Inventory and Order Management\netcorehttps\netcore\netcore.csproj", "{F0F642D3-E79F-498E-B70A-A5B24BEBADCE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BE901BD0-6E3A-419B-AEE6-3F7F9386CF6A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BE901BD0-6E3A-419B-AEE6-3F7F9386CF6A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BE901BD0-6E3A-419B-AEE6-3F7F9386CF6A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BE901BD0-6E3A-419B-AEE6-3F7F9386CF6A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7CE6EA99-3AE4-4753-BD09-1273A9E6DA6A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7CE6EA99-3AE4-4753-BD09-1273A9E6DA6A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7CE6EA99-3AE4-4753-BD09-1273A9E6DA6A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7CE6EA99-3AE4-4753-BD09-1273A9E6DA6A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FD156E41-75C5-4635-8372-AFCDDD36A1C5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FD156E41-75C5-4635-8372-AFCDDD36A1C5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FD156E41-75C5-4635-8372-AFCDDD36A1C5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FD156E41-75C5-4635-8372-AFCDDD36A1C5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4B62F6BE-7891-4AE3-BEEC-3D6B3D79381C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4B62F6BE-7891-4AE3-BEEC-3D6B3D79381C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4B62F6BE-7891-4AE3-BEEC-3D6B3D79381C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4B62F6BE-7891-4AE3-BEEC-3D6B3D79381C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F0F642D3-E79F-498E-B70A-A5B24BEBADCE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F0F642D3-E79F-498E-B70A-A5B24BEBADCE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F0F642D3-E79F-498E-B70A-A5B24BEBADCE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F0F642D3-E79F-498E-B70A-A5B24BEBADCE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4C5EEB54-DCCC-4AF4-BC74-0D6C2FC6A2B6}
+	EndGlobalSection
+EndGlobal

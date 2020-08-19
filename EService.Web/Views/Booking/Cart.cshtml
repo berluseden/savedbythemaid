@@ -1,0 +1,284 @@
+﻿@using JempSoft.Applications.Book.Dto
+
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+
+<head>
+    @ViewData["Title"] =  "Process To CheckOut"
+</head>
+
+<body>
+
+    <div id="exTab2" class="container">
+        <input type="text" id="cartItemId" value="@Model.CartItemId" style="display:none" />
+
+        <div class="tab-content ">
+            <div class="tab-pane active" id="1">
+                <br />
+                <hr>
+                <div class="container"><h2>Schedule Appointment With Saved By Maid</h2></div>
+                <br />
+
+                <div id="exTab2" class="container">
+                    <ul class="nav nav-tabs col-md-12">
+                        <li class="active col-md-4">
+                            <a href="#1" data-toggle="tab">Choose Appointment</a>
+                        </li>
+
+                    </ul>
+
+                    <div class="tab-content col-md-12 ">
+                        <div class="tab-pane active" id="1">
+                            <br />
+                            <div class="container col-md-10" style="border:dashed; align-content: center">
+                                <table>
+                                    <tbody>
+                                        <tr>
+                                            <td>
+                                                <div class="form-group col-md-12">
+                                                    <table>
+                                                        <tr>
+                                                            <td class="col-md-10">
+                                                                <strong> @Model.CleaningPlace_Title, @Model.CleaningPlaceRoom_Title, @Model.ServiceType_Title</strong> <em>$ @Convert.ToDecimal(@Model.ServiceType_Price)</em>
+                                                            </td>
+
+                                                            <td class="col-md-2">
+                                                                <span> Quantity: </span>   <input id="quantity" class="form-control inline-field" min="1" value="1" size="1" type="number" />
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="container col-md-12">
+                                <br />
+                                <table>
+                                    <tbody>
+                                        @foreach (var item in Model.AdditionalServiceTypes)
+                                        {
+                                            <tr>
+
+                                                <td>
+                                                    <input type="checkbox" name="name1" data-price="@item.Price" value="@item.AdditionalServiceTypeId" />
+                                                    <strong>@item.Title </strong> <em>$ @item.Price</em>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                                <hr />
+                            </div>
+
+
+                            <div class="container row">
+
+                                <div class="col-md-12">
+
+                                    <div class="row">
+                                        <p>Add to your appointment...</p>
+
+                                        <div class="col-md-6">
+
+                                            <div class="form-group">
+
+                                                <label class="control-label">Select Date</label>
+                                                <input type="date" placeholder="dd/mm/yyyy" value=""
+                                                       min="@DateTime.Now" max="@DateTime.Now.AddYears(1)" id="dateOfService" class="form-control" />
+                                            </div>
+
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+
+                                                <label class="control-label">Select Time</label>
+                                                <input type="time" step="1800" value=""
+                                                       id="timeOfService" class="form-control" />
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <div class="form-group">
+                                                <label class="control-label">Avaliables Maids</label>
+                                                <input type="text" id="avaliableMaids" readonly class="form-control" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                            <hr />
+                        </div>
+                    </div>
+                    <div class="container">
+                        <div class="col-md-12">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <input type="button" id="btnCheckOut" value="Ckeck Out" class="btn btn-warning" disabled />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/js/jquery-2.2.4.min.js"></script>
+   
+</body>
+</html>
+<script>
+
+    $(function () {
+
+        var cartItem = document.getElementById('cartItemId');
+        var btnCheckOut = document.getElementById('btnCheckOut');
+        var avaliableMaids = document.getElementById('avaliableMaids');
+
+        var dateOfService = document.getElementById('dateOfService');
+        var timeOfService = document.getElementById('timeOfService');
+        var btnCheckOut = document.getElementById('btnCheckOut');
+
+        var name = getCookie('name');
+        var email = getCookie('email');
+        var phone = getCookie('phone');
+        var address = getCookie('address');
+        var additionalServiceInfo = getCookie('additionalInfo');
+
+
+        var contactInfo = {
+            Name: name,
+            Email: email,
+            Phone: phone,
+            Address: address,
+            AdditionalServiceInfo: additionalServiceInfo
+        };
+
+
+        var optionalService = new Array();
+
+        var year = '';
+        var month = '';
+        var day = '';
+
+        var hour = '';
+        var minute = '';
+        var avaliables = 0;
+
+        dateOfService.addEventListener("change", getMyDateValue);
+        timeOfService.addEventListener("change", getMyTimeValue);
+        btnCheckOut.addEventListener("click", checkOut);
+
+        function getMyDateValue(e) {
+
+            var dateArr = e.srcElement.value.split('-');
+            btnCheckOut.disabled = true;
+            timeOfService.value = '';
+
+            if (dateArr.length > 1) {
+                console.log(dateArr[1] + '/' + dateArr[2] + '/' + dateArr[0]);
+
+                year = parseInt(dateArr[0]);
+                month = parseInt(dateArr[1]);
+                day = parseInt(dateArr[2]);
+
+                getAvaliableByDay(year, month, day);
+
+            }
+        }
+
+        function getMyTimeValue(e) {
+
+            var dateArr = e.srcElement.value.split(':');
+
+            if (dateArr.length > 1) {
+
+                hour = dateArr[0];
+                minute = dateArr[1];
+
+                console.log('Avaliable ' + avaliables);
+
+                if (avaliables !== 0) {
+                    btnCheckOut.disabled = false;
+                }
+            }
+        }
+
+        function getAvaliableByDay(year, month, day) {
+            
+            $.get("/Booking/GetAvaliableMaidByDay", { year: year, month: month, day: day })
+                .done(function (data) {
+
+                    var result = JSON.stringify(data.avaliableMaids);
+                    avaliableMaids.value = result;
+
+                    avaliables = +result;
+                   
+                });
+
+        }
+
+        function checkOut() {
+
+            var checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+            for (var checkbox of checkboxes) {
+                optionalService.push(parseInt(checkbox.value));
+            }
+
+            console.log('optionalService ' + optionalService);
+            if (isAllCorrect()) {
+                addToCart();
+            }
+            else {
+
+                alert("Some input isn't set ");
+            }
+        }
+
+        function isAllCorrect() {
+
+            if (day !== '' && month !== '' && year !== '' && hour !== '' && minute) {
+                return true;
+            }
+
+            return false;
+        }
+
+        function addToCart() {
+
+            btnCheckOut.value = 'Processing';
+            btnCheckOut.disabled = true;
+
+            $.post("/Booking/AddToCart",
+                {
+                    cartItemId: parseInt(cartItem.value),
+                    day: parseInt(day),
+                    month: parseInt(month),
+                    year: parseInt(year),
+                    hour: parseInt(hour),
+                    minute: parseInt(minute),
+                    aditionalServices: optionalService,
+                    contactInfo: contactInfo
+                })
+                .done(function (data) {
+
+                    if (data.isAuthenticated === true) {
+                        if (data.IsAdded === true) {
+                            window.location.href = "/Cart/";
+                        }
+                    }
+                    else {
+                        window.location.href = "/Account/Login/?returnUrl=" + "/Booking/ProcessToCheckOut?id=" + data.cartItemId;
+                    }
+                });
+        }
+    });
+
+</script>
+

@@ -1,0 +1,92 @@
+﻿@model netcore.VMs.EmployeeScheduleVM
+
+@{
+    ViewData["Title"] = "Details";
+    Layout = "~/Views/Shared/_AdminlteNetcoreIndex.cshtml";
+    ViewData["EntityIcon"] = "fa fa-building-o";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- Default box -->
+        <div class="box box-primary">
+            <div class="box-body">
+                <div>
+                    <dl class="dl-horizontal">
+                        <dt>
+                            @Html.DisplayNameFor(model => model.Employee.FullName)
+                        </dt>
+                        <dd>
+                            @Html.DisplayFor(model => model.Employee.FullName)
+                        </dd>
+                        <dt>
+                            @Html.DisplayNameFor(model => model.Employee.Identification)
+                        </dt>
+                        <dd>
+                            @Html.DisplayFor(model => model.Employee.Identification)
+                        </dd>
+                        <dt>
+                            @Html.DisplayNameFor(model => model.Employee.ContactNumber)
+                        </dt>
+                        <dd>
+                            @Html.DisplayFor(model => model.Employee.ContactNumber)
+                        </dd>
+                        <dt>
+                            @Html.DisplayNameFor(model => model.Employee.EmailAddress)
+                        </dt>
+                        <dd>
+                            @Html.DisplayFor(model => model.Employee.EmailAddress)
+                        </dd>
+
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <!-- /.box -->
+    </div>
+</div>
+
+<table class="table table-hover table-striped" style="width:100%">
+    <thead>
+        <tr>
+            <th><h4>Schedule</h4></th>
+        </tr>
+        <tr>
+            <th></th>
+
+            <th>
+                Day
+            </th>
+            <th>
+                Month
+            </th>
+            <th>
+                Year
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.EmployeeSchedule)
+        {
+            <tr>
+                <td>
+                    <div class="tools">
+                        <a asp-controller="EmployeeSchedules" asp-action="Details" asp-route-id="@item.EmployeeScheduleId" class="btn btn-primary btn-xs"><i class="fa fa-list"></i></a>
+                        <a asp-controller="EmployeeSchedules" asp-action="Delete" asp-route-id="@item.EmployeeScheduleId" class="btn btn-danger btn-xs"><i class="fa fa-trash"></i></a>
+                    </div>
+
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.AvaliableDay.Day)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.AvaliableDay.Month)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.AvaliableDay.Year)
+                </td>
+
+            </tr>
+        }
+    </tbody>
+</table>

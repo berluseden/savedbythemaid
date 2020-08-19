@@ -1,0 +1,129 @@
+﻿@model JempSoft.Applications.Book.Dto.ServiceItemsOnCartDto
+
+@{
+
+    Layout = null;
+
+}
+
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+
+<head>
+    <title>Cart Items</title>
+    <link href="~/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="~/css/font-awesome.min.css" rel="stylesheet" />
+    <link href="~/css/cart.css" rel="stylesheet" />
+</head>
+<body>
+
+    <div class="wrap">
+
+        <div class="bonus-products">
+            <strong>Services In Cart</strong>
+
+        </div>
+        <div class="cart-table">
+            <ul>
+
+                <!-- begin bundle product -->
+                @foreach (var item in Model.Services)
+                {
+
+                    <li id="@item.ServiceId" class="item">
+                        <div class="item-main cf">
+                            <div class="item-block ib-info cf">
+                                <img class="product-img" src="http://fakeimg.pl/150/e5e5e5/adadad/?text=IMG" />
+                                <div class="ib-info-meta">
+                                    <span class="title">@item.CleaningPlace</span>
+                                    <span class="itemno">#@item.CartItemId</span>
+                                    <span class="styles">
+                                        <span><strong>Contain</strong>: @item.CleaningPlaceRoom</span>
+                                        <span><strong>Service Type</strong>: @item.ServiceType</span>
+                                        <span><strong>Price</strong>: $@item.ServiceTypePrice</span>
+                                        <span id="btnDeleteItem" data-id="@item.ServiceId" class="btn">Delete</span>
+                                    </span>
+                                </div>
+                            </div>
+
+                        </div>
+                        <div class="bundle-block">
+                            <ul>
+                                @foreach (var subitem in item.AdditionalServicesOnCart)
+                                {
+                                    <li class="cf">
+                                        <i class="i-down-right-arrow"></i>
+                                        <img class="bundle-img" src="http://fakeimg.pl/100/e5e5e5/adadad/?text=IMG" />
+                                        <span class="bundle-title">@subitem.Title</span>
+                                        <span class="bundle-cart-itemno">$@subitem.Price</span>
+                                        <span id="btnDeleteSubItem" data-subItemid="@subitem.AdditionalServiceTypeId" class="btn">Delete</span>
+                                    </li>
+                                }
+
+                            </ul>
+                        </div>
+
+                    </li>
+                }
+                <!-- end bundle product -->
+            </ul>
+        </div>
+        <div class="sub-table cf">
+            <div class="summary-block">
+                <div class="sb-promo">
+                    <input type="text" placeholder="Enter Promo Code" />
+                    <span class="btn">Apply</span>
+                </div>
+                <ul>
+                    <li class="subtotal"><span class="sb-label">Subtotal | </span><span class="sb-value">$ @Model.Footer.SubTotal</span></li>
+                    <li class="tax"><span class="sb-label">Est. Tax | <span class="tax-edit">edit <i class="i-notch-down"></i></span></span><span class="sb-value">$5.00</span></li>
+                    <li class="grand-total"><span class="sb-label">Total | </span><span class="sb-value">$ @Model.Footer.Total</span></li>
+                </ul>
+            </div>
+        </div>
+
+
+        <div class="bonus-products">
+            <strong>Services In Cart</strong>
+            <span class="btn">Pay</span>
+        </div>
+    </div>
+
+</body>
+</html>
+
+<script src="~/js/jquery-2.2.4.min.js"></script>
+<script src="~/js/bootstrap.min.js"></script>
+
+<script>
+
+    var id = 1;
+
+    $(".tax-edit").click(function () {
+        $(this).toggleClass('te-open').parent;
+        $('.tax-calculate').slideToggle(200);
+    });
+
+    $(".if-left").click(function () {
+        $(this).prev('.if-message').slideToggle(200);
+    });
+
+    $(".bp-toggle").click(function () {
+        $('.bonus-products').slideToggle(200);
+    });
+
+    var deleteBtn = document.getElementById('btnDeleteItem');
+    var id = 0;
+
+    deleteBtn = document.getElementsByClassName("btn");
+    for (i = 0; i < deleteBtn.length; i++) {
+        deleteBtn[i].addEventListener("click", function () {
+            id = this.getAttribute("data-id");
+
+            $.post("/Cart/DeleteItem?id=" + this.getAttribute("data-id")).done(function (data) {
+                document.getElementById(id).style.display = "none";
+            });
+        });
+    }
+
+</script>

@@ -1,0 +1,254 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Saved By Maid</title>
+
+    <environment include="Development">
+        <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.css" />
+        <link rel="stylesheet" href="~/css/site.css" />
+    </environment>
+    <environment exclude="Development">
+        <link rel="stylesheet" href="https://ajax.aspnetcdn.com/ajax/bootstrap/3.3.7/css/bootstrap.min.css"
+              asp-fallback-href="~/lib/bootstrap/dist/css/bootstrap.min.css"
+              asp-fallback-test-class="sr-only" asp-fallback-test-property="position" asp-fallback-test-value="absolute" />
+        <link rel="stylesheet" href="~/css/site.min.css" asp-append-version="true" />
+    </environment>
+
+    <link href="~/css/calendar/theme1.css" rel="stylesheet" />
+
+
+
+
+    <link rel="icon" type="image/png" href="~/img/favicon.png">
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="~/img/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="57x57" href="~/img/apple-touch-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="~/img/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="~/img/apple-touch-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="~/img/apple-touch-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="~/img/apple-touch-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="~/img/apple-touch-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="~/img/apple-touch-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="~/img/apple-touch-icon-180x180.png">
+
+    <!-- Stylesheets Start -->
+    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,600,700" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Dosis:400,600,700" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Dancing+Script:400,700" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/bootstrap.min.css">
+    <link rel="stylesheet" href="~/css/font-awesome.min.css">
+    <link rel="stylesheet" href="~/css/magnific-popup.css">
+    <link rel="stylesheet" href="~/css/owl.carousel.min.css">
+    <link rel="stylesheet" href="~/css/animate.css">
+    <link rel="stylesheet" href="~/css/main.css">
+    <link rel="stylesheet" href="~/style.css">
+    <link rel="stylesheet" href="~/css/meanmenu.min.css">
+    <link rel="stylesheet" href="~/css/responsive.css">
+
+
+</head>
+<body>
+    <!-- Preloader Start -->
+    <div id="preloader">
+        <div id="preloader-status"></div>
+    </div>
+    <!-- Preloader End -->
+    <!-- Header Start -->
+    <header>
+        <!-- Menu Bar Start -->
+        <div class="hd-sec">
+            <div class="container">
+                <div class="row menu-area">
+                    <!-- Logo Start -->
+                    <div class="col-md-2 col-sm-3 col-xs-8">
+                        <div class="logo">
+                            <a asp-area="" asp-controller="Home" asp-action="Index" class="navbar-brand"><img src="~/img/logo.png" alt="" /></a>
+                        </div>
+                    </div>
+                    <!-- Logo End -->
+                    <!-- Main Menu Start -->
+                    <div class="mobile-nav-menu"></div>
+                    <div class="col-md-8 col-sm-7 menu-center">
+                        <div class="menu">
+                            <nav id="main-menu" class="main-menu">
+                                <ul>
+                                    <li><a asp-area="" asp-controller="Home" asp-action="About" class="navbar-brand" />About</li>
+                                    <li><a asp-area="" asp-controller="Home" asp-action="Service" class="navbar-brand" />Service</li>
+                                    @*<li><a asp-area="" asp-controller="Home" asp-action="Blog" class="navbar-brand">Blog</a></li>*@
+                                    <li class="active"><a asp-area="" asp-controller="Home" asp-action="Index" class="navbar-brand"><i class="fa fa-home"></i>Home</a></li>
+                                    @*<li>
+                                        <a asp-area="" asp-controller="Home" asp-action="Blog" class="navbar-brand">Blog</a>
+                                        <ul>
+                                            <li><a asp-area="" asp-controller="Home" asp-action="Blog" class="navbar-brand">Blog</a></li>
+                                            <li><a asp-area="" asp-controller="Home" asp-action="BlogDetails" class="navbar-brand">Blog Details</a></li>
+                                        </ul>
+                                    </li>*@
+                                    <li><a asp-area="" asp-controller="Home" asp-action="Contact" class="navbar-brand">Contact</a></li>
+
+                                    @if (User.Identity.IsAuthenticated)
+                                    {
+                                        <li><a asp-area="" asp-controller="Account" asp-action="Profile" class="navbar-brand" > @User.Identity.Name.Split("@")[0]</a></li>
+                                    }
+                                    else
+                                    {
+                                        @await Html.PartialAsync("_LoginPartial")
+                                    }
+                                </ul>
+
+                            </nav>
+                        </div>
+                    </div>
+                    <!-- Main Menu End -->
+                    <!-- Main Apply Button Start -->
+                    <div class="col-md-2 col-sm-2 cart-button-area">
+                        <div class="cart-button">
+                            <a href="#"><span class="cart-product">0</span></a>
+                        </div>
+                        <!-- Menu Search Bar Start -->
+                        <div class="search-bar-icon">
+                            <div class="site-search">
+                                <span data-toggle="dropdown"><i class="fa fa-search"></i></span>
+                                <div class="search-forum dropdown-menu animation slideUpIn">
+                                    <form action="#">
+                                        <input placeholder="Search For Site" type="text">
+                                        <input type="submit" value="Go" />
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Menu Search Bar End -->
+                    </div>
+                    <!-- Main Apply Button End -->
+                </div>
+            </div>
+        </div>
+        <!-- Menu Bar End -->
+    </header>
+    <div class="container body-content">
+
+        <br />
+
+        @RenderBody()
+        <hr />
+        <!-- Footer Section Start -->
+        <footer class="footer1">
+            <!-- Footer Top Section Start -->
+            <div class="footer-sec">
+                <div class="container">
+                    <div class="row">
+                        <div class="col-md-3 col-sm-6">
+                            <div class="footer-wedget-one">
+                                <a href="index.html"><img src="~/img/footer-logo.png" alt="" /></a>
+                                <p>Lorem ipsum dolor sit amet, donec augue suspendisse, turpis lacus dicta, rhoncus eget accumsan. </p>
+                                <div class="payment-logo">
+                                    <img src="~/img/payment-logo.png" alt="" />
+                                </div>
+                                <div class="call-now">
+                                    <h4>call us today</h4>
+                                    <h3>(364) 106-7572</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="footer-widget-menu">
+                                <h2>quick view</h2>
+                                <ul>
+                                    <li><a href="#">about</a></li>
+                                    <li><a href="#">support</a></li>
+                                    <li><a href="#">protfolio</a></li>
+                                    <li><a href="#">news</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="footer-widget-menu">
+                                <h2>awesome services</h2>
+                                <ul>
+                                    <li><a href="#">commercial cleaning</a></li>
+                                    <li><a href="#">house cleaning</a></li>
+                                    <li><a href="#">novum eleementum</a></li>
+                                    <li><a href="#">scilium polon</a></li>
+                                    <li><a href="#">window cleaning</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="wedget-newsletter">
+                                <h2>subscribe </h2>
+                                <form action="#">
+                                    <input placeholder="Enter  Your E-mail" type="email" />
+                                    <button type="submit"><i class="fa fa-arrow-right" aria-hidden="true"></i></button>
+                                </form>
+                            </div>
+                            <div class="footer-social">
+                                <ul>
+                                    <li><a href="#"><i class="fa fa-facebook"></i></a></li>
+                                    <li><a href="#"><i class="fa fa-twitter"></i></a></li>
+                                    <li><a href="#"><i class="fa fa-linkedin"></i></a></li>
+                                    <li><a href="#"><i class="fa fa-pinterest"></i></a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Footer Bottom Section Start -->
+                <div class="footer-bottom-sec">
+                    <div class="container">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="copy-right">
+                                    <p>&copy; copyright 2019 Saved By Maid. Designed by:<span> OLYAPPS Teams</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Footer Bottom Section End -->
+            </div>
+            <!-- Footer Top Section End -->
+        </footer>
+        <!-- Footer Section End -->
+        <!-- Scripts Js Start -->
+        <script src="~/js/jquery-2.2.4.min.js"></script>
+        <script src="~/js/bootstrap.min.js"></script>
+        <script src="~/js/isotope.pkgd.min.js"></script>
+        <script src="~/js/jquery.magnific-popup.min.js"></script>
+        <script src="~/js/owl.carousel.min.js"></script>
+        <script src="~/js/owl.animate.js"></script>
+        <script src="~/js/jquery.scrollUp.min.js"></script>
+        <script src="~/js/jquery.counterup.min.js"></script>
+        <script src="~/js/modernizr.min.js"></script>
+        <script src="~/js/waypoints.min.js"></script>
+        <script src="~/js/jquery.meanmenu.min.js"></script>
+        <script src="~/js/imagesloaded.pkgd.min.js"></script>
+        <script src="~/js/custom.js"></script>
+        <script src="~/lib/calendarJS/calendar.js"></script>
+        <!-- Scripts Js End -->
+    </div>
+
+    <environment include="Development">
+        <script src="~/lib/jquery/dist/jquery.js"></script>
+        <script src="~/lib/bootstrap/dist/js/bootstrap.js"></script>
+        <script src="~/js/site.js" asp-append-version="true"></script>
+    </environment>
+    <environment exclude="Development">
+        <script src="https://ajax.aspnetcdn.com/ajax/jquery/jquery-2.2.0.min.js"
+                asp-fallback-src="~/lib/jquery/dist/jquery.min.js"
+                asp-fallback-test="window.jQuery"
+                crossorigin="anonymous"
+                integrity="sha384-K+ctZQ+LL8q6tP7I94W+qzQsfRV2a+AfHIi9k8z8l9ggpc8X+Ytst4yBo/hH+8Fk">
+        </script>
+        <script src="https://ajax.aspnetcdn.com/ajax/bootstrap/3.3.7/bootstrap.min.js"
+                asp-fallback-src="~/lib/bootstrap/dist/js/bootstrap.min.js"
+                asp-fallback-test="window.jQuery && window.jQuery.fn && window.jQuery.fn.modal"
+                crossorigin="anonymous"
+                integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa">
+        </script>
+        <script src="~/js/site.min.js" asp-append-version="true"></script>
+    </environment>
+
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

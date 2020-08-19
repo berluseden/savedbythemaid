@@ -1,0 +1,99 @@
+﻿@model JempSoft.Core.Models.Employee
+
+@{
+    ViewData["Title"] = "Create";
+    Layout = "~/Views/Shared/_AdminlteNetcoreCreate.cshtml";
+    ViewData["EntityIcon"] = "fa fa-tags";
+    ViewData["CreateInfo"] = "Check if the employee user was created.";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <span>@ViewBag.ErrorMessage</span>
+        <div class="form-group col-md-12">
+            <div class="form-group col-md-12">
+                <label asp-for="UserId" class="control-label"></label>
+                <select asp-for="UserId" class="form-control" asp-items="ViewBag.UserId"></select>
+            </div>
+        </div>
+
+        <div class="form-group col-md-12">
+
+            <div class="form-group col-md-4">
+
+                <label asp-for="FirstName" class="control-label"></label>
+                <input asp-for="FirstName" class="form-control" />
+                <span asp-validation-for="FirstName" class="text-danger"></span>
+
+            </div>
+            <div class="form-group col-md-8">
+
+                <label asp-for="LastName" class="control-label"></label>
+                <input asp-for="LastName" class="form-control" />
+                <span asp-validation-for="LastName" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="form-group col-md-12">
+
+            <div class="form-group col-md-4">
+                <label asp-for="Identification" class="control-label"></label>
+                <input asp-for="Identification" class="form-control" />
+                <span asp-validation-for="Identification" class="text-danger"></span>
+            </div>
+
+            <div class="form-group col-md-4">
+                <label asp-for="ContactNumber" class="control-label"></label>
+                <input asp-for="ContactNumber" class="form-control" />
+                <span asp-validation-for="ContactNumber" class="text-danger"></span>
+            </div>
+
+            <div class="form-group  col-md-4">
+                <label asp-for="EmailAddress" class="control-label"></label>
+                <input asp-for="EmailAddress" class="form-control" />
+                <span asp-validation-for="EmailAddress" class="text-danger"></span>
+            </div>
+
+        </div>
+
+        <div class="form-group col-md-12">
+            <div class="form-group col-md-12">
+                <label asp-for="Address" class="control-label"></label>
+                <input asp-for="Address" class="form-control" />
+                <span asp-validation-for="Address" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+<script>
+
+    //ShowMessage('Bien');
+    ShowMessageError(@ViewBag.ErrorMessage);
+
+    if (@ViewBag.HasError) {
+
+        swal({
+            title: "Email Invalido",
+            text: @ViewBag.ErrorMessage,
+            type: "error",
+            showCancelButton: false,
+            confirmButtonColor: "#dd4b39",
+            confirmButtonText: "Ok!",
+            closeOnConfirm: true
+        }, function () {
+
+
+
+        });
+    }
+
+
+</script>
+
+
+}

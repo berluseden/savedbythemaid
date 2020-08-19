@@ -1,0 +1,182 @@
+﻿@model JempSoft.Applications.Book.Dto.ServiceItemsOnCartDto
+
+@*https://codepen.io/jrexo/pen/YNzpdp*@
+@{ 
+    decimal subtotal;
+}
+
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+
+<head>
+    @ViewData["Title"] =  "Cart Items"
+    <link rel="stylesheet" href="css/cart.css">
+</head>
+<body>
+    <div class="wrap">
+
+        <header class="cart-header cf">
+            <strong>Items in Your Cart</strong>
+            <span class="btn">Checkout</span>
+        </header>
+        <div class="bonus-products">
+            <strong>Bonus Products Block <span class="bp-toggle">(hide this block)</span></strong>
+
+        </div>
+        <div class="cart-table">
+            <ul>
+                <!-- begin bundle product -->
+
+
+                @foreach (var item in Model.Services)
+                {
+                    <!-- end variation product w/ option -->
+                    <!-- begin bundle product -->
+                    <li class="cart-item">
+                        <div class="cart-item-main cf">
+                            <div class="cart-item-block ib-info cf">
+                                <img class="product-img" src="http://fakeimg.pl/150/e5e5e5/adadad/?text=IMG" />
+                                <div class="ib-info-meta">
+                                    <span class="title">@item.CleaningPlace</span>
+                                    <span class="cart-itemno">#@item.CartItemId</span>
+                                    <span class="styles">
+                                        <span><strong>Contain</strong>: @item.CleaningPlaceRoom</span>
+                                        <span><strong>Service Type</strong>: @item.ServiceType</span>
+                                        <span><strong>Price</strong>: $@item.ServiceTypePrice</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bundle-block">
+                            <ul>
+                                @foreach (var subitem in item.AdditionalServicesOnCart)
+                                {
+                                    <li class="cf">
+                                        <i class="i-down-right-arrow"></i>
+                                        <img class="bundle-img" src="http://fakeimg.pl/100/e5e5e5/adadad/?text=IMG" />
+                                        <span class="bundle-title">@subitem.Title</span>
+                                        <span class="bundle-cart-itemno">$@subitem.Price</span>
+                                    </li>
+                                    
+                                }
+                            </ul>
+
+                        </div>
+                    </li>
+                    <!-- end bundle product -->
+                }
+
+
+
+
+                @*<li class="item">
+                    <div class="item-main cf">
+                        <div class="item-block ib-info cf">
+                            <img class="product-img" src="http://fakeimg.pl/150/e5e5e5/adadad/?text=IMG" />
+                            <div class="ib-info-meta">
+                                <span class="title">Drink Up Nalgene Water Bottle</span>
+                                <span class="itemno">#3498765</span>
+                                <span class="styles">
+                                    <span><strong>Color</strong>: Neon Green</span>
+                                    <span><strong>Size</strong>: 32oz</span>
+                                    <span><strong>Warranty</strong>: 3 Years</span>
+                                    <span class="blue-link">Edit Details</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="item-block ib-qty">
+                            <input type="text" value="3" class="qty" />
+                            <span class="price"><span>x</span> $25.00</span>
+                        </div>
+                        <div class="item-block ib-total-price">
+                            <span class="tp-price">$75.00</span>
+                            <span class="tp-remove"><i class="i-cancel-circle"></i></span>
+                        </div>
+                    </div>
+                    <div class="bundle-block">
+                        <ul>
+                            <li class="cf">
+                                <i class="i-down-right-arrow"></i>
+                                <img class="bundle-img" src="http://fakeimg.pl/100/e5e5e5/adadad/?text=IMG" />
+                                <span class="bundle-title">Nalgene Orange Cap</span>
+                                <span class="bundle-itemno">#9872656</span>
+                            </li>
+                            <li class="cf">
+                                <i class="i-down-right-arrow"></i>
+                                <img class="bundle-img" src="http://fakeimg.pl/100/e5e5e5/adadad/?text=IMG" />
+                                <span class="bundle-title">Nalgene Orange Cap</span>
+                                <span class="bundle-itemno">#9872656</span>
+                            </li>
+                        </ul>
+
+                    </div>
+                    <div class="item-foot cf">
+
+                        <div class="if-left"><span class="if-status">In Stock</span></div>
+                        <div class="if-right"><span class="blue-link">Gift Options</span> | <span class="blue-link">Add to Registry</span> | <span class="blue-link">Add to Wishlist</span></div>
+                    </div>
+                </li>*@
+                <!-- end bundle product -->
+            </ul>
+        </div>
+        <div class="sub-table cf">
+            <div class="summary-block">
+                <div class="sb-promo">
+                    <input type="text" placeholder="Enter Promo Code" />
+                    <span class="btn">Apply</span>
+                </div>
+                <ul>
+                    <li class="subtotal"><span class="sb-label">Subtotal</span><span class="sb-value">$25.99</span></li>
+                    <li class="shipping"><span class="sb-label">Shipping</span><span class="sb-value">n/a</span></li>
+                    <li class="tax"><span class="sb-label">Est. Tax | <span class="tax-edit">edit <i class="i-notch-down"></i></span></span><span class="sb-value">$5.00</span></li>
+                    <li class="tax-calculate"><input type="text" value="06484" class="tax" /><span class="btn">Calculate</span></li>
+                    <li class="grand-total"><span class="sb-label">Total</span><span class="sb-value">$120.99</span></li>
+                </ul>
+            </div>
+            <div class="copy-block">
+                <p>Items will be saved in your cart for 30 days. To save items longer, add them to your <a href="#">Wish List</a>.</p>
+                <p class="customer-care">
+                    Call us M-F 8:00 am to 6:00 pm EST<br />
+                    (877)-555-5555 or <a href="#">contact us</a>. <br />
+                </p>
+            </div>
+        </div>
+
+        <div class="cart-footer cf">
+            <span class="btn">Checkout</span>
+            <span class="cont-shopping"><i class="i-angle-left"></i>Continue Shopping</span>
+        </div>
+    </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   
+</body>
+</html>
+
+<script>
+    $(".tax-edit").click(function () {
+        $(this).toggleClass('te-open').parent;
+        $('.tax-calculate').slideToggle(200);
+    });
+
+    $(".if-left").click(function () {
+        $(this).prev('.if-message').slideToggle(200);
+    });
+
+    $(".bp-toggle").click(function () {
+        $('.bonus-products').slideToggle(200);
+    });
+</script>

@@ -1,0 +1,73 @@
+﻿@model JempSoft.Core.Models.ServiceMeet
+
+@{
+    ViewData["Title"] = "Details";
+    Layout = "~/Views/Shared/_AdminlteNetcoreCreate.cshtml";
+}
+
+<h2>Details</h2>
+
+<div>
+    <h4>ServiceMeet</h4>
+    <hr />
+    <dl class="dl-horizontal">
+        <dt>
+            @Html.DisplayNameFor(model => model.Title)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.Title)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.Address)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.Address)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.Day)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.Day)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.Month)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.Month)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.Year)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.Year)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.Hour)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.Hour)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.Minute)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.Minute)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.isMorning)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.isMorning)
+        </dd>
+        <dt>
+            @Html.DisplayNameFor(model => model.CartItem)
+        </dt>
+        <dd>
+            @Html.DisplayFor(model => model.CartItem.CartItemId)
+        </dd>
+    </dl>
+</div>
+<div>
+    <a asp-action="Edit" asp-route-id="@Model.ServiceMeetId">Edit</a> |
+    <a asp-action="Index">Back to List</a>
+</div>

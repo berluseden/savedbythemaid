@@ -1,0 +1,115 @@
+﻿@model netcore.VMs.CleaningPlacePlaceRoomsVM
+@{
+    ViewData["Title"] = "AddPlaceRoom";
+    Layout = "~/Views/Shared/_AdminlteNetcoreCustom.cshtml";
+    ViewData["EntityIcon"] = "fa fa-tags";
+
+    ViewBag.ControllerActionView = "AddPlaceRoom";
+
+    var cleaningPlaceRooms = ViewBag.CleaningPlaceRooms;
+}
+
+
+<div class="row">
+    <span>@ViewBag.ErrorMessage</span>
+    <div class="col-md-12">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" asp-for="CleaningPlace.CleaningPlaceId" />
+
+
+        <div class="form-group">
+            <label asp-for="CleaningPlace.Title" class="control-label"></label>
+            <input asp-for="CleaningPlace.Title" class="form-control" readonly />
+            <span asp-validation-for="CleaningPlace.Title" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <div class="col-md-12">
+            <div class="form-group">
+                <label asp-for="CleaningPlaceRooms" class="control-label">Rooms</label>
+
+                @*<select asp-for="CleaningPlaceRooms" class="form-control select2"
+                asp-items="cleaningPlaceRooms">
+        </select>*@
+
+                <select id="multiple" asp-for="CleaningPlaceRoomIds" class="select2 form-control" asp-items="cleaningPlaceRooms" required readonly></select>
+
+                <span asp-validation-for="CleaningPlaceRoomIds" class="text-danger"></span>
+
+                <span asp-validation-for="CleaningPlaceRooms" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<table class="table table-hover table-striped" style="width:100%">
+    <thead>
+        <tr>
+            <th style="text-align: center">
+                Places Types
+            </th>
+        </tr>
+    </thead>
+   
+</table>
+<div class="row">
+
+    <table class="table table-hover table-striped" style="width:100%">
+        <thead>
+            <tr>
+                <th></th>
+                <th>
+                    Title
+                </th>
+
+                <th>
+                    IsActive
+                </th>
+
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.CleaningPlaceRoomAddeds)
+            {
+                <tr>
+                    <td>
+                        <div class="tools">
+                            <a asp-action="AddServiceTypeToPlaceRoom" asp-controller="CleaningPlaceRooms" asp-route-id="@item.CleaningPlaceRoomId" class="btn btn-primary btn-xs"><i class="fa fa-plus"></i></a>
+
+                        </div>
+
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Title)
+                    </td>
+
+                    <td>
+                        @Html.DisplayFor(modelItem => item.IsActive)
+                    </td>
+
+                </tr>
+            }
+        </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+</div>
+
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
