@@ -6,10 +6,13 @@
 
   <ItemGroup>
     <Compile Remove="Extension\**" />
+    <Compile Remove="Migrations\**" />
     <Compile Remove="MVC\**" />
     <EmbeddedResource Remove="Extension\**" />
+    <EmbeddedResource Remove="Migrations\**" />
     <EmbeddedResource Remove="MVC\**" />
     <None Remove="Extension\**" />
+    <None Remove="Migrations\**" />
     <None Remove="MVC\**" />
   </ItemGroup>
 
@@ -19,10 +22,6 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="2.0.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="2.0.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="2.0.3" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Migrations\" />
   </ItemGroup>
 
 </Project>

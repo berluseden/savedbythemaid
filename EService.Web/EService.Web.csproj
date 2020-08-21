@@ -29,9 +29,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="D:\Projectos\SavedByTheMaid\Inventory and Order Management\netcore\JempSoft.Applications\JempSoft.Applications.csproj" />
-    <ProjectReference Include="D:\Projectos\SavedByTheMaid\Inventory and Order Management\netcore\JempSoft.Core\JempSoft.Core.csproj" />
-    <ProjectReference Include="D:\Projectos\SavedByTheMaid\Inventory and Order Management\netcore\JempSoft.Infraestructure\JempSoft.Infraestructure.csproj" />
+    <ProjectReference Include="..\JempSoft.Applications\JempSoft.Applications.csproj" />
+    <ProjectReference Include="..\JempSoft.Core\JempSoft.Core.csproj" />
+    <ProjectReference Include="..\JempSoft.Infraestructure\JempSoft.Infraestructure.csproj" />
   </ItemGroup>
 
 </Project>

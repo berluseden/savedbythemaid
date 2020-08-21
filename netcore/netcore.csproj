@@ -12,19 +12,10 @@
     <None Remove="Models\Invent\**" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Remove="Migrations\20200609112219_manytomany_cleaningplacecleaningplcaroom.cs" />
-    <Compile Remove="Migrations\20200609112219_manytomany_cleaningplacecleaningplcaroom.Designer.cs" />
-    <Compile Remove="Migrations\20200708225043_ServiceOrder_Entities.cs" />
-    <Compile Remove="Migrations\20200708225043_ServiceOrder_Entities.Designer.cs" />
-    <Compile Remove="Migrations\20200815023823_ServiceOrderLong.cs" />
-    <Compile Remove="Migrations\20200815023823_ServiceOrderLong.Designer.cs" />
-  </ItemGroup>
-
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.All" Version="2.0.6" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="2.0.2" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="2.0.3" PrivateAssets="All" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="2.0.4" />
     <PackageReference Include="Sendgrid" Version="9.9.0" />
     <PackageReference Include="SweetAlert" Version="1.0.0" />
@@ -42,8 +33,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="C:\Users\Carlos\source\repos\JempSoft\JempSoft.Applications\JempSoft.Applications.csproj" />
-    <ProjectReference Include="C:\Users\Carlos\source\repos\JempSoft\JempSoft.Core\JempSoft.Core.csproj" />
+    <ProjectReference Include="..\JempSoft.Applications\JempSoft.Applications.csproj" />
+    <ProjectReference Include="..\JempSoft.Core\JempSoft.Core.csproj" />
   </ItemGroup>
 
 </Project>
