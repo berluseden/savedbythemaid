@@ -30,7 +30,7 @@
             <ul class="sidebar-menu" data-widget="tree">
 
 
-                <li class="header">INVENTORY MANAGEMENT</li>
+                <li class="header">MANAGEMENT MENU</li>
                 @if (appUser.HomeRole)
                 {
                     <li class="@Html.IsSelected(controller: "Home")">
@@ -159,6 +159,47 @@
 
                 @if (appUser.ApplicationUserRole)
                 {
+                    <li class="header">BASICS</li>
+                    <li class="@Html.IsSelected(controller: "ApplicationUser")">
+                        <a href="@Url.Action("Index", "CleaningPlaces")">
+                            <i class="fa fa-bed"></i> <span>Cleaning Places</span>
+                        </a>
+                    </li>
+
+                    <li class="@Html.IsSelected(controller: "ApplicationUser")">
+                        <a href="@Url.Action("Index", "CleaningPlaceRooms")">
+                            <i class="fa fa-bath"></i> <span>Cleaning Places Rooms</span>
+                        </a>
+                    </li>
+
+                    <li class="@Html.IsSelected(controller: "ApplicationUser")">
+                        <a href="@Url.Action("Index", "Employees")">
+                            <i class="fa fa-users"></i> <span>Employees</span>
+                        </a>
+                    </li>
+
+                    <li class="@Html.IsSelected(controller: "ApplicationUser")">
+                        <a href="@Url.Action("Index", "EmployeeSchedules")">
+                            <i class="fa fa-calendar-check-o"></i> <span>Employees Schedules</span>
+                        </a>
+                    </li>
+
+                    <li class="@Html.IsSelected(controller: "ApplicationUser")">
+                        <a href="@Url.Action("Index", "ServiceTypes")">
+                            <i class="fa fa-id-card-o"></i> <span>Service Types</span>
+                        </a>
+                    </li>
+
+                    <li class="@Html.IsSelected(controller: "ApplicationUser")">
+                        <a href="@Url.Action("Index", "AdditionalServiceTypes")">
+                            <i class="fa fa-shopping-bag"></i> <span>Additional Service Types</span>
+                        </a>
+                    </li>
+
+                }
+
+                @if (appUser.ApplicationUserRole)
+                {
                     <li class="header">CONFIG</li>
                     <li class="@Html.IsSelected(controller: "ApplicationUser")">
                         <a href="@Url.Action("Index", "ApplicationUser")">
@@ -168,12 +209,12 @@
 
                 }
 
-                <li class="header">BONUS TEMPLATE</li>
-                <li class="@Html.IsSelected(controller: "Adminlte", action: "Dashboardv1")">
-                    <a href="@lte.MVC.Pages.Dashbaordv1.Url" target="_blank">
-                        <i class="fa fa-gears"></i> <span>Demo</span>
-                    </a>
-                </li>
+                @*<li class="header">BONUS TEMPLATE</li>
+        <li class="@Html.IsSelected(controller: "Adminlte", action: "Dashboardv1")">
+            <a href="@lte.MVC.Pages.Dashbaordv1.Url" target="_blank">
+                <i class="fa fa-gears"></i> <span>Demo</span>
+            </a>
+        </li>*@
             </ul>
 
         }
