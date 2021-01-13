@@ -15,7 +15,7 @@
     <!-- /.login-logo -->
     <div class="login-box-body">
         <div class="login-logo bg-primary">
-            <i class="fa fa-cubes"></i><a href="@netcore.MVC.Pages.HomeIndex.Url" style="color:white"><b>IN</b>VENTORY</a>
+            <i class="fa fa-cubes"></i><a href="@netcore.MVC.Pages.HomeIndex.Url" style="color:white"><b>SBM </b>MANAGEMENT</a>
         </div>
         <p class="login-box-msg">Sign in to start your session</p>
         <form asp-route-returnurl="@ViewData["ReturnUrl"]" method="post">
@@ -58,10 +58,10 @@
             </div>
             <!-- /.social-auth-links -->
             <a asp-action="ForgotPassword">I forgot my password</a><br>
-            <a asp-action="Register" asp-route-returnurl="@ViewData["ReturnUrl"]" class="text-center">Register a new membership</a>
+            @*<a asp-action="Register" asp-route-returnurl="@ViewData["ReturnUrl"]" class="text-center">Register a new membership</a>
             <p class="pull-right">
                 <span style="font-style:italic;"><small>*Demo => Email: super@admin.com Password: 123456</small></span>
-            </p>
+            </p>*@
         </form>
 
 
