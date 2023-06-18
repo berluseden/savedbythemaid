@@ -142,9 +142,9 @@ textarea:focus, input:focus{
     bottom: 0;
 }
 #preloader-status {
-    height: 20px;
+    height: 160px;
 	width: 160px;
-    background: url(../img/preloader.gif);
+    background: url(../img/loading.gif);
     background-repeat: no-repeat;
     background-position: center;
     margin: -100px 0 0 -100px;
