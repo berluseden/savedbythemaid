@@ -11,7 +11,7 @@
     <meta charset="utf-8">
     <meta name="description" content="ecoMaid 911 || Cleaning Services Company">
     <meta name="keywords" content="clean, cleaning, cleaning products, commercial cleaning, house cleaning, housekeeping, janitorial, laundry, maid, move in out, post renovation, window cleaning">
-    <meta name="author" content="Theme Path">
+    <meta name="author" content="JempSoft">
     <!-- Title -->
     <title>ecoMaid 911 || Cleaning Services Company</title>
     <!-- Favicon Icon -->
@@ -73,21 +73,11 @@
                             <nav id="main-menu" class="main-menu">
                                 <ul>
                                     <li><a href="about.html">about</a></li>
-                                    <li><a href="service.html">service</a></li>
-                                    <li><a href="blog.html">blog</a></li>
-                                    <li class="active"><a href="index.html"><i class="fa fa-home"></i>Home</a></li>
-                                    <li>
-                                        <a href="blog.html">blog</a>
-                                        <ul>
-                                            <li><a href="blog.html">blog</a></li>
-                                            <li><a href="blog-details.html">blog details</a></li>
-                                        </ul>
-                                    </li>
-
+                                    <li class="active"><a href="#"><i class="fa fa-home"></i>Home</a></li>
                                     <li><a href="contact.html">contact</a></li>
                                     @if (User.Identity.IsAuthenticated)
                                     {
-                                        <li>| <a href="contact.html"> @User.Identity.Name.Split("@")[0]</a></li>
+                                        <li> <a href="contact.html"> User: @User.Identity.Name.Split("@")[0]</a></li>
                                     }
                                     else
                                     {
@@ -179,7 +169,7 @@
                 <div class="col-md-12">
                     <div class="section-title">
                         <span class="sub-title">services</span>
-                        <h1>our best services</h1>
+                        <h1>Please let us take care of you</h1>
                         <div class="title-shape">
                             <span>
                                 <i class="fa fa-circle"></i>
@@ -198,7 +188,7 @@
                         <div class="service-img">
                             <img src="img/service-1.jpg" alt="" />
                             <div class="service-icon">
-                                <img src="img/icon/service-icon-1.png" alt="" />
+                                <img src="img/icon/service-icon-5.png" alt="" />
                             </div>
                         </div>
                         <div class="service-desc">
@@ -217,17 +207,17 @@
                 <div class="col-md-4 col-sm-4">
                     <div class="single-service-inner">
                         <div class="service-img">
-                            <img src="img/service-2.jpg" alt="" />
+                            <img src="img/blog-2.jpg" alt="" />
                             <div class="service-icon">
-                                <img src="img/icon/service-icon-5.png" alt="" />
+                                <img src="img/icon/service-icon-7.png" alt="" />
                             </div>
                         </div>
                         <div class="service-desc">
-                            <h2>windows cleaning</h2>
+                            <h2>house cleaning service</h2>
                         </div>
                         <div class="service-overlay">
                             <div class="service-overlay-middle">
-                                <h2>windows cleaning</h2>
+                                <h2>house cleaning service</h2>
                                 <a href="#"><i class="fa fa-long-arrow-right"></i></a>
                             </div>
                         </div>
@@ -238,253 +228,105 @@
                 <div class="col-md-4 col-sm-4">
                     <div class="single-service-inner">
                         <div class="service-img">
-                            <img src="img/service-3.jpg" alt="" />
+                            <img src="img/service-4.jpg" alt="" />
                             <div class="service-icon">
                                 <img src="img/icon/service-icon-3.png" alt="" />
                             </div>
                         </div>
                         <div class="service-desc">
-                            <h2>clean construction site</h2>
+                            <h2>apartment cleaning service</h2>
                         </div>
                         <div class="service-overlay">
                             <div class="service-overlay-middle">
-                                <h2>clean construction site</h2>
+                                <h2>apartment cleaning service</h2>
                                 <a href="#"><i class="fa fa-long-arrow-right"></i></a>
                             </div>
                         </div>
                     </div>
                 </div>
-                <!-- Single Service Inner End -->
-            </div>
-        </div>
-    </div>
-    <!-- Service Section End -->
-    <!-- Why Us Section Start -->
-    <div class="why-us-sec pt-100 pb-80">
-        <div class="container">
-            <div class="row">
-                <div class="why-us-inner-sec">
-                    <div class="col-md-8">
-                        <div class="process-step">
-                            <div class="process-middle-step">
-                                <div class="single-process-step">
-                                    <span class="process-no">01</span>
-                                    <span class="process-icon"><img src="img/icon/vacuum.png" alt="" /></span>
-                                </div>
-                                <div class="single-process-step">
-                                    <span class="process-no">02</span>
-                                    <span class="process-icon"><img src="img/icon/vacuum.png" alt="" /></span>
-                                </div>
-                                <div class="single-process-step">
-                                    <span class="process-no">03</span>
-                                    <span class="process-icon"><img src="img/icon/vacuum.png" alt="" /></span>
-                                </div>
-                                <div class="single-process-step">
-                                    <span class="process-no">04</span>
-                                    <span class="process-icon"><img src="img/icon/vacuum.png" alt="" /></span>
-                                </div>
-                                <h1>our process</h1>
+                <!-- Single Service Inner Start -->
+                <div class="col-md-4 col-sm-4">
+                    <div class="single-service-inner">
+                        <div class="service-img">
+                            <img src="img/b-4.jpg" alt="" />
+                            <div class="service-icon">
+                                <img src="img/icon/service-icon-6.png" alt="" />
                             </div>
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="why-us-list">
-                            <div class="why-us-list-inner">
-                                <div class="why-us-list-inner-title">
-                                    <h2><img src="img/icon/list-vacuu-icon-1.png" alt="" /><span>Deep Vacuuming</span></h2>
-                                    <p>Lorem ipsum dolor sit amet, modi interdum iull mcorper velit accums ntrye more.</p>
-                                </div>
-                            </div>
-                            <div class="why-us-list-inner">
-                                <div class="why-us-list-inner-title">
-                                    <h2><img src="img/icon/list-vacuu-icon-2.png" alt="" /><span>Stop & Stain Removal</span></h2>
-                                    <p>Lorem ipsum dolor sit amet, modi interdum iull mcorper velit accums ntrye more.</p>
-                                </div>
-                            </div>
-                            <div class="why-us-list-inner">
-                                <div class="why-us-list-inner-title">
-                                    <h2><img src="img/icon/list-vacuu-icon-3.png" alt="" /><span>Hot Water Extraction</span></h2>
-                                    <p>Lorem ipsum dolor sit amet, modi interdum iull mcorper velit accums ntrye more.</p>
-                                </div>
-                            </div>
-                            <div class="why-us-list-inner">
-                                <div class="why-us-list-inner-title">
-                                    <h2><img src="img/icon/list-vacuu-icon-4.png" alt="" /><span>Add Protection</span></h2>
-                                    <p>Lorem ipsum dolor sit amet, modi interdum iull mcorper velit accums ntrye more.</p>
-                                </div>
+                        <div class="service-desc">
+                            <h2>outdoor cleaning service</h2>
+                        </div>
+                        <div class="service-overlay">
+                            <div class="service-overlay-middle">
+                                <h2>outdoor cleaning service</h2>
+                                <a href="#"><i class="fa fa-long-arrow-right"></i></a>
                             </div>
                         </div>
                     </div>
                 </div>
+                <!-- Single Service Inner Start -->
+                <div class="col-md-4 col-sm-4">
+                    <div class="single-service-inner">
+                        <div class="service-img">
+                            <img src="img/b-2.jpg" alt="" />
+                            <div class="service-icon">
+                                <img src="img/icon/service-icon-1.png" alt="" />
+                            </div>
+                        </div>
+                        <div class="service-desc">
+                            <h2>after party cleaning service</h2>
+                        </div>
+                        <div class="service-overlay">
+                            <div class="service-overlay-middle">
+                                <h2>after party cleaning service</h2>
+                                <a href="#"><i class="fa fa-long-arrow-right"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Single Service Inner Start -->
+                <div class="col-md-4 col-sm-4">
+                    <div class="single-service-inner">
+                        <div class="service-img">
+                            <img src="img/service-3.jpg" alt="" />
+                            <div class="service-icon">
+                                <img src="img/icon/service-icon-8.png" alt="" />
+                            </div>
+                        </div>
+                        <div class="service-desc">
+                            <h2>move in or move out cleaning service</h2>
+                        </div>
+                        <div class="service-overlay">
+                            <div class="service-overlay-middle">
+                                <h2>move in or move out cleaning service</h2>
+                                <a href="#"><i class="fa fa-long-arrow-right"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
-    <!-- Why Us Section End -->
+    <!-- Service Section End -->
     <!-- Call To Action Section Start -->
     <div class="call-to-action-sec">
         <div class="container">
             <div class="row all-to-action-area">
                 <div class="col-md-7 col-sm-9">
                     <div class="call-to-action-text">
-                        <h2>we are best cleaning company  you can trust, eu luctus in lectus odio </h2>
-                        <p>Amet erat non ante, sit in habitant lectus at, morbi ridiculus metus sodales vivamus. Elit accusantium suspendisse lectus nunc, ipsum in adipiscing tempor. Urna risus vestibulum ac eu, lorem sed tincidunt phasellus mauris, ac rutrum proin erat suscipit beatae, at ipsum enim nullam eleifend dapibus, pede ultrices non faucibus nonummy pulvinar. Nascetur libero faucibus aenean tellus ultrices, eu luctus in lectus odio et, morbi cras etiam eu, a duis ut nunc, volutpat porttitor vestibulum. Convallis augue lacus sed sem mauris, tempus et mauris quam. Ullamcorper</p>
+                        <h2>Our mission is to leave you satisfied and happy</h2>
+                        <p>
+                            Our company specializes in residential and commercial cleaning, We offer a variety of
+                            services to meet your needs, We also use high-quality cleaning supplies
+                        </p>
                         <a href="contact.html" class="btn">view details</a>
                     </div>
                 </div>
-                <div class="col-md-5 video-sec">
-                    <div class="video-sec-middle">
-                        <div class="vedio-button">
-                            <a href="https://www.youtube.com/watch?v=YzDz8g1z83U" class="mfp-iframe vedio-play"></a>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
-    <!-- Call To Action Section Start -->
-    <div class="testimonial-and-faq-sec pt-100 pb-80">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-6">
-                    <!-- Section Title Start -->
-                    <div class="section-title">
-                        <span class="sub-title">testimonial</span>
-                        <h1>what`s client say about us</h1>
-                        <div class="title-shape">
-                            <span>
-                                <i class="fa fa-circle"></i>
-                                <i class="fa fa-circle"></i>
-                                <i class="fa fa-circle"></i>
-                            </span>
-                        </div>
-                    </div>
-                    <!-- Section Title End -->
-                    <div class="all-testimonial">
-                        <div class="single-testimonial">
-                            <div class="client-comment">
-                                <div class="client-thumb">
-                                    <img src="img/client-1.jpg" alt="" />
-                                    <div class="shape-box"></div>
-                                </div>
-                                <h2>Luis Rivas</h2>
-                                <h3>Software Developer</h3>
-                                <p>Justo eget pretium mauris vel volutpmauris. Nulla lobortis porttitor id vehicula suspendisse donec nam commodo a erat.  bangladesh is a butiful country</p>
-                            </div>
-                        </div>
-                        <div class="single-testimonial">
-                            <div class="client-comment">
-                                <div class="client-thumb">
-                                    <img src="img/client-2.jpg" alt="" />
-                                    <div class="shape-box"></div>
-                                </div>
-                                <h2>Carlos Baez</h2>
-                                <h3>Software Developer</h3>
-                                <p>Justo eget pretium mauris vel volutpmauris. Nulla lobortis porttitor id vehicula suspendisse donec nam commodo a erat.  bangladesh is a butiful country</p>
-                            </div>
-                        </div>
-                        <div class="single-testimonial">
-                            <div class="client-comment">
-                                <div class="client-thumb">
-                                    <img src="img/client-3.jpg" alt="" />
-                                    <div class="shape-box"></div>
-                                </div>
-                                <h2>Ruben Peña</h2>
-                                <h3>Software Developer</h3>
-                                <p>Justo eget pretium mauris vel volutpmauris. Nulla lobortis porttitor id vehicula suspendisse donec nam commodo a erat.  bangladesh is a butiful country</p>
-                            </div>
-                        </div>
-                        <div class="single-testimonial">
-                            <div class="client-comment">
-                                <div class="client-thumb">
-                                    <img src="img/client-4.jpg" alt="" />
-                                    <div class="shape-box"></div>
-                                </div>
-                                <h2>Eulalia Daugherty</h2>
-                                <h3>Lawyer</h3>
-                                <p>Justo eget pretium mauris vel volutpmauris. Nulla lobortis porttitor id vehicula suspendisse donec nam commodo a erat.  bangladesh is a butiful country</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 faq-area">
-                    <!-- Section Title Start -->
-                    <div class="section-title">
-                        <span class="sub-title">faq</span>
-                        <h1>some common question</h1>
-                        <div class="title-shape">
-                            <span>
-                                <i class="fa fa-circle"></i>
-                                <i class="fa fa-circle"></i>
-                                <i class="fa fa-circle"></i>
-                            </span>
-                        </div>
-                    </div>
-                    <!-- Section Title End -->
-                    <div class="faq-sec">
-                        <div class="panel-group" id="accordion" role="tablist">
-                            <div class="panel">
-                                <div class="panel-heading" role="tab" id="titleOne">
-                                    <h4 class="panel-title">
-                                        <a data-toggle="collapse" data-parent="#accordion" href="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
-                                            how to get apoinment?
-                                        </a>
-                                    </h4>
-                                </div>
-                                <div id="collapseOne" class="panel-collapse collapse" role="tabpanel" aria-labelledby="titleOne">
-                                    <div class="panel-content">
-                                        <p>Lorem ipsum dolor sit amet, modi interdum ipsum ullamcorper velit, jaccumsan accumsan urna vel pellentesque, suscipit amet ipsum scelerisque  domen to do games tatal pin.</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="panel">
-                                <div class="panel-heading active" role="tab" id="titleTwo">
-                                    <h4 class="panel-title">
-                                        <a class="collapse" data-toggle="collapse" data-parent="#accordion" href="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
-                                            our company commitment
-                                        </a>
-                                    </h4>
-                                </div>
-                                <div id="collapseTwo" class="panel-collapse collapsed in" role="tabpanel" aria-labelledby="titleTwo">
-                                    <div class="panel-content">
-                                        <p>Lorem ipsum dolor sit amet, modi interdum ipsum ullamcorper velit, jaccumsan accumsan urna vel pellentesque, suscipit amet ipsum scelerisque  domen to do games tatal pin.</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="panel">
-                                <div class="panel-heading" role="tab" id="titleThree">
-                                    <h4 class="panel-title">
-                                        <a class="collapse" data-toggle="collapse" data-parent="#accordion" href="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
-                                            why people like us
-                                        </a>
-                                    </h4>
-                                </div>
-                                <div id="collapseThree" class="panel-collapse collapse" role="tabpanel" aria-labelledby="titleThree">
-                                    <div class="panel-content">
-                                        <p>Lorem ipsum dolor sit amet, modi interdum ipsum ullamcorper velit, jaccumsan accumsan urna vel pellentesque, suscipit amet ipsum scelerisque  domen to do games tatal pin.</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="panel">
-                                <div class="panel-heading" role="tab" id="titleFour">
-                                    <h4 class="panel-title">
-                                        <a class="collapse" data-toggle="collapse" data-parent="#accordion" href="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
-                                            how many service provided
-                                        </a>
-                                    </h4>
-                                </div>
-                                <div id="collapseFour" class="panel-collapse collapse" role="tabpanel" aria-labelledby="titleFour">
-                                    <div class="panel-content">
-                                        <p>Lorem ipsum dolor sit amet, modi interdum ipsum ullamcorper velit, jaccumsan accumsan urna vel pellentesque, suscipit amet ipsum scelerisque  domen to do games tatal pin.</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Call To Action Section End -->
     <!-- Team Section Start -->
     <div class="team-sec pt-100 pb-80">
         <div class="container">
@@ -501,13 +343,6 @@
                                 <div class="team-desc">
                                     <span>cleaning expert</span>
                                     <h2>Daphnee Schoen</h2>
-                                    <p>Lorem ipsum dolo sametiaculis dui luctus non elem vulputate risus wisi amet congue and too</p>
-                                    <ul>
-                                        <li><a href="#"><i class="fa fa-facebook"></i></a></li>
-                                        <li><a href="#"><i class="fa fa-twitter"></i></a></li>
-                                        <li><a href="#"><i class="fa fa-skype"></i></a></li>
-                                        <li><a href="#"><i class="fa fa-linkedin"></i></a></li>
-                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -525,13 +360,6 @@
                                 <div class="team-desc">
                                     <span>cleaning expert</span>
                                     <h2>Madaline Gibson</h2>
-                                    <p>Lorem ipsum dolo sametiaculis dui luctus non elem vulputate risus wisi amet congue and too</p>
-                                    <ul>
-                                        <li><a href="#"><i class="fa fa-facebook"></i></a></li>
-                                        <li><a href="#"><i class="fa fa-twitter"></i></a></li>
-                                        <li><a href="#"><i class="fa fa-skype"></i></a></li>
-                                        <li><a href="#"><i class="fa fa-linkedin"></i></a></li>
-                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -544,13 +372,6 @@
                                 <div class="team-desc">
                                     <span>cleaning expert</span>
                                     <h2>Eulalia Daugherty</h2>
-                                    <p>Lorem ipsum dolo sametiaculis dui luctus non elem vulputate risus wisi amet congue and too</p>
-                                    <ul>
-                                        <li><a href="#"><i class="fa fa-facebook"></i></a></li>
-                                        <li><a href="#"><i class="fa fa-twitter"></i></a></li>
-                                        <li><a href="#"><i class="fa fa-skype"></i></a></li>
-                                        <li><a href="#"><i class="fa fa-linkedin"></i></a></li>
-                                    </ul>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -573,13 +394,6 @@
                                 <div class="team-desc">
                                     <span>cleaning expert</span>
                                     <h2>Genoveva Leannon</h2>
-                                    <p>Lorem ipsum dolo sametiaculis dui luctus non elem vulputate risus wisi amet congue and too</p>
-                                    <ul>
-                                        <li><a href="#"><i class="fa fa-facebook"></i></a></li>
-                                        <li><a href="#"><i class="fa fa-twitter"></i></a></li>
-                                        <li><a href="#"><i class="fa fa-skype"></i></a></li>
-                                        <li><a href="#"><i class="fa fa-linkedin"></i></a></li>
-                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -589,103 +403,15 @@
         </div>
     </div>
     <!-- Team Section End -->
-    <!-- Offer Section Start -->
-    <div class="why-choose-list-sec">
-        <div class="why-choose-list-sec-overlay"></div>
-        <div class="container">
-            <div class="row">
-                <div class="col-md-6 col-sm-6">
-                    <div class="why-choose-list">
-                        <!-- Section Title Start -->
-                        <div class="section-title">
-                            <span class="sub-title">we best</span>
-                            <h1>why choose us</h1>
-                            <div class="title-shape">
-                                <span>
-                                    <i class="fa fa-circle"></i>
-                                    <i class="fa fa-circle"></i>
-                                    <i class="fa fa-circle"></i>
-                                </span>
-                            </div>
-                        </div>
-                        <!-- Section Title End -->
-                        <div class="why-choose-list-inner">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="why-choose-single-item">
-                                        <div class="choose-list-inner-img">
-                                            <img src="img/icon/start.png" alt="" />
-                                        </div>
-                                        <div class="choose-list-inner-desc">
-                                            <h2>High Spirit & Cheap</h2>
-                                            <span>24hrs With</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="why-choose-single-item">
-                                        <div class="choose-list-inner-img">
-                                            <img src="img/icon/price.png" alt="" />
-                                        </div>
-                                        <div class="choose-list-inner-desc">
-                                            <h2>Cleaning With Price</h2>
-                                            <span>All products</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="why-choose-single-item">
-                                        <div class="choose-list-inner-img">
-                                            <img src="img/icon/list-vacum.png" alt="" />
-                                        </div>
-                                        <div class="choose-list-inner-desc">
-                                            <h2>Cheap & Quick</h2>
-                                            <span>services with</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="why-choose-single-item">
-                                        <div class="choose-list-inner-img">
-                                            <img src="img/icon/folder.png" alt="" />
-                                        </div>
-                                        <div class="choose-list-inner-desc">
-                                            <h2>Fish Properly In Order</h2>
-                                            <span>Clean &  fash</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 col-sm-6">
-                    <div class="offer-text-area">
-                        <div class="offer-text">
-                            <h4>our best offer</h4>
-                            <h2>get more batter offer for you</h2>
-                            <p>Need any kind of help about services or  to know tecnical support. we are ready 24/7.</p>
-                            <a href="#">Get Service</a>
-                        </div>
-                        <div class="call-button">
-                            <h4>call us today</h4>
-                            <h3>(364) 106-7572</h3>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Offer Section End -->
-    <!-- Pricing Section Start -->
-    <div class="pricing-sec pt-100 pb-80">
+    <!-- Testimonial Start -->
+    <div class="testimonial-and-faq-sec pt-100 pb-80">
         <div class="container">
             <div class="row">
                 <div class="col-md-12">
                     <!-- Section Title Start -->
                     <div class="section-title">
-                        <span class="sub-title">pricing plan</span>
-                        <h1>choose your best pricing plan </h1>
+                        <span class="sub-title">testimonial</span>
+                        <h1>what`s client say about us</h1>
                         <div class="title-shape">
                             <span>
                                 <i class="fa fa-circle"></i>
@@ -695,126 +421,69 @@
                         </div>
                     </div>
                     <!-- Section Title End -->
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-4 col-sm-4 single-pricing-inner">
-                    <div class="single-pricing">
-                        <div class="pricing-heading">
-                            <h1>$250<span>per month</span></h1>
-                            <h2 class="pricing-level">basic services</h2>
-                        </div>
-                        <ul>
-                            <li>Weekly cleaning service</li>
-                            <li>Up to 2500 square feet</li>
-                            <li>Hiar a maid service</li>
-                            <li>Remove waste</li>
-                            <li>Wash exterior surface</li>
-                        </ul>
-                        <div class="pricing-button">
-                            <a href="#">submit now</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 col-sm-4 single-pricing-inner">
-                    <div class="single-pricing">
-                        <div class="pricing-heading">
-                            <h1>$375<span>per month</span></h1>
-                            <h2 class="pricing-level">premium services</h2>
-                        </div>
-                        <ul>
-                            <li>Weekly cleaning service</li>
-                            <li>Up to 2500 square feet</li>
-                            <li>Hiar a maid service</li>
-                            <li>Remove waste</li>
-                            <li>Wash exterior surface</li>
-                        </ul>
-                        <div class="pricing-button">
-                            <a href="#">submit now</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 col-sm-4 single-pricing-inner">
-                    <div class="single-pricing">
-                        <div class="pricing-heading">
-                            <h1>$489<span>per month</span></h1>
-                            <h2 class="pricing-level">post renovation</h2>
-                        </div>
-                        <ul>
-                            <li>Weekly cleaning service</li>
-                            <li>Up to 2500 square feet</li>
-                            <li>Hiar a maid service</li>
-                            <li>Remove waste</li>
-                            <li>Wash exterior surface</li>
-                        </ul>
-                        <div class="pricing-button">
-                            <a href="#">submit now</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Pricing Section End -->
-    <!-- Blog Section Start -->
-    <div class="blog-sec pt-100 pb-80">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-4 col-sm-4">
-                    <div class="single-blog">
-                        <div class="blog-img">
-                            <img src="img/blog-1.jpg" alt="" />
-                        </div>
-                        <div class="blog-desc">
-                            <div class="blog-meta">
-                                <ul>
-                                    <li><a href="#"><i class="fa fa-calendar"></i>jun, 2018</a></li>
-                                    <li><a href="#"><i class="fa fa-comment-o"></i>leave a comment</a></li>
-                                </ul>
+                    <div class="all-testimonial">
+                        <div class="single-testimonial">
+                            <div class="client-comment">
+                                <div class="client-thumb">
+                                    <img src="img/client-1.jpg" alt="" />
+                                    <div class="shape-box"></div>
+                                </div>
+                                <h2>Luis Rivas</h2>
+                                <h3>Software Developer</h3>
+                                <p>
+                                    Justo eget pretium mauris vel volutpmauris. Nulla lobortis porttitor id vehicula
+                                    suspendisse donec nam commodo a erat. bangladesh is a butiful country
+                                </p>
                             </div>
-                            <h2><a href="#">Our all client be happy to get join in cleaning services</a></h2>
-                            <a href="#" class="blog-readmore">read more</a>
                         </div>
-                    </div>
-                </div>
-                <div class="col-md-4 col-sm-4">
-                    <div class="single-blog">
-                        <div class="blog-img">
-                            <img src="img/blog-2.jpg" alt="" />
-                        </div>
-                        <div class="blog-desc">
-                            <div class="blog-meta">
-                                <ul>
-                                    <li><a href="#"><i class="fa fa-calendar"></i>jun, 2018</a></li>
-                                    <li><a href="#"><i class="fa fa-comment-o"></i>leave a comment</a></li>
-                                </ul>
+                        <div class="single-testimonial">
+                            <div class="client-comment">
+                                <div class="client-thumb">
+                                    <img src="img/client-2.jpg" alt="" />
+                                    <div class="shape-box"></div>
+                                </div>
+                                <h2>Carlos Baez</h2>
+                                <h3>Software Developer</h3>
+                                <p>
+                                    Justo eget pretium mauris vel volutpmauris. Nulla lobortis porttitor id vehicula
+                                    suspendisse donec nam commodo a erat. bangladesh is a butiful country
+                                </p>
                             </div>
-                            <h2><a href="#">Our all client be happy to get join in cleaning services</a></h2>
-                            <a href="#" class="blog-readmore">read more</a>
                         </div>
-                    </div>
-                </div>
-                <div class="col-md-4 col-sm-4">
-                    <div class="single-blog">
-                        <div class="blog-img">
-                            <img src="img/blog-3.jpg" alt="" />
-                        </div>
-                        <div class="blog-desc">
-                            <div class="blog-meta">
-                                <ul>
-                                    <li><a href="#"><i class="fa fa-calendar"></i>jun, 2018</a></li>
-                                    <li><a href="#"><i class="fa fa-comment-o"></i>leave a comment</a></li>
-                                </ul>
+                        <div class="single-testimonial">
+                            <div class="client-comment">
+                                <div class="client-thumb">
+                                    <img src="img/client-3.jpg" alt="" />
+                                    <div class="shape-box"></div>
+                                </div>
+                                <h2>Ruben Peña</h2>
+                                <h3>Software Developer</h3>
+                                <p>
+                                    Justo eget pretium mauris vel volutpmauris. Nulla lobortis porttitor id vehicula
+                                    suspendisse donec nam commodo a erat. bangladesh is a butiful country
+                                </p>
                             </div>
-                            <h2><a href="#">Our all client be happy to get join in cleaning services</a></h2>
-                            <a href="#" class="blog-readmore">read more</a>
+                        </div>
+                        <div class="single-testimonial">
+                            <div class="client-comment">
+                                <div class="client-thumb">
+                                    <img src="img/client-4.jpg" alt="" />
+                                    <div class="shape-box"></div>
+                                </div>
+                                <h2>Eulalia Daugherty</h2>
+                                <h3>Lawyer</h3>
+                                <p>
+                                    Justo eget pretium mauris vel volutpmauris. Nulla lobortis porttitor id vehicula
+                                    suspendisse donec nam commodo a erat. bangladesh is a butiful country
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <!-- Blog Section End -->
+    <!-- Testimonial End -->
     <!-- Patner & Contact Form Section Start -->
     <div class="patner-contact-sec pt-100 pb-80">
         <div class="container">
@@ -891,7 +560,7 @@
                                 </div>
                                 <div class="col-md-6 col-sm-6 col-xs-12">
                                     <div class="single-input-field">
-                                        @*<br />*@
+                                        <br />
                                     </div>
                                 </div>
 
@@ -986,7 +655,7 @@
                     <div class="row">
                         <div class="col-md-12">
                             <div class="copy-right">
-                                <p>&copy; copyright 2021 ecoMaid 911. Designed by:<span> JempSoft </span></p>
+                                <p>&copy; copyright 2024 ecoMaid 911. Designed by:<span> JempSoft </span></p>
                             </div>
                         </div>
                     </div>

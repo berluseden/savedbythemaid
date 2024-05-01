@@ -70,22 +70,13 @@
                         <div class="menu">
                             <nav id="main-menu" class="main-menu">
                                 <ul>
-                                    <li><a asp-area="" asp-controller="Home" asp-action="About" class="navbar-brand" />About</li>
-                                    <li><a asp-area="" asp-controller="Home" asp-action="Service" class="navbar-brand" />Service</li>
-                                    @*<li><a asp-area="" asp-controller="Home" asp-action="Blog" class="navbar-brand">Blog</a></li>*@
-                                    <li class="active"><a asp-area="" asp-controller="Home" asp-action="Index" class="navbar-brand"><i class="fa fa-home"></i>Home</a></li>
-                                    @*<li>
-                                        <a asp-area="" asp-controller="Home" asp-action="Blog" class="navbar-brand">Blog</a>
-                                        <ul>
-                                            <li><a asp-area="" asp-controller="Home" asp-action="Blog" class="navbar-brand">Blog</a></li>
-                                            <li><a asp-area="" asp-controller="Home" asp-action="BlogDetails" class="navbar-brand">Blog Details</a></li>
-                                        </ul>
-                                    </li>*@
-                                    <li><a asp-area="" asp-controller="Home" asp-action="Contact" class="navbar-brand">Contact</a></li>
+                                    <li><a asp-area="" asp-controller="Home" asp-action="About">About</a></li>
+                                    <li class="active"><a asp-area="" asp-controller="Home" asp-action="Index"><i class="fa fa-home"></i>Home</a></li>
+                                    <li><a asp-area="" asp-controller="Home" asp-action="Contact">Contact</a></li>
 
                                     @if (User.Identity.IsAuthenticated)
                                     {
-                                        <li><a asp-area="" asp-controller="Account" asp-action="Profile" class="navbar-brand" > @User.Identity.Name.Split("@")[0]</a></li>
+                                        <li><a asp-area="" asp-controller="Account" asp-action="Profile"> User:  @User.Identity.Name.Split("@")[0]</a></li>
                                     }
                                     else
                                     {
@@ -195,7 +186,7 @@
                         <div class="row">
                             <div class="col-md-12">
                                 <div class="copy-right">
-                                    <p>&copy; copyright 2021 ecoMaid 911. Designed by:<span> JempSoft </span></p>
+                                    <p>&copy; copyright 2024 ecoMaid 911. Designed by:<span> JempSoft </span></p>
                                 </div>
                             </div>
                         </div>

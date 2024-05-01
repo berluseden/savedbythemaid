@@ -8,7 +8,7 @@
     <meta name="description" content="911ecoMaid || Cleaning Services Company">
     <meta name="keywords"
           content="clean, cleaning, cleaning products, commercial cleaning, house cleaning, housekeeping, janitorial, laundry, maid, move in out, post renovation, window cleaning">
-    <meta name="JempSoft" content="Theme Path">
+    <meta name="author" content="JempSoft">
     <!-- Title -->
     <title>911ecoMaid || Cleaning Services Company</title>
     <!-- Favicon Icon -->
@@ -313,16 +313,10 @@
                         <a href="contact.html" class="btn">view details</a>
                     </div>
                 </div>
-                <!--<div class="col-md-5 video-sec">
-                    <div class="video-sec-middle">
-                        <div class="vedio-button">
-                            <a href="https://youtu.be/CrrnNVnlvc8" class="mfp-iframe vedio-play"></a>
-                        </div>
-                    </div>
-                </div>	-->
             </div>
         </div>
     </div>
+    <!-- Call To Action Section End -->
     <!-- Team Section Start -->
     <div class="team-sec pt-100 pb-80">
         <div class="container">
@@ -399,7 +393,7 @@
         </div>
     </div>
     <!-- Team Section End -->
-    <!-- Call To Action Section Start -->
+    <!-- Testimonial Start -->
     <div class="testimonial-and-faq-sec pt-100 pb-80">
         <div class="container">
             <div class="row">
@@ -479,6 +473,7 @@
             </div>
         </div>
     </div>
+    <!-- Testimonial End -->
     <!-- Patner & Contact Form Section Start -->
     <div class="patner-contact-sec pt-100 pb-80">
         <div class="container">
@@ -513,36 +508,67 @@
                 </div>
                 <div class="col-md-6 col-sm-6">
                     <div class="contact-form">
-                        <h2>make your appoinment</h2>
+                        <h2>book now</h2>
                         <div class="contact-field">
                             <div class="row">
                                 <div class="col-md-6 col-sm-6 col-xs-12">
                                     <div class="single-input-field">
-                                        <input placeholder="Name" type="text">
+                                        <input id="name" placeholder="Name" type="text">
                                     </div>
                                 </div>
                                 <div class="col-md-6 col-sm-6 col-xs-12">
                                     <div class="single-input-field">
-                                        <input placeholder="Phone" type="text">
+                                        <input id="phone" placeholder="Phone" type="text">
                                     </div>
                                 </div>
                                 <div class="col-md-6 col-sm-6 col-xs-12">
                                     <div class="single-input-field">
-                                        <input placeholder="E-mail" type="email">
+                                        <input id="email" placeholder="E-mail" type="email">
                                     </div>
                                 </div>
                                 <div class="col-md-6 col-sm-6 col-xs-12">
                                     <div class="single-input-field">
-                                        <input placeholder="Service Type" type="text">
+                                        <input id="address" placeholder="Address" type="text">
                                     </div>
                                 </div>
+
+                                <div class="col-md-6 col-sm-6 col-xs-12">
+                                    <div class="single-input-field">
+                                        <select id="selectCleaningPlace" data-live-search="true" style="background-color: white">
+                                            <option value="0">Choose Building Type</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+
+                                <div class="col-md-6 col-sm-6 col-xs-12">
+                                    <div class="single-input-field">
+                                        <select id="selectCleaningPlaceRoom" data-live-search="true" style="background-color: white">
+                                            <option value="0">Choose Rooms</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 col-sm-6 col-xs-12">
+                                    <div class="single-input-field">
+                                        <br />
+                                    </div>
+                                </div>
+
                                 <div class="col-md-12">
                                     <div class="single-input-field">
-                                        <input placeholder="Aditional Information" type="text">
+                                        <select id="selectServiceType" data-live-search="true" style="background-color: white">
+                                            <option value="0">Choose Service Type</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-12">
+                                    <div class="single-input-field">
+                                        <textarea id="additionalInfo" placeholder="Aditional Information" style="background-color: white"></textarea>
                                     </div>
                                 </div>
                                 <div class="single-input-fieldsbtn">
-                                    <input value="appoinment" type="submit">
+                                    <input id="btnBook" value="book" type="submit">
                                 </div>
                             </div>
                         </div>
@@ -619,7 +645,7 @@
                     <div class="row">
                         <div class="col-md-12">
                             <div class="copy-right">
-                                <p>911ecoMaid &copy; copyright 2023. Designed by<span> JempSoft </span></p>
+                                <p>911ecoMaid &copy; copyright 2024. Designed by<span> JempSoft </span></p>
                             </div>
                         </div>
                     </div>
@@ -646,5 +672,4 @@
     <script src="js/custom.js"></script>
     <!-- Scripts Js End -->
 </body>
-
 </html>
