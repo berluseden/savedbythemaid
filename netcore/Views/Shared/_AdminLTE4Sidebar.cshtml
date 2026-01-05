@@ -1,0 +1,285 @@
+@model netcore.Models.ApplicationUser
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@inject netcore.Data.ApplicationDbContext Context
+@{
+    ApplicationUser appUser = await UserManager.GetUserAsync(User);
+    string currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    
+    // Helper para determinar si un menú está activo
+    bool IsActive(params string[] controllers) => controllers.Contains(currentController);
+    string ActiveClass(params string[] controllers) => controllers.Contains(currentController) ? "active" : "";
+    string MenuOpenClass(params string[] controllers) => controllers.Contains(currentController) ? "menu-open" : "";
+}
+
+<aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
+    <!-- Brand Logo -->
+    <div class="sidebar-brand">
+        <a href="@Url.Action("Index", "Home")" class="brand-link">
+            <img src="~/images/logo.png" alt="Logo" class="brand-image opacity-75 shadow" onerror="this.src='https://adminlte.io/themes/v3/dist/img/AdminLTELogo.png'">
+            <span class="brand-text fw-light">JempSoft</span>
+        </a>
+    </div>
+
+    <!-- Sidebar Menu -->
+    <div class="sidebar-wrapper">
+        <nav class="mt-2">
+            @if (appUser != null)
+            {
+                <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" role="menu" data-accordion="false">
+                    
+                    <!-- Dashboard -->
+                    @if (appUser.HomeRole || appUser.isSuperAdmin)
+                    {
+                        <li class="nav-header">
+                            <i class="bi bi-speedometer2 me-2"></i>PANEL PRINCIPAL
+                        </li>
+                        <li class="nav-item">
+                            <a href="@Url.Action("Index", "Home")" class="nav-link @ActiveClass("Home")">
+                                <i class="nav-icon bi bi-house-door-fill"></i>
+                                <p>Dashboard</p>
+                            </a>
+                        </li>
+                    }
+
+                    <!-- Cleaning Services Section -->
+                    @if (appUser.CleaningRole || appUser.isSuperAdmin)
+                    {
+                        <li class="nav-header">
+                            <i class="bi bi-house-check me-2"></i>SERVICIOS DE LIMPIEZA
+                        </li>
+                        
+                        <!-- Personal -->
+                        <li class="nav-item @MenuOpenClass("Employees", "EmployeeSchedules")">
+                            <a href="#" class="nav-link @ActiveClass("Employees", "EmployeeSchedules")">
+                                <i class="nav-icon bi bi-people-fill text-warning"></i>
+                                <p>
+                                    Personal
+                                    <i class="nav-arrow bi bi-chevron-right"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="@Url.Action("Index", "Employees")" class="nav-link @ActiveClass("Employees")">
+                                        <i class="nav-icon bi bi-person"></i>
+                                        <p>Empleadas</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="@Url.Action("Index", "EmployeeSchedules")" class="nav-link @ActiveClass("EmployeeSchedules")">
+                                        <i class="nav-icon bi bi-calendar3"></i>
+                                        <p>Horarios</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- Inmuebles -->
+                        <li class="nav-item @MenuOpenClass("CleaningPlaces", "CleaningPlaceRooms")">
+                            <a href="#" class="nav-link @ActiveClass("CleaningPlaces", "CleaningPlaceRooms")">
+                                <i class="nav-icon bi bi-building text-success"></i>
+                                <p>
+                                    Inmuebles
+                                    <i class="nav-arrow bi bi-chevron-right"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="@Url.Action("Index", "CleaningPlaces")" class="nav-link @ActiveClass("CleaningPlaces")">
+                                        <i class="nav-icon bi bi-house"></i>
+                                        <p>Tipos de Inmueble</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="@Url.Action("Index", "CleaningPlaceRooms")" class="nav-link @ActiveClass("CleaningPlaceRooms")">
+                                        <i class="nav-icon bi bi-grid-3x3"></i>
+                                        <p>Habitaciones</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- Servicios -->
+                        <li class="nav-item @MenuOpenClass("ServiceTypes", "AdditionalServiceTypes")">
+                            <a href="#" class="nav-link @ActiveClass("ServiceTypes", "AdditionalServiceTypes")">
+                                <i class="nav-icon bi bi-tags-fill text-purple"></i>
+                                <p>
+                                    Servicios
+                                    <i class="nav-arrow bi bi-chevron-right"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="@Url.Action("Index", "ServiceTypes")" class="nav-link @ActiveClass("ServiceTypes")">
+                                        <i class="nav-icon bi bi-list-ul"></i>
+                                        <p>Tipos de Servicio</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="@Url.Action("Index", "AdditionalServiceTypes")" class="nav-link @ActiveClass("AdditionalServiceTypes")">
+                                        <i class="nav-icon bi bi-plus-circle"></i>
+                                        <p>Servicios Adicionales</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    }
+
+                    <!-- Inventory Catalogs Section -->
+                    @if (appUser.InventoryCatalogRole || appUser.isSuperAdmin)
+                    {
+                        <li class="nav-header">
+                            <i class="bi bi-boxes me-2"></i>INVENTARIO - CATÁLOGOS
+                        </li>
+                        
+                        <!-- Ubicaciones -->
+                        <li class="nav-item @MenuOpenClass("Branch", "Warehouse")">
+                            <a href="#" class="nav-link @ActiveClass("Branch", "Warehouse")">
+                                <i class="nav-icon bi bi-diagram-3 text-olive"></i>
+                                <p>
+                                    Ubicaciones
+                                    <i class="nav-arrow bi bi-chevron-right"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="@Url.Action("Index", "Branch")" class="nav-link @ActiveClass("Branch")">
+                                        <i class="nav-icon bi bi-building"></i>
+                                        <p>Sucursales</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="@Url.Action("Index", "Warehouse")" class="nav-link @ActiveClass("Warehouse")">
+                                        <i class="nav-icon bi bi-archive"></i>
+                                        <p>Almacenes</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- Productos -->
+                        <li class="nav-item">
+                            <a href="@Url.Action("Index", "Product")" class="nav-link @ActiveClass("Product")">
+                                <i class="nav-icon bi bi-box-seam text-teal"></i>
+                                <p>Productos</p>
+                            </a>
+                        </li>
+
+                        <!-- Contactos -->
+                        <li class="nav-item @MenuOpenClass("Customer", "Vendor")">
+                            <a href="#" class="nav-link @ActiveClass("Customer", "Vendor")">
+                                <i class="nav-icon bi bi-person-lines-fill text-maroon"></i>
+                                <p>
+                                    Contactos
+                                    <i class="nav-arrow bi bi-chevron-right"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="@Url.Action("Index", "Customer")" class="nav-link @ActiveClass("Customer")">
+                                        <i class="nav-icon bi bi-person-circle"></i>
+                                        <p>Clientes</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="@Url.Action("Index", "Vendor")" class="nav-link @ActiveClass("Vendor")">
+                                        <i class="nav-icon bi bi-truck"></i>
+                                        <p>Proveedores</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                    }
+
+                    <!-- Inventory Transactions Section -->
+                    @if (appUser.InventoryTransactionRole || appUser.isSuperAdmin)
+                    {
+                        <li class="nav-header">
+                            <i class="bi bi-arrow-left-right me-2"></i>INVENTARIO - TRANSACCIONES
+                        </li>
+                        
+                        <!-- Compras -->
+                        <li class="nav-item @MenuOpenClass("PurchaseOrder", "Receiving")">
+                            <a href="#" class="nav-link @ActiveClass("PurchaseOrder", "Receiving")">
+                                <i class="nav-icon bi bi-cart-fill text-primary"></i>
+                                <p>
+                                    Compras
+                                    <i class="nav-arrow bi bi-chevron-right"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="@Url.Action("Index", "PurchaseOrder")" class="nav-link @ActiveClass("PurchaseOrder")">
+                                        <i class="nav-icon bi bi-file-earmark-text"></i>
+                                        <p>Órdenes de Compra</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="@Url.Action("Index", "Receiving")" class="nav-link @ActiveClass("Receiving")">
+                                        <i class="nav-icon bi bi-box-arrow-in-down"></i>
+                                        <p>Recepciones</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- Ventas -->
+                        <li class="nav-item @MenuOpenClass("SalesOrder", "Shipment")">
+                            <a href="#" class="nav-link @ActiveClass("SalesOrder", "Shipment")">
+                                <i class="nav-icon bi bi-bag-fill text-success"></i>
+                                <p>
+                                    Ventas
+                                    <i class="nav-arrow bi bi-chevron-right"></i>
+                                </p>
+                            </a>
+                            <ul class="nav nav-treeview">
+                                <li class="nav-item">
+                                    <a href="@Url.Action("Index", "SalesOrder")" class="nav-link @ActiveClass("SalesOrder")">
+                                        <i class="nav-icon bi bi-file-text"></i>
+                                        <p>Órdenes de Venta</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="@Url.Action("Index", "Shipment")" class="nav-link @ActiveClass("Shipment")">
+                                        <i class="nav-icon bi bi-box-arrow-up"></i>
+                                        <p>Envíos</p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <!-- Existencias -->
+                        <li class="nav-item">
+                            <a href="@Url.Action("Index", "Stock")" class="nav-link @ActiveClass("Stock")">
+                                <i class="nav-icon bi bi-database text-orange"></i>
+                                <p>Existencias</p>
+                            </a>
+                        </li>
+
+                        <!-- Transferencias -->
+                        <li class="nav-item">
+                            <a href="@Url.Action("Index", "Transfer")" class="nav-link @ActiveClass("Transfer")">
+                                <i class="nav-icon bi bi-shuffle text-navy"></i>
+                                <p>Transferencias</p>
+                            </a>
+                        </li>
+                    }
+
+                    <!-- Configuration Section -->
+                    @if (appUser.ApplicationUserRole || appUser.isSuperAdmin)
+                    {
+                        <li class="nav-header">
+                            <i class="bi bi-gear me-2"></i>CONFIGURACIÓN
+                        </li>
+                        <li class="nav-item">
+                            <a href="@Url.Action("Index", "ApplicationUser")" class="nav-link @ActiveClass("ApplicationUser")">
+                                <i class="nav-icon bi bi-person-fill-lock text-danger"></i>
+                                <p>Usuarios y Roles</p>
+                            </a>
+                        </li>
+                    }
+                </ul>
+            }
+        </nav>
+    </div>
+</aside>
