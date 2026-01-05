@@ -7,28 +7,28 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using System.ComponentModel.DataAnnotations;
-
-using netcore.Data;
-using JempSoft.Core.Models.Invent;
+using JempSoft.Applications.Invent;
+using JempSoft.Applications.Invent.Dto;
 
 namespace netcore.Controllers.Invent
 {
-
-
     [Authorize(Roles = "Warehouse")]
     public class WarehouseController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IWarehouseServices _warehouseServices;
+        private readonly IBranchServices _branchServices;
 
-        public WarehouseController(ApplicationDbContext context)
+        public WarehouseController(IWarehouseServices warehouseServices, IBranchServices branchServices)
         {
-            _context = context;
+            _warehouseServices = warehouseServices;
+            _branchServices = branchServices;
         }
 
         // GET: Warehouse
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Warehouse.OrderByDescending(x => x.createdAt).Include(x => x.branch).ToListAsync());
+            var result = await _warehouseServices.GetAllAsync();
+            return View(result.IsSuccess ? result.Value : new List<WarehouseOutputDto>());
         }
 
         // GET: Warehouse/Details/5
@@ -39,42 +39,43 @@ namespace netcore.Controllers.Invent
                 return NotFound();
             }
 
-            var warehouse = await _context.Warehouse
-                        .Include(x => x.branch)
-                        .SingleOrDefaultAsync(m => m.warehouseId == id);
-            if (warehouse == null)
+            var result = await _warehouseServices.GetByIdAsync(id);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
 
-            return View(warehouse);
+            return View(result.Value);
         }
 
-
         // GET: Warehouse/Create
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
-            ViewData["branchId"] = new SelectList(_context.Branch, "branchId", "branchName");
+            var branchesResult = await _branchServices.GetComboBoxAsync();
+            var branches = branchesResult.IsSuccess ? branchesResult.Value : new List<JempSoft.Applications.ComboBoxOutPutDto>();
+            ViewData["branchId"] = new SelectList(branches, "StringId", "Name");
             return View();
         }
 
-
-
-
         // POST: Warehouse/Create
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("branchId,warehouseId,warehouseName,description,street1,street2,city,province,country,createdAt")] Warehouse warehouse)
+        public async Task<IActionResult> Create(WarehouseInputDto input)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(warehouse);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                var result = await _warehouseServices.SaveAsync(input);
+                if (result.IsSuccess)
+                {
+                    return RedirectToAction(nameof(Index));
+                }
+                ModelState.AddModelError("", result.Error);
             }
-            return View(warehouse);
+            
+            var branchesResult = await _branchServices.GetComboBoxAsync();
+            var branches = branchesResult.IsSuccess ? branchesResult.Value : new List<JempSoft.Applications.ComboBoxOutPutDto>();
+            ViewData["branchId"] = new SelectList(branches, "StringId", "Name", input.BranchId);
+            return View(input);
         }
 
         // GET: Warehouse/Edit/5
@@ -85,48 +86,57 @@ namespace netcore.Controllers.Invent
                 return NotFound();
             }
 
-            var warehouse = await _context.Warehouse.Include(x => x.branch).SingleOrDefaultAsync(m => m.warehouseId == id);
-            if (warehouse == null)
+            var result = await _warehouseServices.GetByIdAsync(id);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
-            ViewData["branchId"] = new SelectList(_context.Branch, "branchId", "branchName", warehouse.branchId);
-            return View(warehouse);
+
+            var warehouse = result.Value;
+            var input = new WarehouseInputDto
+            {
+                BranchId = warehouse.BranchId,
+                WarehouseName = warehouse.WarehouseName,
+                Description = warehouse.Description,
+                Street1 = warehouse.Street1,
+                Street2 = warehouse.Street2,
+                City = warehouse.City,
+                Province = warehouse.Province,
+                Country = warehouse.Country
+            };
+            
+            var branchesResult = await _branchServices.GetComboBoxAsync();
+            var branches = branchesResult.IsSuccess ? branchesResult.Value : new List<JempSoft.Applications.ComboBoxOutPutDto>();
+            ViewData["branchId"] = new SelectList(branches, "StringId", "Name", warehouse.BranchId);
+            ViewData["WarehouseId"] = id;
+            return View(input);
         }
 
         // POST: Warehouse/Edit/5
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(string id, [Bind("branchId,warehouseId,warehouseName,description,street1,street2,city,province,country,createdAt")] Warehouse warehouse)
+        public async Task<IActionResult> Edit(string id, WarehouseInputDto input)
         {
-            if (id != warehouse.warehouseId)
-            {
-                return NotFound();
-            }
-
             if (ModelState.IsValid)
             {
-                try
+                var result = await _warehouseServices.UpdateByIdAsync(id, input);
+                if (result.IsSuccess)
                 {
-                    _context.Update(warehouse);
-                    await _context.SaveChangesAsync();
+                    return RedirectToAction(nameof(Index));
                 }
-                catch (DbUpdateConcurrencyException)
+
+                if (result.Error.Contains("not found"))
                 {
-                    if (!WarehouseExists(warehouse.warehouseId))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    return NotFound();
                 }
-                return RedirectToAction(nameof(Index));
+                ModelState.AddModelError("", result.Error);
             }
-            return View(warehouse);
+            
+            var branchesResult = await _branchServices.GetComboBoxAsync();
+            var branches = branchesResult.IsSuccess ? branchesResult.Value : new List<JempSoft.Applications.ComboBoxOutPutDto>();
+            ViewData["branchId"] = new SelectList(branches, "StringId", "Name", input.BranchId);
+            ViewData["WarehouseId"] = id;
+            return View(input);
         }
 
         // GET: Warehouse/Delete/5
@@ -137,46 +147,32 @@ namespace netcore.Controllers.Invent
                 return NotFound();
             }
 
-            var warehouse = await _context.Warehouse
-                    .Include(x => x.branch)
-                    .SingleOrDefaultAsync(m => m.warehouseId == id);
-            if (warehouse == null)
+            var result = await _warehouseServices.GetByIdAsync(id);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
 
-            return View(warehouse);
+            return View(result.Value);
         }
-
-
-
 
         // POST: Warehouse/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(string id)
         {
-            var warehouse = await _context.Warehouse.SingleOrDefaultAsync(m => m.warehouseId == id);
-            try
+            var result = await _warehouseServices.DeleteAsync(id);
+            if (result.IsFailure)
             {
-                _context.Warehouse.Remove(warehouse);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                var warehouseResult = await _warehouseServices.GetByIdAsync(id);
+                if (warehouseResult.IsSuccess)
+                {
+                    ViewData["StatusMessage"] = "Error. Calm Down ^_^ and please contact your SysAdmin with this message: " + result.Error;
+                    return View(warehouseResult.Value);
+                }
             }
-            catch (Exception ex)
-            {
-
-                ViewData["StatusMessage"] = "Error. Calm Down ^_^ and please contact your SysAdmin with this message: " + ex;
-                return View(warehouse);
-            }
-            
+            return RedirectToAction(nameof(Index));
         }
-
-        private bool WarehouseExists(string id)
-        {
-            return _context.Warehouse.Any(e => e.warehouseId == id);
-        }
-
     }
 }
 

@@ -1,7 +1,7 @@
-﻿@model netcore.VMs.PlaceRoomsServiceTypesVM
+@model netcore.VMs.PlaceRoomsServiceTypesVM
 @{
     ViewData["Title"] = "AddPlaceRoom";
-    Layout = "~/Views/Shared/_AdminlteNetcoreCustom.cshtml";
+    Layout = "~/Views/Shared/_AdminLTE4Custom.cshtml";
     ViewData["EntityIcon"] = "fa fa-tags";
 
     ViewBag.ControllerActionView = "AddServiceToPlaceRoom";
@@ -73,7 +73,7 @@
                 <tr>
                     <td>
                         <div class="tools">
-                            <a asp-action="AddServiceTypeToPlaceRoom" asp-route-id="@item.ServiceTypeId" class="btn btn-primary btn-xs"><i class="fa fa-plus"></i></a>
+                            <a asp-action="AddServiceTypeToPlaceRoom" asp-route-id="@item.ServiceTypeId" class="btn btn-primary btn-sm"><i class="fa fa-plus"></i></a>
 
                         </div>
 

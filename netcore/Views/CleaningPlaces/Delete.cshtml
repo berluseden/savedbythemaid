@@ -1,76 +1,36 @@
-﻿@model JempSoft.Core.Models.CleaningPlace
+@model JempSoft.Core.Models.CleaningPlace
 
 @{
-    ViewData["Title"] = "Delete";
-    Layout = "~/Views/Shared/_AdminlteNetcore.cshtml";
+    ViewData["Title"] = "Eliminar Tipo de Inmueble";
+    Layout = "~/Views/Shared/_AdminLTE4Delete.cshtml";
+    ViewData["EntityIcon"] = "fa fa-home";
 }
 
-<h2>Delete</h2>
-
-<h3>Are you sure you want to delete this?</h3>
-<div>
-    <h4>CleaningPlace</h4>
-    <hr />
+@if (Model == null)
+{
+    <div class="callout callout-warning">
+        <h4><i class="icon fa fa-warning"></i> No Encontrado</h4>
+        <p>El tipo de inmueble no fue encontrado.</p>
+    </div>
+}
+else
+{
     <dl class="dl-horizontal">
-        <dt>
-            @Html.DisplayNameFor(model => model.Title)
-        </dt>
+        <dt><i class="fa fa-home text-muted"></i> Título</dt>
+        <dd><strong>@Model.Title</strong></dd>
+        
+        <dt><i class="fa fa-check-circle text-muted"></i> Estado</dt>
         <dd>
-            @Html.DisplayFor(model => model.Title)
+            @if (Model.IsActive) {
+                <span class="label label-success">Activo</span>
+            } else {
+                <span class="label label-danger">Inactivo</span>
+            }
         </dd>
-        <dt>
-            @Html.DisplayNameFor(model => model.IsActive)
-        </dt>
-        <dd>
-            @Html.DisplayFor(model => model.IsActive)
-        </dd>
-        <dt>
-            @Html.DisplayNameFor(model => model.CreatorUserId)
-        </dt>
-        <dd>
-            @Html.DisplayFor(model => model.CreatorUserId)
-        </dd>
-        <dt>
-            @Html.DisplayNameFor(model => model.CreationDate)
-        </dt>
-        <dd>
-            @Html.DisplayFor(model => model.CreationDate)
-        </dd>
-        <dt>
-            @Html.DisplayNameFor(model => model.UpdateUserId)
-        </dt>
-        <dd>
-            @Html.DisplayFor(model => model.UpdateUserId)
-        </dd>
-        <dt>
-            @Html.DisplayNameFor(model => model.UpdateDate)
-        </dt>
-        <dd>
-            @Html.DisplayFor(model => model.UpdateDate)
-        </dd>
-        <dt>
-            @Html.DisplayNameFor(model => model.DeleteUserId)
-        </dt>
-        <dd>
-            @Html.DisplayFor(model => model.DeleteUserId)
-        </dd>
-        <dt>
-            @Html.DisplayNameFor(model => model.DeleteDate)
-        </dt>
-        <dd>
-            @Html.DisplayFor(model => model.DeleteDate)
-        </dd>
-        <dt>
-            @Html.DisplayNameFor(model => model.IsDeleted)
-        </dt>
-        <dd>
-            @Html.DisplayFor(model => model.IsDeleted)
-        </dd>
+        
+        <dt><i class="fa fa-calendar text-muted"></i> Creación</dt>
+        <dd>@Model.CreationDate.ToString("dd/MM/yyyy")</dd>
     </dl>
     
-    <form asp-action="Delete">
-        <input type="hidden" asp-for="CleaningPlaceId" />
-        <input type="submit" value="Delete" class="btn btn-default" /> |
-        <a asp-action="Index">Back to List</a>
-    </form>
-</div>
+    <input type="hidden" name="CleaningPlaceId" value="@Model.CleaningPlaceId" />
+}

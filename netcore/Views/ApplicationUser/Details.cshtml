@@ -1,8 +1,8 @@
-﻿@model netcore.Models.ApplicationUser
+@model netcore.Models.ApplicationUser
 
 @{
     ViewData["Title"] = "Application User Details";
-    Layout = "_AdminlteNetcore";
+    Layout = "_AdminLTE4";
 }
 
 
@@ -24,9 +24,9 @@
     <!-- Main content -->
     <section class="content">
         <!-- Default box -->
-        <div class="box">
-            <div class="box-header with-border">
-                <h3 class="box-title">Title</h3>
+        <div class="card">
+            <div class="card-header with-border">
+                <h3 class="card-title">Title</h3>
                 <div class="box-tools pull-right">
                     <button type="button" class="btn btn-box-tool" data-widget="collapse" data-toggle="tooltip"
                             title="Collapse">
@@ -37,7 +37,7 @@
                     </button>
                 </div>
             </div>
-            <div class="box-body">
+            <div class="card-body">
 
                 <div>
                     <h4>ApplicationUser</h4>
@@ -141,11 +141,11 @@
                     <a asp-action="Index">Back to List</a>
                 </div>
             </div>
-            <!-- /.box-body -->
-            <div class="box-footer">
+            
+            <div class="card-footer">
                 Footer
             </div>
-            <!-- /.box-footer-->
+            
         </div>
         <!-- /.box -->
     </section>

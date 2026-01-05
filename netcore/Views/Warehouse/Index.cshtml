@@ -1,20 +1,28 @@
-﻿@model IEnumerable<JempSoft.Core.Models.Invent.Warehouse>
+@model IEnumerable<JempSoft.Core.Models.Invent.Warehouse>
 
 @{
     ViewData["Title"] = "Index";
-    Layout = "~/Views/Shared/_AdminlteNetcoreIndex.cshtml";
+    Layout = "~/Views/Shared/_AdminLTE4Index.cshtml";
     ViewData["EntityIcon"] = "fa fa-cubes";
     ViewData["ListTitle"] = "Warehouse List";
     ViewData["IndexInfo"] = "Warehouse is commercial building for storage of goods or products. One branch office can have single or multiple warehouse.";
 }
 
-
+@if (Model == null || !Model.Any())
+{
+    <div class="alert alert-info">
+        <h4><i class="icon fa fa-info"></i> No Warehouses Found</h4>
+        There are no warehouses registered yet. <a asp-action="Create" class="alert-link">Create your first warehouse</a> to get started.
+    </div>
+}
+else
+{
 <table class="table table-hover table-striped" style="width:100%">
     <thead>
         <tr>
             <th></th>
             <th>
-                @Html.DisplayNameFor(model => model.FirstOrDefault().branch.branchName)
+                Branch
             </th>
             <th>
                 @Html.DisplayNameFor(model => model.warehouseName)
@@ -46,14 +54,14 @@
             <tr>
                 <td>
                     <div class="tools">
-                        <a asp-action="Edit" asp-route-id="@item.warehouseId" class="btn btn-primary btn-xs"><i class="fa fa-pencil"></i></a>
-                        <a asp-action="Details" asp-route-id="@item.warehouseId" class="btn btn-primary btn-xs"><i class="fa fa-list"></i></a>
-                        <a asp-action="Delete" asp-route-id="@item.warehouseId" class="btn btn-danger btn-xs"><i class="fa fa-trash"></i></a>
+                        <a asp-action="Edit" asp-route-id="@item.warehouseId" class="btn btn-primary btn-sm"><i class="fa fa-pencil"></i></a>
+                        <a asp-action="Details" asp-route-id="@item.warehouseId" class="btn btn-primary btn-sm"><i class="fa fa-list"></i></a>
+                        <a asp-action="Delete" asp-route-id="@item.warehouseId" class="btn btn-danger btn-sm"><i class="fa fa-trash"></i></a>
                     </div>
                    
                 </td>
                 <td>
-                    @Html.DisplayFor(modelItem => item.branch.branchName)
+                    @(item.branch?.branchName ?? "N/A")
                 </td>
                 <td>
                     @Html.DisplayFor(modelItem => item.warehouseName)
@@ -81,3 +89,4 @@
         }
     </tbody>
 </table>
+}

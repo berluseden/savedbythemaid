@@ -70,11 +70,3 @@ namespace netcore.MVC
         }
     }
 }
-namespace netcore.Models
-{
-    public partial class ApplicationUser
-    {
-        [Display(Name = "Home")]
-        public bool HomeRole { get; set; } = false;
-    }
-}

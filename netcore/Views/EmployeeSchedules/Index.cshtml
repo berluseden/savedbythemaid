@@ -1,42 +1,49 @@
-﻿@model IEnumerable<JempSoft.Core.Models.EmployeeSchedule>
+@model IEnumerable<JempSoft.Core.Models.EmployeeSchedule>
 
 @{
-    ViewData["Title"] = "Index";
-    Layout = "~/Views/Shared/_AdminlteNetcoreCreate.cshtml";
+    ViewData["Title"] = "Horarios";
+    Layout = "~/Views/Shared/_AdminLTE4Index.cshtml";
+    ViewData["EntityIcon"] = "fa fa-calendar";
+    ViewData["ListTitle"] = "Horarios de Empleadas";
+    ViewData["CreateLabel"] = "Nuevo Horario";
+    ViewData["IndexInfo"] = "Gestiona los días y horas de disponibilidad de cada empleada.";
 }
 
-<h2>Index</h2>
-
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-                <th>
-                    @Html.DisplayNameFor(model => model.AvaliableDay)
-                </th>
-            <th>
-                FullName
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.AvaliableDay)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Employee.FullName)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.EmployeeScheduleId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.EmployeeScheduleId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.EmployeeScheduleId">Delete</a>
-            </td>
-        </tr>
+@if (Model == null || !Model.Any())
+{
+    <div class="callout callout-warning">
+        <h4><i class="icon fa fa-warning"></i> Sin Horarios Registrados</h4>
+        <p>No hay horarios de empleadas registrados.</p>
+        <a asp-controller="Employees" asp-action="Index" class="btn btn-info"><i class="fa fa-users"></i> Ver Empleadas</a>
+    </div>
 }
-    </tbody>
-</table>
+else
+{
+    <table class="table table-hover table-striped" style="width:100%">
+        <thead class="bg-primary">
+            <tr>
+                <th style="width: 140px;">Acciones</th>
+                <th><i class="fa fa-calendar"></i> Día Disponible</th>
+                <th><i class="fa fa-user"></i> Empleada</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        <div class="btn-group">
+                            <a asp-action="Edit" asp-route-id="@item.EmployeeScheduleId" class="btn btn-warning btn-sm btn-action" title="Editar"><i class="fa fa-pencil"></i></a>
+                            <a asp-action="Details" asp-route-id="@item.EmployeeScheduleId" class="btn btn-info btn-sm btn-action" title="Ver"><i class="fa fa-eye"></i></a>
+                            <a asp-action="Delete" asp-route-id="@item.EmployeeScheduleId" class="btn btn-danger btn-sm btn-action" title="Eliminar"><i class="fa fa-trash"></i></a>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="label label-info">@item.AvaliableDay</span>
+                    </td>
+                    <td><strong>@(item.Employee?.FullName ?? "N/A")</strong></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

@@ -7,7 +7,11 @@ namespace JempSoft.Applications
     public class ComboBoxOutPutDto
     {
         public int Id { get; set; }
+        
+        public string StringId { get; set; } = string.Empty;
 
-        public string Title { get; set; }
+        public string Title { get; set; } = string.Empty;
+        
+        public string Name { get; set; } = string.Empty;
     }
 }

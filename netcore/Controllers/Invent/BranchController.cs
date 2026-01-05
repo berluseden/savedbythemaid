@@ -7,28 +7,26 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using System.ComponentModel.DataAnnotations;
-
-using netcore.Data;
-using JempSoft.Core.Models.Invent;
+using JempSoft.Applications.Invent;
+using JempSoft.Applications.Invent.Dto;
 
 namespace netcore.Controllers.Invent
 {
-
-
     [Authorize(Roles = "Branch")]
     public class BranchController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IBranchServices _branchServices;
 
-        public BranchController(ApplicationDbContext context)
+        public BranchController(IBranchServices branchServices)
         {
-            _context = context;
+            _branchServices = branchServices;
         }
 
         // GET: Branch
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Branch.OrderByDescending(x => x.createdAt).ToListAsync());
+            var result = await _branchServices.GetAllAsync();
+            return View(result.IsSuccess ? result.Value : new List<BranchOutputDto>());
         }
 
         // GET: Branch/Details/5
@@ -39,16 +37,14 @@ namespace netcore.Controllers.Invent
                 return NotFound();
             }
 
-            var branch = await _context.Branch
-                        .SingleOrDefaultAsync(m => m.branchId == id);
-            if (branch == null)
+            var result = await _branchServices.GetByIdAsync(id);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
 
-            return View(branch);
+            return View(result.Value);
         }
-
 
         // GET: Branch/Create
         public IActionResult Create()
@@ -56,23 +52,21 @@ namespace netcore.Controllers.Invent
             return View();
         }
 
-
-
-
         // POST: Branch/Create
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("branchId,branchName,description,street1,street2,city,province,country,createdAt,isDefaultBranch")] Branch branch)
+        public async Task<IActionResult> Create(BranchInputDto input)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(branch);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                var result = await _branchServices.SaveAsync(input);
+                if (result.IsSuccess)
+                {
+                    return RedirectToAction(nameof(Index));
+                }
+                ModelState.AddModelError("", result.Error);
             }
-            return View(branch);
+            return View(input);
         }
 
         // GET: Branch/Edit/5
@@ -83,57 +77,49 @@ namespace netcore.Controllers.Invent
                 return NotFound();
             }
 
-            var branch = await _context.Branch.SingleOrDefaultAsync(m => m.branchId == id);
-            if (branch == null)
+            var result = await _branchServices.GetByIdAsync(id);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
-            return View(branch);
+
+            var branch = result.Value;
+            var input = new BranchInputDto
+            {
+                BranchName = branch.BranchName,
+                Description = branch.Description,
+                Street1 = branch.Street1,
+                Street2 = branch.Street2,
+                City = branch.City,
+                Province = branch.Province,
+                Country = branch.Country,
+                IsDefaultBranch = branch.IsDefaultBranch
+            };
+            ViewData["BranchId"] = id;
+            return View(input);
         }
 
         // POST: Branch/Edit/5
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(string id, [Bind("branchId,branchName,description,street1,street2,city,province,country,createdAt,isDefaultBranch")] Branch branch)
+        public async Task<IActionResult> Edit(string id, BranchInputDto input)
         {
-            if (id != branch.branchId)
-            {
-                return NotFound();
-            }
-
             if (ModelState.IsValid)
             {
-                try
+                var result = await _branchServices.UpdateByIdAsync(id, input);
+                if (result.IsSuccess)
                 {
-                    _context.Update(branch);
-                    await _context.SaveChangesAsync();
+                    return RedirectToAction(nameof(Index));
+                }
 
-                    if (branch.isDefaultBranch)
-                    {
-                        List<Branch> others = await _context.Branch.Where(x => !x.branchId.Equals(branch.branchId)).ToListAsync();
-                        foreach (var item in others)
-                        {
-                            item.isDefaultBranch = false;
-                            await _context.SaveChangesAsync();
-                        }
-                    }
-                }
-                catch (DbUpdateConcurrencyException)
+                if (result.Error.Contains("not found"))
                 {
-                    if (!BranchExists(branch.branchId))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    return NotFound();
                 }
-                return RedirectToAction(nameof(Index));
+                ModelState.AddModelError("", result.Error);
             }
-            return View(branch);
+            ViewData["BranchId"] = id;
+            return View(input);
         }
 
         // GET: Branch/Delete/5
@@ -144,47 +130,32 @@ namespace netcore.Controllers.Invent
                 return NotFound();
             }
 
-            var branch = await _context.Branch
-                    .SingleOrDefaultAsync(m => m.branchId == id);
-            if (branch == null)
+            var result = await _branchServices.GetByIdAsync(id);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
 
-            return View(branch);
+            return View(result.Value);
         }
-
-
-
 
         // POST: Branch/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(string id)
         {
-            var branch = await _context.Branch.SingleOrDefaultAsync(m => m.branchId == id);
-            try
+            var result = await _branchServices.DeleteAsync(id);
+            if (result.IsFailure)
             {
-                _context.Branch.Remove(branch);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                var branchResult = await _branchServices.GetByIdAsync(id);
+                if (branchResult.IsSuccess)
+                {
+                    ViewData["StatusMessage"] = "Error. Calm Down ^_^ and please contact your SysAdmin with this message: " + result.Error;
+                    return View(branchResult.Value);
+                }
             }
-            catch (Exception ex)
-            {
-
-                ViewData["StatusMessage"] = "Error. Calm Down ^_^ and please contact your SysAdmin with this message: " + ex;
-                return View(branch);
-            }
-            
-            
-
+            return RedirectToAction(nameof(Index));
         }
-
-        private bool BranchExists(string id)
-        {
-            return _context.Branch.Any(e => e.branchId == id);
-        }
-
     }
 }
 

@@ -1,81 +1,63 @@
-﻿@model JempSoft.Core.Models.EmployeeSchedule
-
+@model JempSoft.Core.Models.EmployeeSchedule
 
 @{
-    ViewData["Title"] = "Details";
-    Layout = "~/Views/Shared/_AdminlteNetcoreDetails.cshtml";
-    ViewData["EntityIcon"] = "fa fa-building-o";
-
-    var id = Model.Employee.EmployeeId;
+    ViewData["Title"] = "Detalles del Horario";
+    Layout = "~/Views/Shared/_AdminLTE4Details.cshtml";
+    ViewData["EntityIcon"] = "fa fa-calendar";
+    ViewData["DetailsTitle"] = "Horario de Trabajo";
 }
 
-<h2>Details</h2>
-
-<div class="row">
-    <div class="col-md-9">
-        <!-- Default box -->
-        <div class="box box-primary">
-            <div class="box-body">
-                <div>
-                    <dl class="dl-horizontal">
-                        <dt>
-                            @Html.DisplayNameFor(model => model.Employee.FullName)
-                        </dt>
-                        <dd>
-                            @Html.DisplayFor(model => model.Employee.FullName)
-                        </dd>                    
-                        <dt>
-                            @Html.DisplayNameFor(model => model.Employee.ContactNumber)
-                        </dt>
-                        <dd>
-                            @Html.DisplayFor(model => model.Employee.ContactNumber)
-                        </dd>
-                        <dt>
-                            @Html.DisplayNameFor(model => model.Employee.EmailAddress)
-                        </dt>
-                        <dd>
-                            @Html.DisplayFor(model => model.Employee.EmailAddress)
-                        </dd>                       
-                    </dl>
-                </div>
+@if (Model == null)
+{
+    <div class="callout callout-warning">
+        <h4><i class="icon fa fa-warning"></i> No Encontrado</h4>
+        <p>El horario no fue encontrado. <a asp-action="Index">Volver a la lista</a></p>
+    </div>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-6">
+            <div class="detail-row">
+                <div class="detail-label"><i class="fa fa-calendar text-muted"></i> Día Disponible</div>
+                <div class="detail-value"><strong>@Model.AvaliableDay</strong></div>
             </div>
-            <!-- /.box-body -->
-            <div class="box-footer">
-                <div class="form-group">
-                    <a asp-action="Edit" asp-route-id="@id" class="btn btn-primary">Edit</a>
-                    <a asp-action="Index" class="btn btn-default">Back to List</a>
-                </div>
-            </div>
-            <!-- /.box-footer-->
         </div>
-        <!-- /.box -->
-    </div>
-    <div class="col-md-3">
-    </div>
-</div>
-
-<h4>Employee Schedule</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form method="post" asp-controller="EmployeeSchedules" asp-action="Create">
-
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-            @*<div class="form-group">
-                <label asp-for="Schedule.AvaliableDay" class="control-label"></label>
-                <input asp-for="Schedule.AvaliableDay" class="form-control" />
-                <span asp-validation-for="Schedule.AvaliableDay" class="text-danger"></span>
-            </div>*@
-
-            <div class="form-group">
-                <input type="submit" value="Add" class="btn btn-default" />
+        <div class="col-md-6">
+            <div class="detail-row">
+                <div class="detail-label"><i class="fa fa-check-circle text-muted"></i> Estado</div>
+                <div class="detail-value">
+                    @if (Model.IsActive) {
+                        <span class="label label-success"><i class="fa fa-check"></i> Activo</span>
+                    } else {
+                        <span class="label label-danger"><i class="fa fa-times"></i> Inactivo</span>
+                    }
+                </div>
             </div>
-
-        </form>
+        </div>
     </div>
-</div>
-
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
+    
+    <div class="row" style="margin-top: 15px;">
+        <div class="col-md-6">
+            <div class="detail-row">
+                <div class="detail-label"><i class="fa fa-user text-muted"></i> Empleado</div>
+                <div class="detail-value">@(Model.Employee?.FullName ?? "N/A")</div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="detail-row">
+                <div class="detail-label"><i class="fa fa-phone text-muted"></i> Contacto</div>
+                <div class="detail-value">@(Model.Employee?.ContactNumber ?? "N/A")</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row" style="margin-top: 15px;">
+        <div class="col-md-6">
+            <div class="detail-row">
+                <div class="detail-label"><i class="fa fa-envelope text-muted"></i> Email</div>
+                <div class="detail-value">@(Model.Employee?.EmailAddress ?? "N/A")</div>
+            </div>
+        </div>
+    </div>
+}

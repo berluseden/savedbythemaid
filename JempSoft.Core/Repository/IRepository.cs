@@ -1,24 +1,33 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace JempSoft.Core.Repository
 {
-    public interface IRepository<T> where T: class
+    /// <summary>
+    /// Generic repository interface with async support
+    /// </summary>
+    public interface IRepository<T> where T : class
     {
+        Task<List<T>> GetAllAsync(CancellationToken cancellationToken = default);
+        Task<T?> GetByIdAsync(object id, CancellationToken cancellationToken = default);
+        Task<T> AddAsync(T entity, CancellationToken cancellationToken = default);
+        Task UpdateAsync(T entity, CancellationToken cancellationToken = default);
+        Task DeleteAsync(T entity, CancellationToken cancellationToken = default);
+        Task DeleteAsync(object id, CancellationToken cancellationToken = default);
+        
+        // Query methods
+        Task<List<T>> FindAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default);
+        Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default);
+        Task<bool> AnyAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default);
+        Task<int> CountAsync(Expression<Func<T, bool>>? predicate = null, CancellationToken cancellationToken = default);
+        
+        // IQueryable for complex queries
+        IQueryable<T> Query();
 
-        List<T> GetAll();
-
-        T GetById(object id);
-
-        T Save(T entity);
-
-        void Update(T entity);
-
-        void Delete(T entity);
-
-        void Delete(object id);
-
-        void SoDelete(T entity);
+        void SoftDelete(T entity);
     }
 }

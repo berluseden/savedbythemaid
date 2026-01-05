@@ -1,8 +1,8 @@
-﻿@model JempSoft.Core.Models.Invent.TransferOrder
+@model JempSoft.Core.Models.Invent.TransferOrder
 
 @{
     ViewData["Title"] = "Edit";
-    Layout = "~/Views/Shared/_AdminlteNetcoreEdit.cshtml";
+    Layout = "~/Views/Shared/_AdminLTE4Edit.cshtml";
     ViewData["EntityIcon"] = "fa fa-recycle";
     ViewData["EditInfo"] = " TO have three status: 1. Draft (Unconfirmed TO, not ready for transfer), 2. Open (Confirmed TO, ready for transfer) and 3. Completed (Closed TO, already do the transfer process). Change status from [Draft] to [Open] to confirm the transfer order. [Completed] status is auto set when goods issue and goods receive already done.";
 }

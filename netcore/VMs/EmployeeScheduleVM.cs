@@ -11,9 +11,10 @@ namespace netcore.VMs
         public EmployeeScheduleVM()
         {
             EmployeeSchedule = new List<EmployeeSchedule>();
+            Schedule = new EmployeeSchedule();
         }
 
-        public Employee Employee { get; set; }
+        public Employee? Employee { get; set; }
 
         public EmployeeSchedule Schedule { get; set; }
 

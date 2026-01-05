@@ -118,7 +118,7 @@ namespace netcore.Services
         }
 
 
-        public async Task<string> UploadFile(List<IFormFile> files, IHostingEnvironment env)
+        public async Task<string> UploadFile(List<IFormFile> files, IWebHostEnvironment env)
         {
             var result = "";
 
@@ -284,7 +284,7 @@ namespace netcore.Services
             {
               
 
-                Branch branch = new Branch() { branchName = "HQ", isDefaultBranch = true, street1 = "Rua Orós, 92" };
+                Branch branch = new Branch() { branchId = Guid.NewGuid().ToString(), branchName = "HQ", isDefaultBranch = true, street1 = "Rua Orós, 92" };
                 _context.Branch.Add(branch);
 
                 List<Warehouse> whs = new List<Warehouse>() {

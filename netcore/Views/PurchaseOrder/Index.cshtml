@@ -1,8 +1,8 @@
-﻿@model IEnumerable<JempSoft.Core.Models.Invent.PurchaseOrder>
+@model IEnumerable<JempSoft.Core.Models.Invent.PurchaseOrder>
 
 @{
     ViewData["Title"] = "Index";
-    Layout = "~/Views/Shared/_AdminlteNetcoreIndex.cshtml";
+    Layout = "~/Views/Shared/_AdminLTE4Index.cshtml";
     ViewData["EntityIcon"] = "fa fa-file-text";
     ViewData["ListTitle"] = "Purchase Order List";
     ViewData["IndexInfo"] = "Purchase Order (PO) is a commercial document issued by your company as a buyer to your vendor as a products seller." +
@@ -68,9 +68,9 @@
         <tr>
             <td>
                 <div class="tools">
-                    <a asp-action="Edit" asp-route-id="@item.purchaseOrderId" class="btn btn-primary btn-xs"><i class="fa fa-pencil"></i></a>
-                    <a asp-action="Details" asp-route-id="@item.purchaseOrderId" class="btn btn-primary btn-xs"><i class="fa fa-list"></i></a>
-                    <a asp-action="Delete" asp-route-id="@item.purchaseOrderId" class="btn btn-danger btn-xs"><i class="fa fa-trash"></i></a>
+                    <a asp-action="Edit" asp-route-id="@item.purchaseOrderId" class="btn btn-primary btn-sm"><i class="fa fa-pencil"></i></a>
+                    <a asp-action="Details" asp-route-id="@item.purchaseOrderId" class="btn btn-primary btn-sm"><i class="fa fa-list"></i></a>
+                    <a asp-action="Delete" asp-route-id="@item.purchaseOrderId" class="btn btn-danger btn-sm"><i class="fa fa-trash"></i></a>
                 </div>
                 
             </td>
@@ -105,21 +105,21 @@
                 @Html.DisplayFor(modelItem => item.picVendor)
             </td>
             <td>
-                @if (item.purchaseOrderStatus == netcore.Models.Invent.PurchaseOrderStatus.Completed)
+                @if (item.purchaseOrderStatus == JempSoft.Core.Models.Invent.PurchaseOrderStatus.Completed)
                 {
                     <span class="label label-success">
                         @Html.DisplayFor(modelItem => item.purchaseOrderStatus)
                     </span>
 
                 }
-                @if (item.purchaseOrderStatus == netcore.Models.Invent.PurchaseOrderStatus.Open)
+                @if (item.purchaseOrderStatus == JempSoft.Core.Models.Invent.PurchaseOrderStatus.Open)
                 {
                     <span class="label label-primary">
                         @Html.DisplayFor(modelItem => item.purchaseOrderStatus)
                     </span>
 
                 }
-                 @if (item.purchaseOrderStatus == netcore.Models.Invent.PurchaseOrderStatus.Draft)
+                 @if (item.purchaseOrderStatus == JempSoft.Core.Models.Invent.PurchaseOrderStatus.Draft)
                  {
                     <span class="label label-warning">
                         @Html.DisplayFor(modelItem => item.purchaseOrderStatus)

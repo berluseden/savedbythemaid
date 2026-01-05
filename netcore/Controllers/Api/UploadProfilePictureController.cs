@@ -19,12 +19,12 @@ namespace netcore.Controllers.Api
     public class UploadProfilePictureController : Controller
     {
         private readonly INetcoreService _netcoreService;
-        private readonly IHostingEnvironment _env;
+        private readonly IWebHostEnvironment _env;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ApplicationDbContext _context;
 
         public UploadProfilePictureController(INetcoreService netcoreService,
-            IHostingEnvironment env,
+            IWebHostEnvironment env,
             UserManager<ApplicationUser> userManager,
             ApplicationDbContext context)
         {

@@ -1,26 +1,56 @@
 ﻿using JempSoft.Applications.Book.Dto;
 using JempSoft.Core.Models;
+using JempSoft.Core.Result;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace JempSoft.Applications
 {
+    /// <summary>
+    /// Service interface for booking operations
+    /// </summary>
     public interface IBookingService
     {
-        Task<CartItemOutPutDto> Book(BookInputDto input);
+        /// <summary>
+        /// Creates a new cart item for booking
+        /// </summary>
+        Task<Result<CartItemOutPutDto>> BookAsync(BookInputDto input, CancellationToken cancellationToken = default);
 
-        OrderToCheckOutDto ProcessToCheckOut(int id);
+        /// <summary>
+        /// Processes the cart item for checkout
+        /// </summary>
+        Task<Result<OrderToCheckOutDto>> ProcessToCheckOutAsync(int cartItemId, CancellationToken cancellationToken = default);
 
-        AvaliableMaidOutputDto GetAvaliableMaids(DateTime day);
+        /// <summary>
+        /// Gets available maids for a specific day
+        /// </summary>
+        Task<Result<AvaliableMaidOutputDto>> GetAvailableMaidsAsync(DateTime day, CancellationToken cancellationToken = default);
 
-        AvaliableMaidMonthOutputDto GetAvaliableMaidThisMonth(DateTime day);
+        /// <summary>
+        /// Gets available maids for the entire month
+        /// </summary>
+        Task<Result<AvaliableMaidMonthOutputDto>> GetAvailableMaidThisMonthAsync(DateTime day, CancellationToken cancellationToken = default);
 
-        int GetAvaliablesMaidsByDay(DateTime day);
+        /// <summary>
+        /// Gets count of available maids for a specific day
+        /// </summary>
+        Task<Result<int>> GetAvailableMaidsByDayAsync(DateTime day, CancellationToken cancellationToken = default);
 
-        bool AddToCart(ServiceOrderInputDto serviceOrder, List<int> aditionalServices, ServiceContactInfoInputDto contactInfo, out long serviceOrderId);
-        ServiceItemsOnCartDto GetCartServiceByUserName(string userName);
+        /// <summary>
+        /// Adds a service order to cart with all details
+        /// </summary>
+        Task<Result<long>> AddToCartAsync(ServiceOrderInputDto serviceOrder, List<int> additionalServices, ServiceContactInfoInputDto contactInfo, CancellationToken cancellationToken = default);
 
-        ServiceOrder RemoveItemOnCart(long id, out string resultMessage);
+        /// <summary>
+        /// Gets all cart items for a user
+        /// </summary>
+        Task<Result<ServiceItemsOnCartDto>> GetCartServiceByUserNameAsync(string userName, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Removes an item from cart (soft delete)
+        /// </summary>
+        Task<Result<ServiceOrder>> RemoveItemFromCartAsync(long serviceOrderId, CancellationToken cancellationToken = default);
     }
 }

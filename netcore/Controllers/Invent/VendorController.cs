@@ -7,28 +7,29 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using System.ComponentModel.DataAnnotations;
-
+using JempSoft.Applications.Invent;
+using JempSoft.Applications.Invent.Dto;
 using netcore.Data;
-using JempSoft.Core.Models.Invent;
 
 namespace netcore.Controllers.Invent
 {
-
-
     [Authorize(Roles = "Vendor")]
     public class VendorController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IVendorServices _vendorServices;
+        private readonly ApplicationDbContext _context; // Kept for cascade delete of VendorLine
 
-        public VendorController(ApplicationDbContext context)
+        public VendorController(IVendorServices vendorServices, ApplicationDbContext context)
         {
+            _vendorServices = vendorServices;
             _context = context;
         }
 
         // GET: Vendor
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Vendor.OrderByDescending(x => x.createdAt).ToListAsync());
+            var result = await _vendorServices.GetAllAsync();
+            return View(result.IsSuccess ? result.Value : new List<VendorOutputDto>());
         }
 
         // GET: Vendor/Details/5
@@ -39,16 +40,14 @@ namespace netcore.Controllers.Invent
                 return NotFound();
             }
 
-            var vendor = await _context.Vendor
-                        .SingleOrDefaultAsync(m => m.vendorId == id);
-            if (vendor == null)
+            var result = await _vendorServices.GetByIdAsync(id);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
 
-            return View(vendor);
+            return View(result.Value);
         }
-
 
         // GET: Vendor/Create
         public IActionResult Create()
@@ -56,23 +55,21 @@ namespace netcore.Controllers.Invent
             return View();
         }
 
-
-
-
         // POST: Vendor/Create
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("vendorId,vendorName,description,size,street1,street2,city,province,country,HasChild,createdAt")] Vendor vendor)
+        public async Task<IActionResult> Create(VendorInputDto input)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(vendor);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Details), new { id = vendor.vendorId });
+                var result = await _vendorServices.SaveAsync(input);
+                if (result.IsSuccess)
+                {
+                    return RedirectToAction(nameof(Details), new { id = result.Value });
+                }
+                ModelState.AddModelError("", result.Error);
             }
-            return View(vendor);
+            return View(input);
         }
 
         // GET: Vendor/Edit/5
@@ -83,47 +80,49 @@ namespace netcore.Controllers.Invent
                 return NotFound();
             }
 
-            var vendor = await _context.Vendor.SingleOrDefaultAsync(m => m.vendorId == id);
-            if (vendor == null)
+            var result = await _vendorServices.GetByIdAsync(id);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
-            return View(vendor);
+
+            var vendor = result.Value;
+            var input = new VendorInputDto
+            {
+                VendorName = vendor.VendorName,
+                Description = vendor.Description,
+                Size = vendor.Size,
+                Street1 = vendor.Street1,
+                Street2 = vendor.Street2,
+                City = vendor.City,
+                Province = vendor.Province,
+                Country = vendor.Country
+            };
+            ViewData["VendorId"] = id;
+            return View(input);
         }
 
         // POST: Vendor/Edit/5
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(string id, [Bind("vendorId,vendorName,description,size,street1,street2,city,province,country,HasChild,createdAt")] Vendor vendor)
+        public async Task<IActionResult> Edit(string id, VendorInputDto input)
         {
-            if (id != vendor.vendorId)
-            {
-                return NotFound();
-            }
-
             if (ModelState.IsValid)
             {
-                try
+                var result = await _vendorServices.UpdateByIdAsync(id, input);
+                if (result.IsSuccess)
                 {
-                    _context.Update(vendor);
-                    await _context.SaveChangesAsync();
+                    return RedirectToAction(nameof(Index));
                 }
-                catch (DbUpdateConcurrencyException)
+
+                if (result.Error.Contains("not found"))
                 {
-                    if (!VendorExists(vendor.vendorId))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    return NotFound();
                 }
-                return RedirectToAction(nameof(Index));
+                ModelState.AddModelError("", result.Error);
             }
-            return View(vendor);
+            ViewData["VendorId"] = id;
+            return View(input);
         }
 
         // GET: Vendor/Delete/5
@@ -134,46 +133,53 @@ namespace netcore.Controllers.Invent
                 return NotFound();
             }
 
-            var vendor = await _context.Vendor
-                    .SingleOrDefaultAsync(m => m.vendorId == id);
-            if (vendor == null)
+            var result = await _vendorServices.GetByIdAsync(id);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
 
-            return View(vendor);
+            return View(result.Value);
         }
-
-
-
 
         // POST: Vendor/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(string id)
         {
-            var vendor = await _context.Vendor.Include(x => x.vendorLine).SingleOrDefaultAsync(m => m.vendorId == id);
             try
             {
-                _context.VendorLine.RemoveRange(vendor.vendorLine);
-                _context.Vendor.Remove(vendor);
-                await _context.SaveChangesAsync();
+                // First delete related VendorLines
+                var vendorLines = await _context.VendorLine.Where(v => v.vendorId == id).ToListAsync();
+                if (vendorLines.Any())
+                {
+                    _context.VendorLine.RemoveRange(vendorLines);
+                    await _context.SaveChangesAsync();
+                }
+
+                var result = await _vendorServices.DeleteAsync(id);
+                if (result.IsFailure)
+                {
+                    var vendorResult = await _vendorServices.GetByIdAsync(id);
+                    if (vendorResult.IsSuccess)
+                    {
+                        ViewData["StatusMessage"] = "Error. Calm Down ^_^ and please contact your SysAdmin with this message: " + result.Error;
+                        return View(vendorResult.Value);
+                    }
+                }
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
-
-                ViewData["StatusMessage"] = "Error. Calm Down ^_^ and please contact your SysAdmin with this message: " + ex;
-                return View(vendor);
+                var vendorResult = await _vendorServices.GetByIdAsync(id);
+                if (vendorResult.IsSuccess)
+                {
+                    ViewData["StatusMessage"] = "Error. Calm Down ^_^ and please contact your SysAdmin with this message: " + ex.Message;
+                    return View(vendorResult.Value);
+                }
+                return RedirectToAction(nameof(Index));
             }
-            
         }
-
-        private bool VendorExists(string id)
-        {
-            return _context.Vendor.Any(e => e.vendorId == id);
-        }
-
     }
 }
 

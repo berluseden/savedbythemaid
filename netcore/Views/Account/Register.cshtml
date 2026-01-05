@@ -1,16 +1,16 @@
-﻿@model RegisterViewModel
+@model RegisterViewModel
 @{
     ViewData["Title"] = "Register";
-    Layout = "_AdminlteNetcoreRegister";
+    Layout = "_AdminLTE4Login";
 }
 
-<div class="register-box">
+<div class="card">
     
-    <div class="register-box-body">
+    <div class="register-card-body">
         <div class="register-logo">
             <a href="@netcore.MVC.Pages.HomeIndex.Url"><b>IN</b>VENTORY</a>
         </div>
-        <p class="login-box-msg">Register a new membership</p>
+        <p class="card-msg">Register a new membership</p>
         <form asp-route-returnUrl="@ViewData["ReturnUrl"]" method="post">
             <div class="form-group has-feedback">
                 <label asp-for="Email"></label>
@@ -40,7 +40,7 @@
                 </div>
                 <!-- /.col -->
                 <div class="col-xs-4">
-                    <button type="submit" class="btn btn-primary btn-block btn-flat">Register</button>
+                    <button type="submit" class="btn btn-primary btn-block btn">Register</button>
                 </div>
                 <!-- /.col -->
             </div>
@@ -49,11 +49,11 @@
 
         <div class="social-auth-links text-center hidden">
             <p>- OR -</p>
-            <a href="#" class="btn btn-block btn-social btn-facebook btn-flat">
+            <a href="#" class="btn btn-block btn-social btn-facebook btn">
                 <i class="fa fa-facebook"></i> Sign up using
                 Facebook
             </a>
-            <a href="#" class="btn btn-block btn-social btn-google btn-flat">
+            <a href="#" class="btn btn-block btn-social btn-google btn">
                 <i class="fa fa-google-plus"></i> Sign up using
                 Google+
             </a>

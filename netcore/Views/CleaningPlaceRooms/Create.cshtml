@@ -1,32 +1,42 @@
-﻿@model JempSoft.Core.Models.CleaningPlaceRoom
+@model JempSoft.Core.Models.CleaningPlaceRoom
 
 @{
-    ViewData["Title"] = "Create";
-    Layout = "~/Views/Shared/_AdminlteNetcoreCreate.cshtml";
-    ViewData["EntityIcon"] = "fa fa-tags";
-    ViewData["CreateInfo"] = "Cleaning Place Room.";
+    ViewData["Title"] = "Nueva Habitación";
+    Layout = "~/Views/Shared/_AdminLTE4Create.cshtml";
+    ViewData["EntityIcon"] = "fa fa-th-large";
+    ViewData["FormTitle"] = "Nuevo Tipo de Habitación";
+    ViewBag.CreateInfo = "Define un tipo de habitación (Sala, Cocina, Baño, Dormitorio, etc).";
 }
 
+@if (ViewBag.ErrorMessage != null)
+{
+    <div class="alert alert-danger alert-dismissible">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+        <h4><i class="icon fa fa-ban"></i> Error</h4>
+        @ViewBag.ErrorMessage
+    </div>
+}
 
 <div class="row">
     <div class="col-md-12">
         <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        
         <div class="form-group">
-            <label asp-for="Title" class="control-label"></label>
-            <input asp-for="Title" class="form-control" />
+            <label asp-for="Title" class="control-label"><i class="fa fa-th-large text-muted"></i> Nombre de la Habitación <span class="text-danger">*</span></label>
+            <input asp-for="Title" class="form-control" placeholder="Ej: Sala, Cocina, Baño, Dormitorio" />
             <span asp-validation-for="Title" class="text-danger"></span>
         </div>
+        
         <div class="form-group">
             <div class="checkbox">
-                <label>
-                    <input asp-for="IsActive" /> @Html.DisplayNameFor(model => model.IsActive)
+                <label style="font-weight: 600;">
+                    <input asp-for="IsActive" checked /> <i class="fa fa-check-circle text-success"></i> Activo
                 </label>
+                <small class="help-block">Si está desactivado, no aparecerá en las opciones disponibles</small>
             </div>
         </div>
     </div>
 </div>
-
-
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}

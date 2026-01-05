@@ -1,7 +1,7 @@
-﻿@model netcore.VMs.CleaningPlacePlaceRoomsVM
+@model netcore.VMs.CleaningPlacePlaceRoomsVM
 @{
     ViewData["Title"] = "AddPlaceRoom";
-    Layout = "~/Views/Shared/_AdminlteNetcoreCustom.cshtml";
+    Layout = "~/Views/Shared/_AdminLTE4Custom.cshtml";
     ViewData["EntityIcon"] = "fa fa-tags";
 
     ViewBag.ControllerActionView = "AddPlaceRoom";
@@ -75,7 +75,7 @@
                 <tr>
                     <td>
                         <div class="tools">
-                            <a asp-action="AddServiceTypeToPlaceRoom" asp-controller="CleaningPlaceRooms" asp-route-id="@item.CleaningPlaceRoomId" class="btn btn-primary btn-xs"><i class="fa fa-plus"></i></a>
+                            <a asp-action="AddServiceTypeToPlaceRoom" asp-controller="CleaningPlaceRooms" asp-route-id="@item.CleaningPlaceRoomId" class="btn btn-primary btn-sm"><i class="fa fa-plus"></i></a>
 
                         </div>
 

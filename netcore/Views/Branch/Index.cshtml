@@ -1,14 +1,22 @@
-﻿@model IEnumerable<JempSoft.Core.Models.Invent.Branch>
+@model IEnumerable<JempSoft.Core.Models.Invent.Branch>
 
 @{
     ViewData["Title"] = "Index";
-    Layout = "~/Views/Shared/_AdminlteNetcoreIndex.cshtml";
+    Layout = "~/Views/Shared/_AdminLTE4Index.cshtml";
     ViewData["EntityIcon"] = "fa fa-building";
     ViewData["ListTitle"] = "Branch List";
     ViewData["IndexInfo"] = "Branch office is an outlet of a Company. To get started, you should have minimum one branch as your main office or headquarter.";
 }
 
-
+@if (Model == null || !Model.Any())
+{
+    <div class="alert alert-info">
+        <h4><i class="icon fa fa-info"></i> No Branches Found</h4>
+        There are no branches registered yet. <a asp-action="Create" class="alert-link">Create your first branch</a> to get started.
+    </div>
+}
+else
+{
 <table class="table table-hover table-striped" style="width:100%">
     <thead>
         <tr>
@@ -43,9 +51,9 @@
         <tr>
             <td>
                 <div class="tools">
-                    <a asp-action="Edit" asp-route-id="@item.branchId" class="btn btn-primary btn-xs"><i class="fa fa-pencil"></i></a>
-                    <a asp-action="Details" asp-route-id="@item.branchId" class="btn btn-primary btn-xs"><i class="fa fa-list"></i></a>
-                    <a asp-action="Delete" asp-route-id="@item.branchId" class="btn btn-danger btn-xs"><i class="fa fa-trash"></i></a>
+                    <a asp-action="Edit" asp-route-id="@item.branchId" class="btn btn-primary btn-sm"><i class="fa fa-pencil"></i></a>
+                    <a asp-action="Details" asp-route-id="@item.branchId" class="btn btn-primary btn-sm"><i class="fa fa-list"></i></a>
+                    <a asp-action="Delete" asp-route-id="@item.branchId" class="btn btn-danger btn-sm"><i class="fa fa-trash"></i></a>
                 </div>
                 
             </td>
@@ -75,3 +83,4 @@
         }
     </tbody>
 </table>
+}

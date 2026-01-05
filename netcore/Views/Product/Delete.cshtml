@@ -1,13 +1,13 @@
-﻿@model JempSoft.Core.Models.Invent.Product
+@model JempSoft.Core.Models.Invent.Product
 @inject netcore.Data.ApplicationDbContext _context;
 @{
     ViewData["Title"] = "Delete";
-    Layout = "~/Views/Shared/_AdminlteNetcoreDelete.cshtml";
+    Layout = "~/Views/Shared/_AdminLTE4Delete.cshtml";
     ViewData["EntityIcon"] = "fa fa-tags";
     ViewData["DeleteInfo"] = "Product that already have transactions (PO, SO, Transfer Order) can not be deleted.";
-    netcore.Models.Invent.PurchaseOrderLine poline = _context.PurchaseOrderLine.Where(x => x.productId.Equals(Model.productId)).FirstOrDefault();
-    netcore.Models.Invent.SalesOrderLine soline = _context.SalesOrderLine.Where(x => x.productId.Equals(Model.productId)).FirstOrDefault();
-    netcore.Models.Invent.TransferOrderLine toline = _context.TransferOrderLine.Where(x => x.productId.Equals(Model.productId)).FirstOrDefault();
+    JempSoft.Core.Models.Invent.PurchaseOrderLine poline = _context.PurchaseOrderLine.Where(x => x.productId.Equals(Model.productId)).FirstOrDefault();
+    JempSoft.Core.Models.Invent.SalesOrderLine soline = _context.SalesOrderLine.Where(x => x.productId.Equals(Model.productId)).FirstOrDefault();
+    JempSoft.Core.Models.Invent.TransferOrderLine toline = _context.TransferOrderLine.Where(x => x.productId.Equals(Model.productId)).FirstOrDefault();
     ViewData["IsCanDeleted"] = false;
     if (poline == null && soline == null && toline == null)
     {

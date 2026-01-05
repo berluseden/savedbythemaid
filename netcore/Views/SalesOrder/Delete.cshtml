@@ -1,12 +1,12 @@
-﻿@model JempSoft.Core.Models.Invent.SalesOrder
+@model JempSoft.Core.Models.Invent.SalesOrder
 
 @{
     ViewData["Title"] = "Delete";
-    Layout = "~/Views/Shared/_AdminlteNetcoreDelete.cshtml";
+    Layout = "~/Views/Shared/_AdminLTE4Delete.cshtml";
     ViewData["EntityIcon"] = "fa fa-cart-plus";
     ViewData["DeleteInfo"] = "[Completed] Sales Order (SO) can not be deleted. Rollback status to [Open] by deleting related Delivery Order (Shipment)";
     ViewData["IsCanDeleted"] = false;
-    if (Model.salesOrderStatus != netcore.Models.Invent.SalesOrderStatus.Completed)
+    if (Model.salesOrderStatus != JempSoft.Core.Models.Invent.SalesOrderStatus.Completed)
     {
         ViewData["IsCanDeleted"] = true;
     }

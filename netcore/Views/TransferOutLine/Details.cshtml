@@ -1,8 +1,8 @@
-﻿@model JempSoft.Core.Models.Invent.TransferOutLine
+@model JempSoft.Core.Models.Invent.TransferOutLine
 
 @{
     ViewData["Title"] = "Details";
-    Layout = "~/Views/Shared/_AdminlteNetcoreDetails.cshtml";
+    Layout = "~/Views/Shared/_AdminLTE4Details.cshtml";
 }
 
 
@@ -10,8 +10,8 @@
 <div class="row">
     <div class="col-md-9">
         <!-- Default box -->
-        <div class="box box-primary">
-            <div class="box-body">
+        <div class="card card-primary">
+            <div class="card-body">
                 <div>
                       <dl class="dl-horizontal">
                           <dt>
@@ -47,14 +47,14 @@
                       </dl>                                   
                 </div>
             </div>
-            <!-- /.box-body -->
-            <div class="box-footer">
+            
+            <div class="card-footer">
                 <div class="form-group">
                     <a asp-action="Edit" asp-route-id="@Model.transferOutLineId" class="btn btn-primary">Edit</a>
                     <a asp-action="Index" class="btn btn-default">Back to List</a>
                 </div>
             </div>
-            <!-- /.box-footer-->
+            
         </div>
         <!-- /.box -->
     </div>

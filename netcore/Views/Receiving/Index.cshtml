@@ -1,8 +1,8 @@
-﻿@model IEnumerable<JempSoft.Core.Models.Invent.Receiving>
+@model IEnumerable<JempSoft.Core.Models.Invent.Receiving>
 
 @{
     ViewData["Title"] = "Index";
-    Layout = "~/Views/Shared/_AdminlteNetcoreIndex.cshtml";
+    Layout = "~/Views/Shared/_AdminLTE4Index.cshtml";
     ViewData["EntityIcon"] = "fa fa-truck";
     ViewData["ListTitle"] = "Receiving List";
     ViewData["IndexInfo"] = "Receiving is a process of product receive from your vendor. After inspecting and confirm all goods have been received, warehouse team then will issue internal document called Goods Service Receive Note (GSRN) as a proof of products receive.";
@@ -46,8 +46,8 @@
             <tr>
                 <td>
                     <div class="tools">
-                        <a asp-action="Details" asp-route-id="@item.receivingId" class="btn btn-primary btn-xs"><i class="fa fa-list"></i></a>
-                        <a asp-action="Delete" asp-route-id="@item.receivingId" class="btn btn-danger btn-xs"><i class="fa fa-trash"></i></a>
+                        <a asp-action="Details" asp-route-id="@item.receivingId" class="btn btn-primary btn-sm"><i class="fa fa-list"></i></a>
+                        <a asp-action="Delete" asp-route-id="@item.receivingId" class="btn btn-danger btn-sm"><i class="fa fa-trash"></i></a>
                     </div>
                    
                 </td>

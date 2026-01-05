@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using netcore.Data;
 using netcore.Models;
 using netcore.Services;
+using netcore.VMs;
 
 namespace netcore.Controllers
 {
@@ -69,15 +70,13 @@ namespace netcore.Controllers
         {
             _logger.LogInformation(LoggingEvents.InsertItem, "Get Create ApplicationUser");
 
-            return View();
+            return View(new ApplicationUserCreateVM());
         }
 
         // POST: ApplicationUser/Create
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([FromForm] ApplicationUser applicationUser)
+        public async Task<IActionResult> Create([FromForm] ApplicationUserCreateVM model)
         {
             _logger.LogInformation(LoggingEvents.InsertItem, "Post Create ApplicationUser");
 
@@ -85,19 +84,64 @@ namespace netcore.Controllers
             {
                 if (ModelState.IsValid)
                 {
-                    _context.Add(applicationUser);
-                    await _context.SaveChangesAsync();
-                    return RedirectToAction(nameof(Index));
+                    // Verificar si el email ya existe
+                    var existingUser = await _userManager.FindByEmailAsync(model.Email);
+                    if (existingUser != null)
+                    {
+                        ModelState.AddModelError("Email", "Este email ya está registrado.");
+                        return View(model);
+                    }
+
+                    // Crear el usuario con Identity
+                    var applicationUser = new ApplicationUser
+                    {
+                        UserName = model.UserName,
+                        Email = model.Email,
+                        PhoneNumber = model.PhoneNumber,
+                        EmailConfirmed = true, // Auto-confirmar desde admin
+                        isSuperAdmin = model.IsSuperAdmin,
+                        HomeRole = model.HomeRole,
+                        ApplicationUserRole = model.ApplicationUserRole,
+                        CleaningRole = model.CleaningRole,
+                        BookingRole = model.BookingRole,
+                        InventoryCatalogRole = model.InventoryCatalogRole,
+                        InventoryTransactionRole = model.InventoryTransactionRole,
+                        ReportsRole = model.ReportsRole
+                    };
+
+                    // Si es SuperAdmin, dar acceso a gestión de usuarios
+                    if (model.IsSuperAdmin)
+                    {
+                        applicationUser.ApplicationUserRole = true;
+                    }
+
+                    var result = await _userManager.CreateAsync(applicationUser, model.Password);
+
+                    if (result.Succeeded)
+                    {
+                        _logger.LogInformation(LoggingEvents.InsertItem, "Usuario creado: {Email}", model.Email);
+                        
+                        // Actualizar roles en el sistema
+                        ApplicationUser currentUserLogin = await _userManager.GetUserAsync(User);
+                        await _netCoreService.UpdateRoles(applicationUser, currentUserLogin!);
+
+                        return RedirectToAction(nameof(Index));
+                    }
+
+                    // Agregar errores de Identity al ModelState
+                    foreach (var error in result.Errors)
+                    {
+                        ModelState.AddModelError(string.Empty, error.Description);
+                    }
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(LoggingEvents.InsertItem, "Post Create ApplicationUser: {Error}", ex.Message);
-
-                throw;
+                ModelState.AddModelError(string.Empty, "Error al crear el usuario: " + ex.Message);
             }
            
-            return View(applicationUser);
+            return View(model);
         }
 
         // GET: ApplicationUser/Edit/5

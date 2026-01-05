@@ -8,26 +8,47 @@ using Microsoft.EntityFrameworkCore;
 using JempSoft.Core.Models;
 using netcore.Data;
 using netcore.VMs;
-using netcore.Extensions;
+using netcore.Dto;
 using JempSoft.Applications.Administration.Page;
+using JempSoft.Applications.Services;
 
 namespace netcore.Controllers
 {
     public class CleaningPlacesController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly ICleaningPlaceServices _cleaningPlaceService;
         private readonly IPageCookieService _pageCookie;
 
-        public CleaningPlacesController(ApplicationDbContext context, IPageCookieService pageCookie)
+        public CleaningPlacesController(
+            ApplicationDbContext context, 
+            ICleaningPlaceServices cleaningPlaceService,
+            IPageCookieService pageCookie)
         {
             _context = context;
+            _cleaningPlaceService = cleaningPlaceService;
             _pageCookie = pageCookie;
         }
 
         // GET: CleaningPlaces
         public async Task<IActionResult> Index()
         {
-            return View(await _context.CleaningPlaces.ToListAsync());
+            if (TempData["SuccessMessage"] != null)
+            {
+                ViewBag.SuccessMessage = TempData["SuccessMessage"];
+            }
+            if (TempData["ErrorMessage"] != null)
+            {
+                ViewBag.ErrorMessage = TempData["ErrorMessage"];
+            }
+            
+            var result = await _cleaningPlaceService.GetAllAsync();
+            if (result.IsFailure)
+            {
+                ViewBag.ErrorMessage = result.Error;
+                return View(new List<CleaningPlace>());
+            }
+            return View(result.Value);
         }
 
         // GET: CleaningPlaces/Details/5
@@ -38,40 +59,56 @@ namespace netcore.Controllers
                 return NotFound();
             }
 
-            var cleaningPlace = await _context.CleaningPlaces
-                .SingleOrDefaultAsync(m => m.CleaningPlaceId == id);
-            if (cleaningPlace == null)
+            var result = await _cleaningPlaceService.GetByIdAsync(id.Value);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
 
-            return View(cleaningPlace);
+            return View(result.Value);
         }
 
         // GET: CleaningPlaces/Create
         public IActionResult Create()
         {           
-
             return View();
         }
 
         // POST: CleaningPlaces/Create
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("CleaningPlaceId,Title,IsActive,CreatorUserId,CreationDate,UpdateUserId,UpdateDate,DeleteUserId,DeleteDate,IsDeleted")] CleaningPlace cleaningPlace)
+        public async Task<IActionResult> Create([Bind("CleaningPlaceId,Title,IsActive")] CleaningPlace cleaningPlace)
         {
-            if (ModelState.IsValid)
+            try
             {
-                cleaningPlace.CreatorUserId = Convert.ToInt32(_pageCookie.GetCookie("UserId"));
-                cleaningPlace.CreationDate = DateTime.UtcNow;
+                if (string.IsNullOrWhiteSpace(cleaningPlace.Title))
+                {
+                    ViewBag.ErrorMessage = "El título es requerido.";
+                    return View(cleaningPlace);
+                }
 
-                _context.Add(cleaningPlace);
-                await _context.SaveChangesAsync();
+                var input = new CleaningPlaceInputDto
+                {
+                    Title = cleaningPlace.Title,
+                    IsActive = cleaningPlace.IsActive,
+                    CreateUserId = Convert.ToInt32(_pageCookie.GetCookie("UserId"))
+                };
+
+                var result = await _cleaningPlaceService.SaveAsync(input);
+                if (result.IsFailure)
+                {
+                    ViewBag.ErrorMessage = result.Error;
+                    return View(cleaningPlace);
+                }
+                
+                TempData["SuccessMessage"] = $"Tipo de inmueble '{cleaningPlace.Title}' creado exitosamente.";
                 return RedirectToAction(nameof(Index));
             }
-            return View(cleaningPlace);
+            catch (Exception ex)
+            {
+                ViewBag.ErrorMessage = "Error al guardar: " + (ex.InnerException?.Message ?? ex.Message);
+                return View(cleaningPlace);
+            }
         }
 
         // GET: CleaningPlaces/Edit/5
@@ -82,51 +119,63 @@ namespace netcore.Controllers
                 return NotFound();
             }
 
-            var cleaningPlace = await _context.CleaningPlaces.SingleOrDefaultAsync(m => m.CleaningPlaceId == id);
-            if (cleaningPlace == null)
+            var result = await _cleaningPlaceService.GetByIdAsync(id.Value);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
-            return View(cleaningPlace);
+            return View(result.Value);
         }
 
         // POST: CleaningPlaces/Edit/5
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("CleaningPlaceId,Title,IsActive,CreatorUserId,CreationDate,UpdateUserId,UpdateDate,DeleteUserId,DeleteDate,IsDeleted")] CleaningPlace cleaningPlace)
+        public async Task<IActionResult> Edit(int id, [Bind("CleaningPlaceId,Title,IsActive")] CleaningPlace cleaningPlace)
         {
             if (id != cleaningPlace.CleaningPlaceId)
             {
                 return NotFound();
             }
 
-            if (ModelState.IsValid)
+            try
             {
-                try
+                if (string.IsNullOrWhiteSpace(cleaningPlace.Title))
                 {
-
-                    cleaningPlace.UpdateUserId = Convert.ToInt32(_pageCookie.GetCookie("UserId"));
-                    cleaningPlace.UpdateDate = DateTime.UtcNow;
-
-                    _context.Update(cleaningPlace);
-                    await _context.SaveChangesAsync();
+                    ViewBag.ErrorMessage = "El título es requerido.";
+                    return View(cleaningPlace);
                 }
-                catch (DbUpdateConcurrencyException)
+
+                var input = new CleaningPlaceInputDto
                 {
-                    if (!CleaningPlaceExists(cleaningPlace.CleaningPlaceId))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    CleaningPlaceId = cleaningPlace.CleaningPlaceId,
+                    Title = cleaningPlace.Title,
+                    IsActive = cleaningPlace.IsActive,
+                    CreateUserId = Convert.ToInt32(_pageCookie.GetCookie("UserId"))
+                };
+
+                var result = await _cleaningPlaceService.UpdateByIdAsync(id, input);
+                if (result.IsFailure)
+                {
+                    ViewBag.ErrorMessage = result.Error;
+                    return View(cleaningPlace);
                 }
+                
+                TempData["SuccessMessage"] = $"Tipo de inmueble '{cleaningPlace.Title}' actualizado exitosamente.";
                 return RedirectToAction(nameof(Index));
             }
-            return View(cleaningPlace);
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!_cleaningPlaceService.Exists(cleaningPlace.CleaningPlaceId))
+                {
+                    return NotFound();
+                }
+                throw;
+            }
+            catch (Exception ex)
+            {
+                ViewBag.ErrorMessage = "Error al guardar: " + (ex.InnerException?.Message ?? ex.Message);
+                return View(cleaningPlace);
+            }
         }
 
         // GET: CleaningPlaces/Delete/5
@@ -137,14 +186,13 @@ namespace netcore.Controllers
                 return NotFound();
             }
 
-            var cleaningPlace = await _context.CleaningPlaces
-                .SingleOrDefaultAsync(m => m.CleaningPlaceId == id);
-            if (cleaningPlace == null)
+            var result = await _cleaningPlaceService.GetByIdAsync(id.Value);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
 
-            return View(cleaningPlace);
+            return View(result.Value);
         }
 
         // POST: CleaningPlaces/Delete/5
@@ -152,18 +200,31 @@ namespace netcore.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var cleaningPlace = await _context.CleaningPlaces.SingleOrDefaultAsync(m => m.CleaningPlaceId == id);
-            _context.CleaningPlaces.Remove(cleaningPlace);
-            await _context.SaveChangesAsync();
+            try
+            {
+                var getResult = await _cleaningPlaceService.GetByIdAsync(id);
+                if (getResult.IsSuccess)
+                {
+                    var title = getResult.Value.Title;
+                    var deleteResult = await _cleaningPlaceService.DeleteAsync(id);
+                    if (deleteResult.IsFailure)
+                    {
+                        TempData["ErrorMessage"] = deleteResult.Error;
+                    }
+                    else
+                    {
+                        TempData["SuccessMessage"] = $"Tipo de inmueble '{title}' eliminado exitosamente.";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "Error al eliminar: " + (ex.InnerException?.Message ?? ex.Message);
+            }
             return RedirectToAction(nameof(Index));
         }
 
-        private bool CleaningPlaceExists(int id)
-        {
-            return _context.CleaningPlaces.Any(e => e.CleaningPlaceId == id);
-        }
-
-        // GET: CleaningPlaces/Edit/5
+        // GET: CleaningPlaces/AddPlaceRoom/5
         public async Task<IActionResult> AddPlaceRoom(int? id)
         {
             if (id == null)
@@ -171,7 +232,13 @@ namespace netcore.Controllers
                 return NotFound();
             }
 
-            var cleaningPlace = await _context.CleaningPlaces.SingleOrDefaultAsync(m => m.CleaningPlaceId == id);
+            var result = await _cleaningPlaceService.GetByIdAsync(id.Value);
+            if (result.IsFailure)
+            {
+                return NotFound();
+            }
+
+            var cleaningPlace = result.Value;
             var roomAddeds = _context.CleaningPlaceCleaningPlaceRooms.ToList().Where(c => c.CleaningPlaceId == id);
 
             var cleaningPlaceRooms = _context.CleaningPlaceRooms.ToList();
@@ -185,7 +252,6 @@ namespace netcore.Controllers
                 cleaningPlaceRooms.Remove(item.CleaningPlaceRoom);
             }
 
-
             var cleaningPlaceAndRoomsVM = new CleaningPlacePlaceRoomsVM
             {
                 CleaningPlace = cleaningPlace,
@@ -193,18 +259,13 @@ namespace netcore.Controllers
                 CleaningPlaceRoomAddeds = cleanginPlaceRommsAdded.ToList()
             };
 
-            if (cleaningPlace == null)
-            {
-                return NotFound();
-            }
-
             ViewBag.CleaningPlaceRooms = new SelectList(cleaningPlaceAndRoomsVM.CleaningPlaceRooms, "CleaningPlaceRoomId", "Title");
 
             return View(cleaningPlaceAndRoomsVM);
         }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
-        // GET: CleaningPlaces/Edit/5
         public async Task<IActionResult> AddPlaceRoom(CleaningPlacePlaceRoomsVM input)
         {
             if (input.CleaningPlace == null)
@@ -214,7 +275,6 @@ namespace netcore.Controllers
             if(input.CleaningPlaceRoomIds == null)
             {
                 ViewBag.ErrorMessage = "Debe agregar al menos un item!";
-
                 return NotFound();
             }
             
@@ -250,9 +310,6 @@ namespace netcore.Controllers
             {
                 throw new Exception(ex.Message);
             }
-
         }        
-
-      
     }
 }

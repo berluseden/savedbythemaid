@@ -1,30 +1,45 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using JempSoft.Core.Models;
+using JempSoft.Core.Models.Administration;
+using JempSoft.Applications;
+using JempSoft.Applications.Services;
 using netcore.Data;
 using netcore.VMs;
-using JempSoft.Core.Models.Administration;
 
 namespace netcore.Controllers.Administration
 {
     public class EmployeeSchedulesController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IEmployeeScheduleServices _employeeScheduleService;
+        private readonly IEmployeeServices _employeeService;
 
-        public EmployeeSchedulesController(ApplicationDbContext context)
+        public EmployeeSchedulesController(
+            ApplicationDbContext context, 
+            IEmployeeScheduleServices employeeScheduleService,
+            IEmployeeServices employeeService)
         {
             _context = context;
+            _employeeScheduleService = employeeScheduleService;
+            _employeeService = employeeService;
         }
 
         // GET: EmployeeSchedules
         public async Task<IActionResult> Index()
         {
-            var applicationDbContext = _context.EmployeeSchedules.Include(e => e.Employee);
-            return View(await applicationDbContext.ToListAsync());
+            var result = await _employeeScheduleService.GetAllAsync();
+            if (result.IsFailure)
+            {
+                ViewBag.ErrorMessage = result.Error;
+                return View(new List<EmployeeSchedule>());
+            }
+            return View(result.Value);
         }
 
         // GET: EmployeeSchedules/Details/5
@@ -35,15 +50,13 @@ namespace netcore.Controllers.Administration
                 return NotFound();
             }
 
-            var employeeSchedule = await _context.EmployeeSchedules
-                .Include(e => e.Employee)
-                .SingleOrDefaultAsync(m => m.EmployeeScheduleId == id);
-            if (employeeSchedule == null)
+            var result = await _employeeScheduleService.GetByIdAsync(id.Value);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
 
-            return View(employeeSchedule);
+            return View(result.Value);
         }
 
         // GET: EmployeeSchedules/Create
@@ -54,17 +67,16 @@ namespace netcore.Controllers.Administration
                 return NotFound();
             }
 
-            var employee = await _context.Employees
-                .Include(e => e.User)
-                .SingleOrDefaultAsync(m => m.EmployeeId == id);
-            if (employee == null)
+            var employeeResult = await _employeeService.GetByIdAsync(id.Value);
+            if (employeeResult.IsFailure)
             {
                 return NotFound();
             }
 
-            var schedules = await _context.EmployeeSchedules
-                            .Include(e => e.Employee)
-                            .Where(e => e.EmployeeId == id).ToListAsync();
+            var employee = employeeResult.Value;
+            
+            var schedulesResult = await _employeeScheduleService.GetByEmployeeIdAsync(id.Value);
+            var schedules = schedulesResult.IsSuccess ? schedulesResult.Value : new List<EmployeeSchedule>();
 
             var schedule = new EmployeeSchedule
             {
@@ -72,24 +84,47 @@ namespace netcore.Controllers.Administration
                 AvaliableDay = DateTime.Now
             };
 
-            var result = new EmployeeScheduleVM
+            var vm = new EmployeeScheduleVM
             {
                 Employee = employee,
                 EmployeeSchedule = schedules,
                 Schedule = schedule
             };
 
-            return View(result);
+            return View(vm);
         }
 
         // POST: EmployeeSchedules/Create
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(EmployeeScheduleVM employeeSchedule)
         {
+            if (employeeSchedule?.Schedule == null)
+            {
+                ModelState.AddModelError("", "Schedule information is required.");
+                return RedirectToAction("Index", "Employees");
+            }
+
             var employeeId = employeeSchedule.Schedule.EmployeeId;
+            
+            // Helper method to reload view model
+            async Task<EmployeeScheduleVM> ReloadViewModel()
+            {
+                var employeeResult = await _employeeService.GetByIdAsync(employeeId);
+                var employee = employeeResult.IsSuccess ? employeeResult.Value : null;
+                    
+                var schedulesResult = await _employeeScheduleService.GetByEmployeeIdAsync(employeeId);
+                var schedules = schedulesResult.IsSuccess ? schedulesResult.Value : new List<EmployeeSchedule>();
+                    
+                return new EmployeeScheduleVM
+                {
+                    Employee = employee,
+                    EmployeeSchedule = schedules,
+                    Schedule = employeeSchedule.Schedule,
+                    EntireYear = employeeSchedule.EntireYear
+                };
+            }
+            
             if (ModelState.IsValid)
             {
                 try
@@ -99,21 +134,20 @@ namespace netcore.Controllers.Administration
                         var day = employeeSchedule.Schedule.AvaliableDay;
                         while(day.Year == DateTime.Now.Year)
                         {
-
-
                             var programmedDay = _context.EmployeeSchedules.FirstOrDefault(a => a.AvaliableDay.DayOfYear == employeeSchedule.Schedule.AvaliableDay.DayOfYear);
 
                             if (programmedDay == null)
                             {
-                                var emploSchedule = new EmployeeSchedule
+                                var input = new EmployeeScheduleInputDto
                                 {
+                                    EmployeeId = employeeSchedule.Schedule.EmployeeId,
                                     AvaliableDay = employeeSchedule.Schedule.AvaliableDay,
-                                    EmployeeId = employeeSchedule.Schedule.EmployeeId
+                                    IsActive = true
                                 };
 
-                                _context.Add(emploSchedule);
+                                await _employeeScheduleService.SaveAsync(input);
 
-                                var avaliable = _context.AvaliableMaids.FirstOrDefault(c => c.DayOfAvaliability.DayOfYear == emploSchedule.AvaliableDay.DayOfYear);
+                                var avaliable = _context.AvaliableMaids.FirstOrDefault(c => c.DayOfAvaliability.DayOfYear == input.AvaliableDay.DayOfYear);
 
                                 if(avaliable == null)
                                 {
@@ -144,23 +178,27 @@ namespace netcore.Controllers.Administration
                         var programmedDay = _context.EmployeeSchedules.FirstOrDefault(a => a.AvaliableDay.ToShortDateString() == employeeSchedule.Schedule.AvaliableDay.ToShortDateString());
                         if(programmedDay == null)
                         {
-                            _context.Add(employeeSchedule.Schedule);
-                            await _context.SaveChangesAsync();
+                            var input = new EmployeeScheduleInputDto
+                            {
+                                EmployeeId = employeeSchedule.Schedule.EmployeeId,
+                                AvaliableDay = employeeSchedule.Schedule.AvaliableDay,
+                                IsActive = true
+                            };
+                            await _employeeScheduleService.SaveAsync(input);
                         }
                     }
 
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                        throw;
+                    throw;
                 }
 
-                 
                 return RedirectToAction("Details", "Employees", new { id = employeeId });
-
             }
 
-            return View(employeeSchedule);
+            var reloadedModel = await ReloadViewModel();
+            return View(reloadedModel);
         }
 
         // GET: EmployeeSchedules/Edit/5
@@ -171,18 +209,16 @@ namespace netcore.Controllers.Administration
                 return NotFound();
             }
 
-            var employeeSchedule = await _context.EmployeeSchedules.SingleOrDefaultAsync(m => m.EmployeeScheduleId == id);
-            if (employeeSchedule == null)
+            var result = await _employeeScheduleService.GetByIdAsync(id.Value);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
-            ViewData["EmployeeId"] = new SelectList(_context.Employees, "EmployeeId", "FullName", employeeSchedule.EmployeeId);
-            return View(employeeSchedule);
+            ViewData["EmployeeId"] = new SelectList(_context.Employees, "EmployeeId", "FullName", result.Value.EmployeeId);
+            return View(result.Value);
         }
 
         // POST: EmployeeSchedules/Edit/5
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("EmployeeScheduleId,EmployeeId,AvaliableDay")] EmployeeSchedule employeeSchedule)
@@ -196,19 +232,28 @@ namespace netcore.Controllers.Administration
             {
                 try
                 {
-                    _context.Update(employeeSchedule);
-                    await _context.SaveChangesAsync();
+                    var input = new EmployeeScheduleInputDto
+                    {
+                        EmployeeId = employeeSchedule.EmployeeId,
+                        AvaliableDay = employeeSchedule.AvaliableDay,
+                        IsActive = true
+                    };
+
+                    var result = await _employeeScheduleService.UpdateByIdAsync(id, input);
+                    if (result.IsFailure)
+                    {
+                        ViewData["EmployeeId"] = new SelectList(_context.Employees, "EmployeeId", "FullName", employeeSchedule.EmployeeId);
+                        ViewBag.ErrorMessage = result.Error;
+                        return View(employeeSchedule);
+                    }
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!EmployeeScheduleExists(employeeSchedule.EmployeeScheduleId))
+                    if (!_employeeScheduleService.Exists(employeeSchedule.EmployeeScheduleId))
                     {
                         return NotFound();
                     }
-                    else
-                    {
-                        throw;
-                    }
+                    throw;
                 }
                 return RedirectToAction(nameof(Index));
             }
@@ -224,15 +269,13 @@ namespace netcore.Controllers.Administration
                 return NotFound();
             }
 
-            var employeeSchedule = await _context.EmployeeSchedules
-                .Include(e => e.Employee)
-                .SingleOrDefaultAsync(m => m.EmployeeScheduleId == id);
-            if (employeeSchedule == null)
+            var result = await _employeeScheduleService.GetByIdAsync(id.Value);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
 
-            return View(employeeSchedule);
+            return View(result.Value);
         }
 
         // POST: EmployeeSchedules/Delete/5
@@ -240,21 +283,8 @@ namespace netcore.Controllers.Administration
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-
-
-            var employeeSchedule = await _context.EmployeeSchedules.SingleOrDefaultAsync(m => m.EmployeeScheduleId == id);
-
-            var employeeId = employeeSchedule.EmployeeId;
-            _context.EmployeeSchedules.Remove(employeeSchedule);
-            await _context.SaveChangesAsync();
-
+            await _employeeScheduleService.DeleteAsync(id);
             return RedirectToAction("Index", "Employees");
-
-        }
-
-        private bool EmployeeScheduleExists(int id)
-        {
-            return _context.EmployeeSchedules.Any(e => e.EmployeeScheduleId == id);
         }
     }
 }

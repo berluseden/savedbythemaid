@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using JempSoft.Applications;
+using JempSoft.Applications.Book.Dto;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EService.Web.Controllers
@@ -11,43 +12,38 @@ namespace EService.Web.Controllers
     {
         private readonly IBookingService _bookingService;
 
-
         public CartController(IBookingService bookingService)
         {
             _bookingService = bookingService;
         }
 
-
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            if (User.Identity.IsAuthenticated)
+            if (User.Identity?.IsAuthenticated == true)
             {
-                var cartItems = _bookingService.GetCartServiceByUserName(User.Identity.Name);
-
-                if(cartItems.Services.Count == 0)
+                var result = await _bookingService.GetCartServiceByUserNameAsync(User.Identity.Name!);
+                
+                if (result.IsFailure || result.Value.Services.Count == 0)
                 {
                     return RedirectToAction("Index", "Home");
                 }
 
-                return View(cartItems);
-
+                return View(result.Value);
             }
             return RedirectToAction("Login", "Account", new { returnUrl = "/Cart/Index/" });
         }
 
         [HttpPost]
-        public JsonResult DeleteItem(long id)
+        public async Task<JsonResult> DeleteItem(long id)
         {
-            var resultMessage = "";
+            var result = await _bookingService.RemoveItemFromCartAsync(id);
 
-            var data = _bookingService.RemoveItemOnCart(id, out resultMessage);
-
-            if(data != null)
+            if (result.IsSuccess)
             {
-                return Json(new { Item = data, IsDelete = true, ResultMessage = resultMessage });
+                return Json(new { Item = result.Value, IsDelete = true, ResultMessage = "Item removed successfully" });
             }
 
-            return Json(new { Item = data, IsDelete = false, ResultMessage = resultMessage });
+            return Json(new { Item = (object?)null, IsDelete = false, ResultMessage = result.Error ?? "Error removing item" });
         }
     }
 }

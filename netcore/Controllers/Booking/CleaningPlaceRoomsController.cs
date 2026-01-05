@@ -1,32 +1,54 @@
-﻿ using System.Linq;
+﻿using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using JempSoft.Core.Models;
 using netcore.Data;
 using netcore.VMs;
+using netcore.Dto;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using System;
 using JempSoft.Applications.Administration.Page;
+using JempSoft.Applications.Services;
 
 namespace netcore.Controllers.Booking
 {
     public class CleaningPlaceRoomsController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly ICleaningPlaceRoomServices _cleaningPlaceRoomService;
         private readonly IPageCookieService _pageCookie;
 
-        public CleaningPlaceRoomsController(ApplicationDbContext context, IPageCookieService pageCookie)
+        public CleaningPlaceRoomsController(
+            ApplicationDbContext context, 
+            ICleaningPlaceRoomServices cleaningPlaceRoomService,
+            IPageCookieService pageCookie)
         {
             _context = context;
+            _cleaningPlaceRoomService = cleaningPlaceRoomService;
             _pageCookie = pageCookie;
         }
 
         // GET: CleaningPlaceRooms
         public async Task<IActionResult> Index()
         {
-            return View(await _context.CleaningPlaceRooms.ToListAsync());
+            if (TempData["SuccessMessage"] != null)
+            {
+                ViewBag.SuccessMessage = TempData["SuccessMessage"];
+            }
+            if (TempData["ErrorMessage"] != null)
+            {
+                ViewBag.ErrorMessage = TempData["ErrorMessage"];
+            }
+            
+            var result = await _cleaningPlaceRoomService.GetAllAsync();
+            if (result.IsFailure)
+            {
+                ViewBag.ErrorMessage = result.Error;
+                return View(new List<CleaningPlaceRoom>());
+            }
+            return View(result.Value);
         }
 
         // GET: CleaningPlaceRooms/Details/5
@@ -37,14 +59,13 @@ namespace netcore.Controllers.Booking
                 return NotFound();
             }
 
-            var cleaningPlaceRoom = await _context.CleaningPlaceRooms
-                .SingleOrDefaultAsync(m => m.CleaningPlaceRoomId == id);
-            if (cleaningPlaceRoom == null)
+            var result = await _cleaningPlaceRoomService.GetByIdAsync(id.Value);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
 
-            return View(cleaningPlaceRoom);
+            return View(result.Value);
         }
 
         // GET: CleaningPlaceRooms/Create
@@ -54,22 +75,40 @@ namespace netcore.Controllers.Booking
         }
 
         // POST: CleaningPlaceRooms/Create
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("CleaningPlaceRoomId,Title,IsActive,CreatorUserId,CreationDate,UpdateUserId,UpdateDate,DeleteUserId,DeleteDate,IsDeleted")] CleaningPlaceRoom cleaningPlaceRoom)
+        public async Task<IActionResult> Create([Bind("CleaningPlaceRoomId,Title,IsActive")] CleaningPlaceRoom cleaningPlaceRoom)
         {
-            if (ModelState.IsValid)
+            try
             {
-                cleaningPlaceRoom.CreatorUserId = Convert.ToInt32(_pageCookie.GetCookie("UserId"));
-                cleaningPlaceRoom.CreationDate = DateTime.UtcNow;
+                if (string.IsNullOrWhiteSpace(cleaningPlaceRoom.Title))
+                {
+                    ViewBag.ErrorMessage = "El título es requerido.";
+                    return View(cleaningPlaceRoom);
+                }
 
-                _context.Add(cleaningPlaceRoom);
-                await _context.SaveChangesAsync();
+                var input = new CleaningPlaceRoomInputDto
+                {
+                    Title = cleaningPlaceRoom.Title,
+                    IsActive = cleaningPlaceRoom.IsActive,
+                    CreateUserId = Convert.ToInt32(_pageCookie.GetCookie("UserId"))
+                };
+
+                var result = await _cleaningPlaceRoomService.SaveAsync(input);
+                if (result.IsFailure)
+                {
+                    ViewBag.ErrorMessage = result.Error;
+                    return View(cleaningPlaceRoom);
+                }
+                
+                TempData["SuccessMessage"] = $"Tipo de habitación '{cleaningPlaceRoom.Title}' creado exitosamente.";
                 return RedirectToAction(nameof(Index));
             }
-            return View(cleaningPlaceRoom);
+            catch (Exception ex)
+            {
+                ViewBag.ErrorMessage = "Error al guardar: " + (ex.InnerException?.Message ?? ex.Message);
+                return View(cleaningPlaceRoom);
+            }
         }
 
         // GET: CleaningPlaceRooms/Edit/5
@@ -80,53 +119,66 @@ namespace netcore.Controllers.Booking
                 return NotFound();
             }
 
-            var cleaningPlaceRoom = await _context.CleaningPlaceRooms.SingleOrDefaultAsync(m => m.CleaningPlaceRoomId == id);
-            if (cleaningPlaceRoom == null)
+            var result = await _cleaningPlaceRoomService.GetByIdAsync(id.Value);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
-            return View(cleaningPlaceRoom);
+            return View(result.Value);
         }
 
         // POST: CleaningPlaceRooms/Edit/5
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("CleaningPlaceRoomId,Title,IsActive,CreatorUserId,CreationDate,UpdateUserId,UpdateDate,DeleteUserId,DeleteDate,IsDeleted")] CleaningPlaceRoom cleaningPlaceRoom)
+        public async Task<IActionResult> Edit(int id, [Bind("CleaningPlaceRoomId,Title,IsActive")] CleaningPlaceRoom cleaningPlaceRoom)
         {
             if (id != cleaningPlaceRoom.CleaningPlaceRoomId)
             {
                 return NotFound();
             }
 
-            if (ModelState.IsValid)
+            try
             {
-                try
+                if (string.IsNullOrWhiteSpace(cleaningPlaceRoom.Title))
                 {
-                    cleaningPlaceRoom.UpdateUserId = Convert.ToInt32(_pageCookie.GetCookie("UserId"));
-                    cleaningPlaceRoom.UpdateDate = DateTime.UtcNow;
+                    ViewBag.ErrorMessage = "El título es requerido.";
+                    return View(cleaningPlaceRoom);
+                }
 
-                    _context.Update(cleaningPlaceRoom);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
+                var input = new CleaningPlaceRoomInputDto
                 {
-                    if (!CleaningPlaceRoomExists(cleaningPlaceRoom.CleaningPlaceRoomId))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    CleaningPlaceRoomId = cleaningPlaceRoom.CleaningPlaceRoomId,
+                    Title = cleaningPlaceRoom.Title,
+                    IsActive = cleaningPlaceRoom.IsActive,
+                    CreateUserId = Convert.ToInt32(_pageCookie.GetCookie("UserId"))
+                };
+
+                var result = await _cleaningPlaceRoomService.UpdateByIdAsync(id, input);
+                if (result.IsFailure)
+                {
+                    ViewBag.ErrorMessage = result.Error;
+                    return View(cleaningPlaceRoom);
                 }
+                
+                TempData["SuccessMessage"] = $"Tipo de habitación '{cleaningPlaceRoom.Title}' actualizado exitosamente.";
                 return RedirectToAction(nameof(Index));
             }
-            return View(cleaningPlaceRoom);
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!_cleaningPlaceRoomService.Exists(cleaningPlaceRoom.CleaningPlaceRoomId))
+                {
+                    return NotFound();
+                }
+                throw;
+            }
+            catch (Exception ex)
+            {
+                ViewBag.ErrorMessage = "Error al guardar: " + (ex.InnerException?.Message ?? ex.Message);
+                return View(cleaningPlaceRoom);
+            }
         }
 
-        // GET: CleaningPlaceRooms/Edit/5
+        // GET: CleaningPlaceRooms/AddServiceTypeToPlaceRoom/5
         public async Task<IActionResult> AddServiceTypeToPlaceRoom(int? id)
         {
             if (id == null)
@@ -134,9 +186,13 @@ namespace netcore.Controllers.Booking
                 return NotFound();
             }
 
-            var cleaningPlaceRoom = await _context.CleaningPlaceRooms.SingleOrDefaultAsync(m => m.CleaningPlaceRoomId == id);
+            var result = await _cleaningPlaceRoomService.GetByIdAsync(id.Value);
+            if (result.IsFailure)
+            {
+                return NotFound();
+            }
 
-
+            var cleaningPlaceRoom = result.Value;
             var serviceTypeAddeds = _context.CleaningPlaceRoomServiceTypes.ToList().Where(c => c.CleaningPlaceRoomId == id);
 
             var serviceTypes = _context.ServiceTypes.ToList();
@@ -155,13 +211,7 @@ namespace netcore.Controllers.Booking
                 CleaningPlaceRooms = cleaningPlaceRoom,
                 ServiceTypes = serviceTypes,
                 ServiceTypesddeds = serviceTypesAdded
-
             };
-
-            if (cleaningPlaceRoom == null)
-            {
-                return NotFound();
-            }
 
             ViewBag.ServiceTypes = new SelectList(placeRoomServiceTypeVM.ServiceTypes, "ServiceTypeId", "FullDescription");
                        
@@ -170,7 +220,6 @@ namespace netcore.Controllers.Booking
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        // GET: CleaningPlaces/Edit/5
         public async Task<IActionResult> AddServiceToPlaceRoom(PlaceRoomsServiceTypesVM input)
         {
             if (input.CleaningPlaceRooms == null)
@@ -220,14 +269,13 @@ namespace netcore.Controllers.Booking
                 return NotFound();
             }
 
-            var cleaningPlaceRoom = await _context.CleaningPlaceRooms
-                .SingleOrDefaultAsync(m => m.CleaningPlaceRoomId == id);
-            if (cleaningPlaceRoom == null)
+            var result = await _cleaningPlaceRoomService.GetByIdAsync(id.Value);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
 
-            return View(cleaningPlaceRoom);
+            return View(result.Value);
         }
 
         // POST: CleaningPlaceRooms/Delete/5
@@ -235,15 +283,28 @@ namespace netcore.Controllers.Booking
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var cleaningPlaceRoom = await _context.CleaningPlaceRooms.SingleOrDefaultAsync(m => m.CleaningPlaceRoomId == id);
-            _context.CleaningPlaceRooms.Remove(cleaningPlaceRoom);
-            await _context.SaveChangesAsync();
+            try
+            {
+                var getResult = await _cleaningPlaceRoomService.GetByIdAsync(id);
+                if (getResult.IsSuccess)
+                {
+                    var title = getResult.Value.Title;
+                    var deleteResult = await _cleaningPlaceRoomService.DeleteAsync(id);
+                    if (deleteResult.IsFailure)
+                    {
+                        TempData["ErrorMessage"] = deleteResult.Error;
+                    }
+                    else
+                    {
+                        TempData["SuccessMessage"] = $"Tipo de habitación '{title}' eliminado exitosamente.";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "Error al eliminar: " + (ex.InnerException?.Message ?? ex.Message);
+            }
             return RedirectToAction(nameof(Index));
-        }
-
-        private bool CleaningPlaceRoomExists(int id)
-        {
-            return _context.CleaningPlaceRooms.Any(e => e.CleaningPlaceRoomId == id);
         }
     }
 }

@@ -7,28 +7,29 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using System.ComponentModel.DataAnnotations;
-
+using JempSoft.Applications.Invent;
+using JempSoft.Applications.Invent.Dto;
 using netcore.Data;
-using JempSoft.Core.Models.Invent;
 
 namespace netcore.Controllers.Invent
 {
-
-
     [Authorize(Roles = "Customer")]
     public class CustomerController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly ICustomerServices _customerServices;
+        private readonly ApplicationDbContext _context; // Kept for cascade delete of CustomerLine
 
-        public CustomerController(ApplicationDbContext context)
+        public CustomerController(ICustomerServices customerServices, ApplicationDbContext context)
         {
+            _customerServices = customerServices;
             _context = context;
         }
 
         // GET: Customer
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Customer.OrderByDescending(x => x.createdAt).ToListAsync());
+            var result = await _customerServices.GetAllAsync();
+            return View(result.IsSuccess ? result.Value : new List<CustomerOutputDto>());
         }
 
         // GET: Customer/Details/5
@@ -39,16 +40,14 @@ namespace netcore.Controllers.Invent
                 return NotFound();
             }
 
-            var customer = await _context.Customer
-                        .SingleOrDefaultAsync(m => m.customerId == id);
-            if (customer == null)
+            var result = await _customerServices.GetByIdAsync(id);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
 
-            return View(customer);
+            return View(result.Value);
         }
-
 
         // GET: Customer/Create
         public IActionResult Create()
@@ -56,23 +55,21 @@ namespace netcore.Controllers.Invent
             return View();
         }
 
-
-
-
         // POST: Customer/Create
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("customerId,customerName,description,size,street1,street2,city,province,country,HasChild,createdAt")] Customer customer)
+        public async Task<IActionResult> Create(CustomerInputDto input)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(customer);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Details), new { id = customer.customerId });
+                var result = await _customerServices.SaveAsync(input);
+                if (result.IsSuccess)
+                {
+                    return RedirectToAction(nameof(Details), new { id = result.Value });
+                }
+                ModelState.AddModelError("", result.Error);
             }
-            return View(customer);
+            return View(input);
         }
 
         // GET: Customer/Edit/5
@@ -83,47 +80,49 @@ namespace netcore.Controllers.Invent
                 return NotFound();
             }
 
-            var customer = await _context.Customer.SingleOrDefaultAsync(m => m.customerId == id);
-            if (customer == null)
+            var result = await _customerServices.GetByIdAsync(id);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
-            return View(customer);
+
+            var customer = result.Value;
+            var input = new CustomerInputDto
+            {
+                CustomerName = customer.CustomerName,
+                Description = customer.Description,
+                Size = customer.Size,
+                Street1 = customer.Street1,
+                Street2 = customer.Street2,
+                City = customer.City,
+                Province = customer.Province,
+                Country = customer.Country
+            };
+            ViewData["CustomerId"] = id;
+            return View(input);
         }
 
         // POST: Customer/Edit/5
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(string id, [Bind("customerId,customerName,description,size,street1,street2,city,province,country,HasChild,createdAt")] Customer customer)
+        public async Task<IActionResult> Edit(string id, CustomerInputDto input)
         {
-            if (id != customer.customerId)
-            {
-                return NotFound();
-            }
-
             if (ModelState.IsValid)
             {
-                try
+                var result = await _customerServices.UpdateByIdAsync(id, input);
+                if (result.IsSuccess)
                 {
-                    _context.Update(customer);
-                    await _context.SaveChangesAsync();
+                    return RedirectToAction(nameof(Index));
                 }
-                catch (DbUpdateConcurrencyException)
+
+                if (result.Error.Contains("not found"))
                 {
-                    if (!CustomerExists(customer.customerId))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    return NotFound();
                 }
-                return RedirectToAction(nameof(Index));
+                ModelState.AddModelError("", result.Error);
             }
-            return View(customer);
+            ViewData["CustomerId"] = id;
+            return View(input);
         }
 
         // GET: Customer/Delete/5
@@ -134,50 +133,53 @@ namespace netcore.Controllers.Invent
                 return NotFound();
             }
 
-            var customer = await _context.Customer
-                    .SingleOrDefaultAsync(m => m.customerId == id);
-            if (customer == null)
+            var result = await _customerServices.GetByIdAsync(id);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
 
-            return View(customer);
+            return View(result.Value);
         }
-
-
-
 
         // POST: Customer/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(string id)
         {
-            var customer = await _context.Customer
-                .Include(x => x.customerLine)
-                .SingleOrDefaultAsync(m => m.customerId == id);
             try
             {
-                _context.CustomerLine.RemoveRange(customer.customerLine);
-                _context.Customer.Remove(customer);
-                await _context.SaveChangesAsync();
+                // First delete related CustomerLines
+                var customerLines = await _context.CustomerLine.Where(c => c.customerId == id).ToListAsync();
+                if (customerLines.Any())
+                {
+                    _context.CustomerLine.RemoveRange(customerLines);
+                    await _context.SaveChangesAsync();
+                }
+
+                var result = await _customerServices.DeleteAsync(id);
+                if (result.IsFailure)
+                {
+                    var customerResult = await _customerServices.GetByIdAsync(id);
+                    if (customerResult.IsSuccess)
+                    {
+                        ViewData["StatusMessage"] = "Error. Calm Down ^_^ and please contact your SysAdmin with this message: " + result.Error;
+                        return View(customerResult.Value);
+                    }
+                }
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
-
-                ViewData["StatusMessage"] = "Error. Calm Down ^_^ and please contact your SysAdmin with this message: " + ex;
-                return View(customer);
+                var customerResult = await _customerServices.GetByIdAsync(id);
+                if (customerResult.IsSuccess)
+                {
+                    ViewData["StatusMessage"] = "Error. Calm Down ^_^ and please contact your SysAdmin with this message: " + ex.Message;
+                    return View(customerResult.Value);
+                }
+                return RedirectToAction(nameof(Index));
             }
-
-
-            
         }
-
-        private bool CustomerExists(string id)
-        {
-            return _context.Customer.Any(e => e.customerId == id);
-        }
-
     }
 }
 

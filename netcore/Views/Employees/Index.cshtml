@@ -1,33 +1,51 @@
-﻿@model IEnumerable<JempSoft.Core.Models.Employee>
+@model IEnumerable<JempSoft.Core.Models.Employee>
 
 @{
-    ViewData["Title"] = "Index";
-    Layout = "~/Views/Shared/_AdminlteNetcoreIndex.cshtml";
-    ViewData["EntityIcon"] = "fa fa-tags";
-    ViewData["ListTitle"] = "Employees List";
-    ViewData["IndexInfo"] = "Administration and Maids Employees";
+    ViewData["Title"] = "Empleadas";
+    Layout = "~/Views/Shared/_AdminLTE4Index.cshtml";
+    ViewData["EntityIcon"] = "fa fa-users";
+    ViewData["ListTitle"] = "Gestión de Empleadas";
+    ViewData["CreateLabel"] = "Nueva Empleada";
+    ViewData["IndexInfo"] = "Administra el personal de limpieza. Puedes crear horarios, editar información y gestionar cada empleada.";
 }
 
+@if (ViewBag.SuccessMessage != null)
+{
+    <div class="alert alert-success alert-dismissible">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+        <h4><i class="icon fa fa-check"></i> ¡Éxito!</h4>
+        @ViewBag.SuccessMessage
+    </div>
+}
 
+@if (ViewBag.ErrorMessage != null)
+{
+    <div class="alert alert-danger alert-dismissible">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+        <h4><i class="icon fa fa-ban"></i> Error</h4>
+        @ViewBag.ErrorMessage
+    </div>
+}
+
+@if (!Model.Any())
+{
+    <div class="callout callout-warning">
+        <h4><i class="icon fa fa-warning"></i> Sin Empleadas Registradas</h4>
+        <p>No hay empleadas registradas en el sistema.</p>
+        <a asp-action="Create" class="btn btn-success"><i class="fa fa-plus"></i> Registrar Primera Empleada</a>
+    </div>
+}
+else
+{
 <table class="table table-hover table-striped" style="width:100%">
-    <thead>
+    <thead class="bg-primary">
         <tr>
-            <th></th>
-            <th>
-                @Html.DisplayNameFor(model => model.FirstName)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.LastName)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Identification)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.ContactNumber)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.EmailAddress)
-            </th>
+            <th style="width: 180px;">Acciones</th>
+            <th><i class="fa fa-user"></i> Nombre</th>
+            <th><i class="fa fa-user"></i> Apellido</th>
+            <th><i class="fa fa-id-card"></i> Identificación</th>
+            <th><i class="fa fa-phone"></i> Teléfono</th>
+            <th><i class="fa fa-envelope"></i> Email</th>
         </tr>
     </thead>
     <tbody>
@@ -35,30 +53,28 @@
         {
         <tr>
             <td>
-                <div class="tools">
-                    <a asp-action="Create" asp-controller="EmployeeSchedules" asp-route-id="@item.EmployeeId" class="btn btn-success btn-xs"><i class="fa fa-calendar-check-o"></i></a>
-                    <a asp-action="Edit" asp-route-id="@item.EmployeeId" class="btn btn-primary btn-xs"><i class="fa fa-pencil"></i></a>
-                    <a asp-action="Details" asp-route-id="@item.EmployeeId" class="btn btn-primary btn-xs"><i class="fa fa-list"></i></a>
-                    <a asp-action="Delete" asp-route-id="@item.EmployeeId" class="btn btn-danger btn-xs"><i class="fa fa-trash"></i></a>
+                <div class="btn-group">
+                    <a asp-action="Create" asp-controller="EmployeeSchedules" asp-route-id="@item.EmployeeId" class="btn btn-success btn-sm btn-action" title="Crear Horario">
+                        <i class="fa fa-calendar-plus-o"></i>
+                    </a>
+                    <a asp-action="Edit" asp-route-id="@item.EmployeeId" class="btn btn-warning btn-sm btn-action" title="Editar">
+                        <i class="fa fa-pencil"></i>
+                    </a>
+                    <a asp-action="Details" asp-route-id="@item.EmployeeId" class="btn btn-info btn-sm btn-action" title="Ver Detalles">
+                        <i class="fa fa-eye"></i>
+                    </a>
+                    <a asp-action="Delete" asp-route-id="@item.EmployeeId" class="btn btn-danger btn-sm btn-action" title="Eliminar">
+                        <i class="fa fa-trash"></i>
+                    </a>
                 </div>
-
             </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.FirstName)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.LastName)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Identification)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.ContactNumber)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.EmailAddress)
-            </td>
+            <td><strong>@item.FirstName</strong></td>
+            <td>@item.LastName</td>
+            <td><code>@item.Identification</code></td>
+            <td><a href="tel:@item.ContactNumber">@item.ContactNumber</a></td>
+            <td><a href="mailto:@item.EmailAddress">@item.EmailAddress</a></td>
         </tr>
         }
     </tbody>
 </table>
+}

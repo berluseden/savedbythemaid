@@ -7,28 +7,26 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using System.ComponentModel.DataAnnotations;
-
-using netcore.Data;
-using JempSoft.Core.Models.Invent;
+using JempSoft.Applications.Invent;
+using JempSoft.Applications.Invent.Dto;
 
 namespace netcore.Controllers.Invent
 {
-
-
     [Authorize(Roles = "Product")]
     public class ProductController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IProductServices _productServices;
 
-        public ProductController(ApplicationDbContext context)
+        public ProductController(IProductServices productServices)
         {
-            _context = context;
+            _productServices = productServices;
         }
 
         // GET: Product
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Product.OrderByDescending(x => x.createdAt).ToListAsync());
+            var result = await _productServices.GetAllAsync();
+            return View(result.IsSuccess ? result.Value : new List<ProductOutputDto>());
         }
 
         // GET: Product/Details/5
@@ -39,16 +37,14 @@ namespace netcore.Controllers.Invent
                 return NotFound();
             }
 
-            var product = await _context.Product
-                        .SingleOrDefaultAsync(m => m.productId == id);
-            if (product == null)
+            var result = await _productServices.GetByIdAsync(id);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
 
-            return View(product);
+            return View(result.Value);
         }
-
 
         // GET: Product/Create
         public IActionResult Create()
@@ -56,23 +52,21 @@ namespace netcore.Controllers.Invent
             return View();
         }
 
-
-
-
         // POST: Product/Create
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("productId,productCode,productName,description,barcode,serialNumber,productType,uom,createdAt")] Product product)
+        public async Task<IActionResult> Create(ProductInputDto input)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(product);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                var result = await _productServices.SaveAsync(input);
+                if (result.IsSuccess)
+                {
+                    return RedirectToAction(nameof(Index));
+                }
+                ModelState.AddModelError("", result.Error);
             }
-            return View(product);
+            return View(input);
         }
 
         // GET: Product/Edit/5
@@ -83,47 +77,48 @@ namespace netcore.Controllers.Invent
                 return NotFound();
             }
 
-            var product = await _context.Product.SingleOrDefaultAsync(m => m.productId == id);
-            if (product == null)
+            var result = await _productServices.GetByIdAsync(id);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
-            return View(product);
+
+            var product = result.Value;
+            var input = new ProductInputDto
+            {
+                ProductCode = product.ProductCode,
+                ProductName = product.ProductName,
+                Description = product.Description,
+                Barcode = product.Barcode,
+                SerialNumber = product.SerialNumber,
+                ProductType = product.ProductType,
+                Uom = product.Uom
+            };
+            ViewData["ProductId"] = id;
+            return View(input);
         }
 
         // POST: Product/Edit/5
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(string id, [Bind("productId,productCode,productName,description,barcode,serialNumber,productType,uom,createdAt")] Product product)
+        public async Task<IActionResult> Edit(string id, ProductInputDto input)
         {
-            if (id != product.productId)
-            {
-                return NotFound();
-            }
-
             if (ModelState.IsValid)
             {
-                try
+                var result = await _productServices.UpdateByIdAsync(id, input);
+                if (result.IsSuccess)
                 {
-                    _context.Update(product);
-                    await _context.SaveChangesAsync();
+                    return RedirectToAction(nameof(Index));
                 }
-                catch (DbUpdateConcurrencyException)
+
+                if (result.Error.Contains("not found"))
                 {
-                    if (!ProductExists(product.productId))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    return NotFound();
                 }
-                return RedirectToAction(nameof(Index));
+                ModelState.AddModelError("", result.Error);
             }
-            return View(product);
+            ViewData["ProductId"] = id;
+            return View(input);
         }
 
         // GET: Product/Delete/5
@@ -134,45 +129,32 @@ namespace netcore.Controllers.Invent
                 return NotFound();
             }
 
-            var product = await _context.Product
-                    .SingleOrDefaultAsync(m => m.productId == id);
-            if (product == null)
+            var result = await _productServices.GetByIdAsync(id);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
 
-            return View(product);
+            return View(result.Value);
         }
-
-
-
 
         // POST: Product/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(string id)
         {
-            var product = await _context.Product.SingleOrDefaultAsync(m => m.productId == id);
-            try
+            var result = await _productServices.DeleteAsync(id);
+            if (result.IsFailure)
             {
-                _context.Product.Remove(product);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                var productResult = await _productServices.GetByIdAsync(id);
+                if (productResult.IsSuccess)
+                {
+                    ViewData["StatusMessage"] = "Error. Calm Down ^_^ and please contact your SysAdmin with this message: " + result.Error;
+                    return View(productResult.Value);
+                }
             }
-            catch (Exception ex)
-            {
-
-                ViewData["StatusMessage"] = "Error. Calm Down ^_^ and please contact your SysAdmin with this message: " + ex;
-                return View(product);
-            }
-            
+            return RedirectToAction(nameof(Index));
         }
-
-        private bool ProductExists(string id)
-        {
-            return _context.Product.Any(e => e.productId == id);
-        }
-
     }
 }
 

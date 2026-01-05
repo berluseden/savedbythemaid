@@ -1,135 +1,244 @@
-﻿using JempSoft.Core.Data;
+using JempSoft.Core.Data;
+using JempSoft.Core.Exceptions;
 using JempSoft.Core.Models;
 using JempSoft.Core.POCOs;
+using JempSoft.Core.Result;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using netcore.Dto;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace JempSoft.Applications.Services
 {
+    /// <summary>
+    /// Service for service type operations with async support
+    /// </summary>
     public class ServiceTypeServices : IServiceTypeServices
     {
-
         private readonly JempSoftDbContext _context;
+        private readonly ILogger<ServiceTypeServices> _logger;
 
-        public ServiceTypeServices(JempSoftDbContext context)
+        public ServiceTypeServices(JempSoftDbContext context, ILogger<ServiceTypeServices> logger)
         {
-            _context = context;
+            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
+        #region Async Methods (Preferred)
 
-        public JsonResultMessage Delete(int? id)
-        {
-            throw new NotImplementedException();
-        }
-
-        public ServiceTypeOutputDto Get(int? id)
+        public async Task<Result<ServiceType>> GetByIdAsync(int id, CancellationToken cancellationToken = default)
         {
             try
             {
-                var serviceType = _context.ServiceTypes.FirstOrDefault(s => s.ServiceTypeId == id);
+                var serviceType = await _context.ServiceTypes
+                    .FirstOrDefaultAsync(s => s.ServiceTypeId == id, cancellationToken);
 
-                return new ServiceTypeOutputDto
+                if (serviceType == null)
                 {
-                    ServiceTypeId = serviceType.ServiceTypeId,
-                    Title = serviceType.Title,
-                    FullDescription = serviceType.FullDescription,
-                    Cost = serviceType.Cost,
-                    Price = serviceType.Price,
-                    IsActive = serviceType.IsActive,
-                    CreatorUserName = ""
-                };
+                    _logger.LogWarning("Service type not found: {Id}", id);
+                    return Result.Failure<ServiceType>($"Service type with ID {id} not found");
+                }
+
+                return serviceType;
             }
             catch (Exception ex)
             {
-                throw new Exception(ex.Message);
+                _logger.LogError(ex, "Error getting service type {Id}", id);
+                return Result.Failure<ServiceType>($"Error getting service type: {ex.Message}");
             }
         }
 
-        public List<ServiceType> GetAll()
-        {
-            var result = _context.ServiceTypes.ToList();
-            return result;
-        }
-
-        public List<ComboBoxOutPutDto> GetComboBoxByCleaningPlaceRoomId(int? id)
+        public async Task<Result<ServiceTypeOutputDto>> GetAsync(int id, CancellationToken cancellationToken = default)
         {
             try
             {
-                if (!id.HasValue)
-                {
-                    return null;
-                }
-
-                var serviceTypes = new List<ServiceType>();
-
-                var cleaningPlaceRoomServiceTypes = _context.CleaningPlaceRoomServiceTypes.ToList().Where(c => c.CleaningPlaceRoomId == id);
-
-                var comboBoxItems = new List<ComboBoxOutPutDto>();
-
-                foreach (var item in cleaningPlaceRoomServiceTypes)
-                {
-                    if(item.CleaningPlaceRoomId == id)
+                var serviceType = await _context.ServiceTypes
+                    .Where(s => s.ServiceTypeId == id)
+                    .Select(s => new ServiceTypeOutputDto
                     {
-                        var serviceType = _context.ServiceTypes.FirstOrDefault(c => c.ServiceTypeId == item.ServiceTypeId);
+                        ServiceTypeId = s.ServiceTypeId,
+                        Title = s.Title,
+                        FullDescription = s.FullDescription,
+                        Cost = s.Cost,
+                        Price = s.Price,
+                        IsActive = s.IsActive,
+                        CreatorUserName = ""
+                    })
+                    .FirstOrDefaultAsync(cancellationToken);
 
-                        var data = new ComboBoxOutPutDto
-                        {
-                            Id = serviceType.ServiceTypeId,
-                            Title = serviceType.FullDescription
-                        };
-                        comboBoxItems.Add(data);
-                    }
+                if (serviceType == null)
+                {
+                    _logger.LogWarning("Service type not found: {Id}", id);
+                    return Result.Failure<ServiceTypeOutputDto>($"Service type with ID {id} not found");
                 }
 
-                var result = comboBoxItems.OrderBy(c => c.Title).ToList();
-
-                return result;
+                return serviceType;
             }
             catch (Exception ex)
             {
-                throw new Exception(ex.Message);
+                _logger.LogError(ex, "Error getting service type {Id}", id);
+                return Result.Failure<ServiceTypeOutputDto>($"Error getting service type: {ex.Message}");
             }
         }
 
-        public JsonResultMessage Save(ServiceTypeInputDto input)
+        public async Task<Result<List<ServiceType>>> GetAllAsync(CancellationToken cancellationToken = default)
         {
-            var serviceType = new ServiceType
-            {
-                Title = input.Title,
-                Cost = input.Cost,
-                Price = input.Price,
-                IsActive = input.IsActive,
-                CreatorUserId = input.CreatorUserId
-            };
-
             try
             {
-                _context.Add(serviceType);
-                _context.SaveChanges();
+                var serviceTypes = await _context.ServiceTypes
+                    .ToListAsync(cancellationToken);
 
-                return new JsonResultMessage
-                {
-                    Title = "Operacion exitosa",
-                    Detail = $"El tipo de servicio no. {serviceType.ServiceTypeId} se ha agragado satisfactoriamente.",
-                    IsSuccess = true
-                };
+                return serviceTypes;
             }
             catch (Exception ex)
             {
-                return new JsonResultMessage
-                {
-                    Title = "Operacion fallida",
-                    Detail = $"Error guardando el tipo de servicio: {ex.InnerException.Message}",
-                    IsSuccess = false
-                };
+                _logger.LogError(ex, "Error getting all service types");
+                return Result.Failure<List<ServiceType>>($"Error getting service types: {ex.Message}");
             }
         }
 
-        public JsonResultMessage Update(ServiceTypeInputDto input)
+        public async Task<Result<List<ComboBoxOutPutDto>>> GetComboBoxByCleaningPlaceRoomIdAsync(int cleaningPlaceRoomId, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException();
+            try
+            {
+                // Optimized: Single query with join instead of N+1
+                var comboBoxItems = await (
+                    from cprs in _context.CleaningPlaceRoomServiceTypes
+                        .Where(c => c.CleaningPlaceRoomId == cleaningPlaceRoomId)
+                    join st in _context.ServiceTypes on cprs.ServiceTypeId equals st.ServiceTypeId
+                    orderby st.FullDescription
+                    select new ComboBoxOutPutDto
+                    {
+                        Id = st.ServiceTypeId,
+                        Title = st.FullDescription
+                    }
+                ).ToListAsync(cancellationToken);
+
+                return comboBoxItems;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting service types for cleaning place room {Id}", cleaningPlaceRoomId);
+                return Result.Failure<List<ComboBoxOutPutDto>>($"Error getting service types: {ex.Message}");
+            }
         }
+
+        public async Task<Result<int>> SaveAsync(ServiceTypeInputDto input, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                _logger.LogInformation("Creating new service type: {Title}", input.Title);
+
+                var serviceType = new ServiceType
+                {
+                    Title = input.Title,
+                    Cost = input.Cost,
+                    Price = input.Price,
+                    IsActive = input.IsActive,
+                    CreatorUserId = input.CreatorUserId,
+                    CreationDate = DateTime.UtcNow
+                };
+
+                await _context.ServiceTypes.AddAsync(serviceType, cancellationToken);
+                await _context.SaveChangesAsync(cancellationToken);
+
+                _logger.LogInformation("Service type created with ID: {Id}", serviceType.ServiceTypeId);
+                return serviceType.ServiceTypeId;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving service type");
+                return Result.Failure<int>($"Error saving service type: {ex.Message}");
+            }
+        }
+
+        public async Task<Result> UpdateAsync(ServiceTypeInputDto input, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                // ServiceTypeInputDto doesn't have ServiceTypeId, so we need to add it or use a different DTO for updates
+                // For now, we'll require an ID parameter for update operations
+                _logger.LogWarning("UpdateAsync called but ServiceTypeInputDto doesn't contain ServiceTypeId");
+                return Result.Failure("Update operation requires ServiceTypeId. Please provide a valid ID.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating service type");
+                return Result.Failure($"Error updating service type: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Updates a service type by ID
+        /// </summary>
+        public async Task<Result> UpdateByIdAsync(int serviceTypeId, ServiceTypeInputDto input, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var serviceType = await _context.ServiceTypes
+                    .FirstOrDefaultAsync(s => s.ServiceTypeId == serviceTypeId, cancellationToken);
+
+                if (serviceType == null)
+                {
+                    return Result.Failure($"Service type with ID {serviceTypeId} not found");
+                }
+
+                serviceType.Title = input.Title;
+                serviceType.Cost = input.Cost;
+                serviceType.Price = input.Price;
+                serviceType.IsActive = input.IsActive;
+                serviceType.UpdateUserId = input.CreatorUserId; // Reusing CreatorUserId for update user
+                serviceType.UpdateDate = DateTime.UtcNow;
+
+                _context.Entry(serviceType).State = EntityState.Modified;
+                await _context.SaveChangesAsync(cancellationToken);
+
+                _logger.LogInformation("Service type updated: {Id}", serviceTypeId);
+                return Result.Success();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating service type {Id}", serviceTypeId);
+                return Result.Failure($"Error updating service type: {ex.Message}");
+            }
+        }
+
+        public async Task<Result> DeleteAsync(int id, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var serviceType = await _context.ServiceTypes
+                    .FirstOrDefaultAsync(s => s.ServiceTypeId == id, cancellationToken);
+
+                if (serviceType == null)
+                {
+                    return Result.Failure($"Service type with ID {id} not found");
+                }
+
+                // Soft delete
+                serviceType.IsActive = false;
+                _context.Entry(serviceType).State = EntityState.Modified;
+                await _context.SaveChangesAsync(cancellationToken);
+
+                _logger.LogInformation("Service type soft-deleted: {Id}", id);
+                return Result.Success();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting service type {Id}", id);
+                return Result.Failure($"Error deleting service type: {ex.Message}");
+            }
+        }
+
+        public bool Exists(int id)
+        {
+            return _context.ServiceTypes.Any(s => s.ServiceTypeId == id);
+        }
+
+        #endregion
     }
 }

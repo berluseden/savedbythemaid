@@ -1,8 +1,8 @@
-﻿@model IEnumerable<JempSoft.Core.Models.Invent.TransferOut>
+@model IEnumerable<JempSoft.Core.Models.Invent.TransferOut>
 
 @{
     ViewData["Title"] = "Index";
-    Layout = "~/Views/Shared/_AdminlteNetcoreIndex.cshtml";
+    Layout = "~/Views/Shared/_AdminLTE4Index.cshtml";
     ViewData["EntityIcon"] = "fa fa-upload";
     ViewData["ListTitle"] = "Goods Issue List";
     ViewData["IndexInfo"] = "Goods Issue is a process of delivering the products from a warehouse based on transfer order (TO)";
@@ -46,8 +46,8 @@
         <tr>
             <td>
                 <div class="tools">
-                    <a asp-action="Details" asp-route-id="@item.transferOutId" class="btn btn-primary btn-xs"><i class="fa fa-list"></i></a>
-                    <a asp-action="Delete" asp-route-id="@item.transferOutId" class="btn btn-danger btn-xs"><i class="fa fa-trash"></i></a>
+                    <a asp-action="Details" asp-route-id="@item.transferOutId" class="btn btn-primary btn-sm"><i class="fa fa-list"></i></a>
+                    <a asp-action="Delete" asp-route-id="@item.transferOutId" class="btn btn-danger btn-sm"><i class="fa fa-trash"></i></a>
                 </div>
           
             </td>

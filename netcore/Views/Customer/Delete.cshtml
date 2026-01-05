@@ -1,12 +1,12 @@
-﻿@model JempSoft.Core.Models.Invent.Customer
+@model JempSoft.Core.Models.Invent.Customer
 @inject netcore.Data.ApplicationDbContext _context;
 
 @{
     ViewData["Title"] = "Delete";
-    Layout = "~/Views/Shared/_AdminlteNetcoreDelete.cshtml";
+    Layout = "~/Views/Shared/_AdminLTE4Delete.cshtml";
     ViewData["EntityIcon"] = "fa fa-bank";
     ViewData["DeleteInfo"] = "Customer that already have transactions (SO) can not be deleted.";
-    netcore.Models.Invent.SalesOrder salesOrder = _context.SalesOrder.Where(x => x.customerId.Equals(Model.customerId)).FirstOrDefault();
+    JempSoft.Core.Models.Invent.SalesOrder salesOrder = _context.SalesOrder.Where(x => x.customerId.Equals(Model.customerId)).FirstOrDefault();
     ViewData["IsCanDeleted"] = false;
     if (salesOrder == null)
     {

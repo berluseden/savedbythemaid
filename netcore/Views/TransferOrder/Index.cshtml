@@ -1,8 +1,8 @@
-﻿@model IEnumerable<JempSoft.Core.Models.Invent.TransferOrder>
+@model IEnumerable<JempSoft.Core.Models.Invent.TransferOrder>
 
 @{
     ViewData["Title"] = "Index";
-    Layout = "~/Views/Shared/_AdminlteNetcoreIndex.cshtml";
+    Layout = "~/Views/Shared/_AdminLTE4Index.cshtml";
     ViewData["EntityIcon"] = "fa fa-recycle";
     ViewData["ListTitle"] = "Transfer Order List";
     ViewData["IndexInfo"] = "Transfer Order (TO) is a process of transfering products from one warehouse to another warehouse.";
@@ -46,9 +46,9 @@
             <tr>
                 <td>
                     <div class="tools">
-                        <a asp-action="Edit" asp-route-id="@item.transferOrderId" class="btn btn-primary btn-xs"><i class="fa fa-pencil"></i></a>
-                        <a asp-action="Details" asp-route-id="@item.transferOrderId" class="btn btn-primary btn-xs"><i class="fa fa-list"></i></a>
-                        <a asp-action="Delete" asp-route-id="@item.transferOrderId" class="btn btn-danger btn-xs"><i class="fa fa-trash"></i></a>
+                        <a asp-action="Edit" asp-route-id="@item.transferOrderId" class="btn btn-primary btn-sm"><i class="fa fa-pencil"></i></a>
+                        <a asp-action="Details" asp-route-id="@item.transferOrderId" class="btn btn-primary btn-sm"><i class="fa fa-list"></i></a>
+                        <a asp-action="Delete" asp-route-id="@item.transferOrderId" class="btn btn-danger btn-sm"><i class="fa fa-trash"></i></a>
                     </div>
                    
                 </td>
@@ -56,21 +56,21 @@
                     @Html.DisplayFor(modelItem => item.transferOrderNumber)
                 </td>
                 <td>
-                    @if (item.transferOrderStatus == netcore.Models.Invent.TransferOrderStatus.Completed)
+                    @if (item.transferOrderStatus == JempSoft.Core.Models.Invent.TransferOrderStatus.Completed)
                     {
                         <span class="label label-success">
                             @Html.DisplayFor(modelItem => item.transferOrderStatus)
                         </span>
 
                     }
-                    @if (item.transferOrderStatus == netcore.Models.Invent.TransferOrderStatus.Open)
+                    @if (item.transferOrderStatus == JempSoft.Core.Models.Invent.TransferOrderStatus.Open)
                     {
                         <span class="label label-primary">
                             @Html.DisplayFor(modelItem => item.transferOrderStatus)
                         </span>
 
                     }
-                    @if (item.transferOrderStatus == netcore.Models.Invent.TransferOrderStatus.Draft)
+                    @if (item.transferOrderStatus == JempSoft.Core.Models.Invent.TransferOrderStatus.Draft)
                     {
                         <span class="label label-warning">
                             @Html.DisplayFor(modelItem => item.transferOrderStatus)

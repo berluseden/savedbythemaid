@@ -6,24 +6,29 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using JempSoft.Core.Models;
-using netcore.Data;
+using JempSoft.Applications.ServiceMeet;
+using JempSoft.Applications.ServiceMeet.Dto;
 
 namespace netcore.Controllers
 {
     public class ServiceMeetsController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IServiceMeetServices _serviceMeetServices;
 
-        public ServiceMeetsController(ApplicationDbContext context)
+        public ServiceMeetsController(IServiceMeetServices serviceMeetServices)
         {
-            _context = context;
+            _serviceMeetServices = serviceMeetServices;
         }
 
         // GET: ServiceMeets
         public async Task<IActionResult> Index()
         {
-            var applicationDbContext = _context.ServiceMeeting.Include(s => s.CartItem);
-            return View(await applicationDbContext.ToListAsync());
+            var result = await _serviceMeetServices.GetAllAsync();
+            if (result.IsFailure)
+            {
+                return View(new List<ServiceMeetOutputDto>());
+            }
+            return View(result.Value);
         }
 
         // GET: ServiceMeets/Details/5
@@ -34,39 +39,43 @@ namespace netcore.Controllers
                 return NotFound();
             }
 
-            var serviceMeet = await _context.ServiceMeeting
-                .Include(s => s.CartItem)
-                .SingleOrDefaultAsync(m => m.ServiceMeetId == id);
-            if (serviceMeet == null)
+            var result = await _serviceMeetServices.GetByIdAsync(id.Value);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
 
-            return View(serviceMeet);
+            return View(result.Value);
         }
 
         // GET: ServiceMeets/Create
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
-            ViewData["CartItemId"] = new SelectList(_context.CartItems, "CartItemId", "CartItemId");
+            var cartItemsResult = await _serviceMeetServices.GetCartItemsComboBoxAsync();
+            var cartItems = cartItemsResult.IsSuccess ? cartItemsResult.Value : new List<JempSoft.Applications.ComboBoxOutPutDto>();
+            ViewData["CartItemId"] = new SelectList(cartItems, "Id", "Name");
             return View();
         }
 
         // POST: ServiceMeets/Create
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("ServiceMeetId,CartItemId,Title,Address,Day,Month,Year,Hour,Minute,isMorning")] ServiceMeet serviceMeet)
+        public async Task<IActionResult> Create(ServiceMeetInputDto input)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(serviceMeet);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                var result = await _serviceMeetServices.SaveAsync(input);
+                if (result.IsSuccess)
+                {
+                    return RedirectToAction(nameof(Index));
+                }
+                ModelState.AddModelError("", result.Error);
             }
-            ViewData["CartItemId"] = new SelectList(_context.CartItems, "CartItemId", "CartItemId", serviceMeet.CartItemId);
-            return View(serviceMeet);
+            
+            var cartItemsResult = await _serviceMeetServices.GetCartItemsComboBoxAsync();
+            var cartItems = cartItemsResult.IsSuccess ? cartItemsResult.Value : new List<JempSoft.Applications.ComboBoxOutPutDto>();
+            ViewData["CartItemId"] = new SelectList(cartItems, "Id", "Name", input.CartItemId);
+            return View(input);
         }
 
         // GET: ServiceMeets/Edit/5
@@ -77,49 +86,58 @@ namespace netcore.Controllers
                 return NotFound();
             }
 
-            var serviceMeet = await _context.ServiceMeeting.SingleOrDefaultAsync(m => m.ServiceMeetId == id);
-            if (serviceMeet == null)
+            var result = await _serviceMeetServices.GetByIdAsync(id.Value);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
-            ViewData["CartItemId"] = new SelectList(_context.CartItems, "CartItemId", "CartItemId", serviceMeet.CartItemId);
-            return View(serviceMeet);
+
+            var serviceMeet = result.Value;
+            var input = new ServiceMeetInputDto
+            {
+                CartItemId = serviceMeet.CartItemId,
+                Title = serviceMeet.Title,
+                Address = serviceMeet.Address,
+                Day = serviceMeet.Day,
+                Month = serviceMeet.Month,
+                Year = serviceMeet.Year,
+                Hour = serviceMeet.Hour,
+                Minute = serviceMeet.Minute,
+                IsMorning = serviceMeet.IsMorning
+            };
+            
+            var cartItemsResult = await _serviceMeetServices.GetCartItemsComboBoxAsync();
+            var cartItems = cartItemsResult.IsSuccess ? cartItemsResult.Value : new List<JempSoft.Applications.ComboBoxOutPutDto>();
+            ViewData["CartItemId"] = new SelectList(cartItems, "Id", "Name", serviceMeet.CartItemId);
+            ViewData["ServiceMeetId"] = id.Value;
+            return View(input);
         }
 
         // POST: ServiceMeets/Edit/5
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("ServiceMeetId,CartItemId,Title,Address,Day,Month,Year,Hour,Minute,isMorning")] ServiceMeet serviceMeet)
+        public async Task<IActionResult> Edit(int id, ServiceMeetInputDto input)
         {
-            if (id != serviceMeet.ServiceMeetId)
-            {
-                return NotFound();
-            }
-
             if (ModelState.IsValid)
             {
-                try
+                var result = await _serviceMeetServices.UpdateByIdAsync(id, input);
+                if (result.IsSuccess)
                 {
-                    _context.Update(serviceMeet);
-                    await _context.SaveChangesAsync();
+                    return RedirectToAction(nameof(Index));
                 }
-                catch (DbUpdateConcurrencyException)
+                
+                if (result.Error.Contains("not found"))
                 {
-                    if (!ServiceMeetExists(serviceMeet.ServiceMeetId))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    return NotFound();
                 }
-                return RedirectToAction(nameof(Index));
+                ModelState.AddModelError("", result.Error);
             }
-            ViewData["CartItemId"] = new SelectList(_context.CartItems, "CartItemId", "CartItemId", serviceMeet.CartItemId);
-            return View(serviceMeet);
+            
+            var cartItemsResult = await _serviceMeetServices.GetCartItemsComboBoxAsync();
+            var cartItems = cartItemsResult.IsSuccess ? cartItemsResult.Value : new List<JempSoft.Applications.ComboBoxOutPutDto>();
+            ViewData["CartItemId"] = new SelectList(cartItems, "Id", "Name", input.CartItemId);
+            ViewData["ServiceMeetId"] = id;
+            return View(input);
         }
 
         // GET: ServiceMeets/Delete/5
@@ -130,15 +148,13 @@ namespace netcore.Controllers
                 return NotFound();
             }
 
-            var serviceMeet = await _context.ServiceMeeting
-                .Include(s => s.CartItem)
-                .SingleOrDefaultAsync(m => m.ServiceMeetId == id);
-            if (serviceMeet == null)
+            var result = await _serviceMeetServices.GetByIdAsync(id.Value);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
 
-            return View(serviceMeet);
+            return View(result.Value);
         }
 
         // POST: ServiceMeets/Delete/5
@@ -146,15 +162,8 @@ namespace netcore.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var serviceMeet = await _context.ServiceMeeting.SingleOrDefaultAsync(m => m.ServiceMeetId == id);
-            _context.ServiceMeeting.Remove(serviceMeet);
-            await _context.SaveChangesAsync();
+            var result = await _serviceMeetServices.DeleteAsync(id);
             return RedirectToAction(nameof(Index));
-        }
-
-        private bool ServiceMeetExists(int id)
-        {
-            return _context.ServiceMeeting.Any(e => e.ServiceMeetId == id);
         }
     }
 }

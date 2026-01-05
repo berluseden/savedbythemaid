@@ -3,29 +3,46 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using JempSoft.Core.Models.Services;
-using netcore.Data;
+using JempSoft.Applications;
 using JempSoft.Applications.Administration.Page;
+using JempSoft.Applications.Services;
 
 namespace netcore.Controllers.Booking
 {
     public class AdditionalServiceTypesController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IAdditionalServiceTypeServices _additionalServiceTypeService;
         private readonly IPageCookieService _pageCookie;
 
-        public AdditionalServiceTypesController(ApplicationDbContext context, IPageCookieService pageCookie)
+        public AdditionalServiceTypesController(
+            IAdditionalServiceTypeServices additionalServiceTypeService,
+            IPageCookieService pageCookie)
         {
-            _context = context;
+            _additionalServiceTypeService = additionalServiceTypeService;
             _pageCookie = pageCookie;
         }
 
         // GET: AdditionalServiceTypes
         public async Task<IActionResult> Index()
         {
-            return View(await _context.AdditionalServiceTypes.ToListAsync());
+            if (TempData["SuccessMessage"] != null)
+            {
+                ViewBag.SuccessMessage = TempData["SuccessMessage"];
+            }
+            if (TempData["ErrorMessage"] != null)
+            {
+                ViewBag.ErrorMessage = TempData["ErrorMessage"];
+            }
+            
+            var result = await _additionalServiceTypeService.GetAllAsync();
+            if (result.IsFailure)
+            {
+                ViewBag.ErrorMessage = result.Error;
+                return View(new List<AdditionalServiceType>());
+            }
+            return View(result.Value);
         }
 
         // GET: AdditionalServiceTypes/Details/5
@@ -36,14 +53,13 @@ namespace netcore.Controllers.Booking
                 return NotFound();
             }
 
-            var additionalServiceType = await _context.AdditionalServiceTypes
-                .SingleOrDefaultAsync(m => m.AdditionalServiceTypeId == id);
-            if (additionalServiceType == null)
+            var result = await _additionalServiceTypeService.GetByIdAsync(id.Value);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
 
-            return View(additionalServiceType);
+            return View(result.Value);
         }
 
         // GET: AdditionalServiceTypes/Create
@@ -53,22 +69,42 @@ namespace netcore.Controllers.Booking
         }
 
         // POST: AdditionalServiceTypes/Create
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("AdditionalServiceTypeId,Title,Cost,Price,IsActive,CreatorUserId,CreationDate,UpdateUserId,UpdateDate,DeleteUserId,DeleteDate,IsDeleted")] AdditionalServiceType additionalServiceType)
+        public async Task<IActionResult> Create([Bind("AdditionalServiceTypeId,Title,Cost,Price,IsActive")] AdditionalServiceType additionalServiceType)
         {
-            if (ModelState.IsValid)
+            try
             {
-                additionalServiceType.CreatorUserId = Convert.ToInt32(_pageCookie.GetCookie("UserId"));
-                additionalServiceType.CreationDate = DateTime.UtcNow;
+                if (string.IsNullOrWhiteSpace(additionalServiceType.Title))
+                {
+                    ViewBag.ErrorMessage = "El título es requerido.";
+                    return View(additionalServiceType);
+                }
 
-                _context.Add(additionalServiceType);
-                await _context.SaveChangesAsync();
+                var input = new AdditionalServiceTypeInputDto
+                {
+                    Title = additionalServiceType.Title,
+                    Cost = additionalServiceType.Cost,
+                    Price = additionalServiceType.Price,
+                    IsActive = additionalServiceType.IsActive,
+                    CreatorUserId = Convert.ToInt32(_pageCookie.GetCookie("UserId"))
+                };
+
+                var result = await _additionalServiceTypeService.SaveAsync(input);
+                if (result.IsFailure)
+                {
+                    ViewBag.ErrorMessage = result.Error;
+                    return View(additionalServiceType);
+                }
+                
+                TempData["SuccessMessage"] = $"Servicio adicional '{additionalServiceType.Title}' creado exitosamente.";
                 return RedirectToAction(nameof(Index));
             }
-            return View(additionalServiceType);
+            catch (Exception ex)
+            {
+                ViewBag.ErrorMessage = "Error al guardar: " + (ex.InnerException?.Message ?? ex.Message);
+                return View(additionalServiceType);
+            }
         }
 
         // GET: AdditionalServiceTypes/Edit/5
@@ -79,50 +115,64 @@ namespace netcore.Controllers.Booking
                 return NotFound();
             }
 
-            var additionalServiceType = await _context.AdditionalServiceTypes.SingleOrDefaultAsync(m => m.AdditionalServiceTypeId == id);
-            if (additionalServiceType == null)
+            var result = await _additionalServiceTypeService.GetByIdAsync(id.Value);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
-            return View(additionalServiceType);
+            return View(result.Value);
         }
 
         // POST: AdditionalServiceTypes/Edit/5
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("AdditionalServiceTypeId,Title,Cost,Price,IsActive,CreatorUserId,CreationDate,UpdateUserId,UpdateDate,DeleteUserId,DeleteDate,IsDeleted")] AdditionalServiceType additionalServiceType)
+        public async Task<IActionResult> Edit(int id, [Bind("AdditionalServiceTypeId,Title,Cost,Price,IsActive")] AdditionalServiceType additionalServiceType)
         {
             if (id != additionalServiceType.AdditionalServiceTypeId)
             {
                 return NotFound();
             }
 
-            if (ModelState.IsValid)
+            try
             {
-                try
+                if (string.IsNullOrWhiteSpace(additionalServiceType.Title))
                 {
-                    additionalServiceType.UpdateUserId = Convert.ToInt32(_pageCookie.GetCookie("UserId"));
-                    additionalServiceType.UpdateDate = DateTime.UtcNow;
+                    ViewBag.ErrorMessage = "El título es requerido.";
+                    return View(additionalServiceType);
+                }
 
-                    _context.Update(additionalServiceType);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
+                var input = new AdditionalServiceTypeInputDto
                 {
-                    if (!AdditionalServiceTypeExists(additionalServiceType.AdditionalServiceTypeId))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    Title = additionalServiceType.Title,
+                    Cost = additionalServiceType.Cost,
+                    Price = additionalServiceType.Price,
+                    IsActive = additionalServiceType.IsActive,
+                    CreatorUserId = Convert.ToInt32(_pageCookie.GetCookie("UserId"))
+                };
+
+                var result = await _additionalServiceTypeService.UpdateByIdAsync(id, input);
+                if (result.IsFailure)
+                {
+                    ViewBag.ErrorMessage = result.Error;
+                    return View(additionalServiceType);
                 }
+                
+                TempData["SuccessMessage"] = $"Servicio adicional '{additionalServiceType.Title}' actualizado exitosamente.";
                 return RedirectToAction(nameof(Index));
             }
-            return View(additionalServiceType);
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!_additionalServiceTypeService.Exists(additionalServiceType.AdditionalServiceTypeId))
+                {
+                    return NotFound();
+                }
+                throw;
+            }
+            catch (Exception ex)
+            {
+                ViewBag.ErrorMessage = "Error al guardar: " + (ex.InnerException?.Message ?? ex.Message);
+                return View(additionalServiceType);
+            }
         }
 
         // GET: AdditionalServiceTypes/Delete/5
@@ -133,14 +183,13 @@ namespace netcore.Controllers.Booking
                 return NotFound();
             }
 
-            var additionalServiceType = await _context.AdditionalServiceTypes
-                .SingleOrDefaultAsync(m => m.AdditionalServiceTypeId == id);
-            if (additionalServiceType == null)
+            var result = await _additionalServiceTypeService.GetByIdAsync(id.Value);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
 
-            return View(additionalServiceType);
+            return View(result.Value);
         }
 
         // POST: AdditionalServiceTypes/Delete/5
@@ -148,15 +197,28 @@ namespace netcore.Controllers.Booking
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var additionalServiceType = await _context.AdditionalServiceTypes.SingleOrDefaultAsync(m => m.AdditionalServiceTypeId == id);
-            _context.AdditionalServiceTypes.Remove(additionalServiceType);
-            await _context.SaveChangesAsync();
+            try
+            {
+                var getResult = await _additionalServiceTypeService.GetByIdAsync(id);
+                if (getResult.IsSuccess)
+                {
+                    var title = getResult.Value.Title;
+                    var deleteResult = await _additionalServiceTypeService.DeleteAsync(id);
+                    if (deleteResult.IsFailure)
+                    {
+                        TempData["ErrorMessage"] = deleteResult.Error;
+                    }
+                    else
+                    {
+                        TempData["SuccessMessage"] = $"Servicio adicional '{title}' eliminado exitosamente.";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "Error al eliminar: " + (ex.InnerException?.Message ?? ex.Message);
+            }
             return RedirectToAction(nameof(Index));
-        }
-
-        private bool AdditionalServiceTypeExists(int id)
-        {
-            return _context.AdditionalServiceTypes.Any(e => e.AdditionalServiceTypeId == id);
         }
     }
 }

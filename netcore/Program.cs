@@ -1,64 +1,170 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using netcore.Data;
 using netcore.Models;
 using netcore.Services;
+using JempSoft.Applications;
+using JempSoft.Applications.Administration.Page;
+using JempSoft.Applications.Book;
+using JempSoft.Applications.Services;
+using JempSoft.Applications.ServiceMeet;
+using JempSoft.Applications.Invent;
+using JempSoft.Core.Data;
+using JempSoft.Core.UnitOfWork;
 
-namespace netcore
+var builder = WebApplication.CreateBuilder(args);
+
+// Get MySQL connection string
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var serverVersion = new MySqlServerVersion(new Version(8, 0, 0));
+
+// Add services to the container.
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseMySql(connectionString, serverVersion));
+
+builder.Services.AddDbContext<JempSoftDbContext>(options =>
+    options.UseMySql(connectionString, serverVersion));
+
+// Get Identity Default Options
+IConfigurationSection identityDefaultOptionsConfigurationSection = builder.Configuration.GetSection("IdentityDefaultOptions");
+
+builder.Services.Configure<IdentityDefaultOptions>(identityDefaultOptionsConfigurationSection);
+
+var identityDefaultOptions = identityDefaultOptionsConfigurationSection.Get<IdentityDefaultOptions>();
+
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
-    public class Program
+    if (identityDefaultOptions != null)
     {
-        public static void Main(string[] args)
-        {
-            var host = BuildWebHost(args);
+        // Password settings
+        options.Password.RequireDigit = identityDefaultOptions.PasswordRequireDigit;
+        options.Password.RequiredLength = identityDefaultOptions.PasswordRequiredLength;
+        options.Password.RequireNonAlphanumeric = identityDefaultOptions.PasswordRequireNonAlphanumeric;
+        options.Password.RequireUppercase = identityDefaultOptions.PasswordRequireUppercase;
+        options.Password.RequireLowercase = identityDefaultOptions.PasswordRequireLowercase;
+        options.Password.RequiredUniqueChars = identityDefaultOptions.PasswordRequiredUniqueChars;
 
-            using (var scope = host.Services.CreateScope())
-            {
-                var services = scope.ServiceProvider;
-                try
-                {
-                    var context = services.GetRequiredService<ApplicationDbContext>();
-                    var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-                    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-                    var netcoreService = services.GetRequiredService<INetcoreService>();
-                    DbInitializer.Initialize(context, userManager, roleManager, netcoreService).Wait();
-                }
-                catch (Exception ex)
-                {
-                    var logger = services.GetRequiredService<ILogger<Program>>();
-                    logger.LogError(ex, "An error occurred while seeding the database.");
-                }
-            }
+        // Lockout settings
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(identityDefaultOptions.LockoutDefaultLockoutTimeSpanInMinutes);
+        options.Lockout.MaxFailedAccessAttempts = identityDefaultOptions.LockoutMaxFailedAccessAttempts;
+        options.Lockout.AllowedForNewUsers = identityDefaultOptions.LockoutAllowedForNewUsers;
 
-            host.Run();
-        }
+        // User settings
+        options.User.RequireUniqueEmail = identityDefaultOptions.UserRequireUniqueEmail;
 
-        //log level severity: Trace = 0, Debug = 1, Information = 2, Warning = 3, Error = 4, Critical = 5
+        // email confirmation require
+        options.SignIn.RequireConfirmedEmail = identityDefaultOptions.SignInRequireConfirmedEmail;
+    }
+})
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddDefaultTokenProviders();
 
-        //AzureAppService log activated by default if application hosted on Azure
-        //https://docs.microsoft.com/en-us/aspnet/core/fundamentals/logging/?view=aspnetcore-2.1&tabs=aspnetcore2x#appservice
+// cookie settings
+if (identityDefaultOptions != null)
+{
+    builder.Services.ConfigureApplicationCookie(options =>
+    {
+        options.Cookie.HttpOnly = identityDefaultOptions.CookieHttpOnly;
+        options.ExpireTimeSpan = TimeSpan.FromDays(identityDefaultOptions.CookieExpiration);
+        options.LoginPath = identityDefaultOptions.LoginPath;
+        options.LogoutPath = identityDefaultOptions.LogoutPath;
+        options.AccessDeniedPath = identityDefaultOptions.AccessDeniedPath;
+        options.SlidingExpiration = identityDefaultOptions.SlidingExpiration;
+    });
+}
 
-        public static IWebHost BuildWebHost(string[] args) =>
-            WebHost.CreateDefaultBuilder(args)
-                 .ConfigureLogging((hostingContext, logging) =>
-                 {
-                     logging.AddConfiguration(hostingContext.Configuration.GetSection("Logging"));
-                     logging.AddConsole();
-                     logging.AddDebug();
-                 })
-                .UseStartup<Startup>()
-                .Build();
+// Custom Services
+builder.Services.AddScoped<ICleaningPlaceServices, CleaningPlaceServices>();
+builder.Services.AddScoped<ICleaningPlaceRoomServices, CleaningPlaceRoomServices>();
+builder.Services.AddScoped<IServiceTypeServices, ServiceTypeServices>();
+builder.Services.AddScoped<IAdditionalServiceTypeServices, AdditionalServiceTypeServices>();
+builder.Services.AddScoped<IEmployeeServices, EmployeeServices>();
+builder.Services.AddScoped<IEmployeeScheduleServices, EmployeeScheduleServices>();
+builder.Services.AddScoped<IServiceMeetServices, ServiceMeetServices>();
 
+// Invent Services
+builder.Services.AddScoped<IBranchServices, BranchServices>();
+builder.Services.AddScoped<IWarehouseServices, WarehouseServices>();
+builder.Services.AddScoped<IProductServices, ProductServices>();
+builder.Services.AddScoped<ICustomerServices, CustomerServices>();
+builder.Services.AddScoped<IVendorServices, VendorServices>();
+
+builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IPageCookieService, PageCookieService>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+// Add email services.
+builder.Services.AddTransient<IEmailSender, EmailSender>();
+
+// Add custom role services
+builder.Services.AddTransient<IRoles, Roles>();
+
+// Add DI for Dotnetdesk
+builder.Services.AddTransient<INetcoreService, NetcoreService>();
+
+// Get SendGrid configuration options
+builder.Services.Configure<SendGridOptions>(builder.Configuration.GetSection("SendGridOptions"));
+
+// Get SMTP configuration options
+builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("SmtpOptions"));
+
+// Get Super Admin Default options
+builder.Services.Configure<SuperAdminDefaultOptions>(builder.Configuration.GetSection("SuperAdminDefaultOptions"));
+
+builder.Services.AddControllersWithViews();
+
+builder.Services.AddHttpContextAccessor();
+
+var app = builder.Build();
+
+// Seed Database
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<ApplicationDbContext>();
         
+        // Ensure database is created
+        context.Database.EnsureCreated();
+        
+        var jempSoftContext = services.GetRequiredService<JempSoftDbContext>();
+        jempSoftContext.Database.EnsureCreated();
+        
+        var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+        var netcoreService = services.GetRequiredService<INetcoreService>();
+        await netcore.Data.DbInitializer.Initialize(context, userManager, roleManager, netcoreService);
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while seeding the database.");
     }
 }
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
+else
+{
+    app.UseExceptionHandler("/Home/Error");
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
+app.UseStaticFiles();
+
+app.UseRouting();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
+
+app.Run();

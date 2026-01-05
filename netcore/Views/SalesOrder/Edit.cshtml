@@ -1,8 +1,8 @@
-﻿@model JempSoft.Core.Models.Invent.SalesOrder
+@model JempSoft.Core.Models.Invent.SalesOrder
 
 @{
     ViewData["Title"] = "Edit";
-    Layout = "~/Views/Shared/_AdminlteNetcoreEdit.cshtml";
+    Layout = "~/Views/Shared/_AdminLTE4Edit.cshtml";
     ViewData["EntityIcon"] = "fa fa-cart-plus";
     ViewData["EditInfo"] = " SO have three status: 1. Draft (Unconfirmed SO, not ready for shipment), 2. Open (Confirmed SO, ready for shipment) and 3. Completed (Closed SO, already ship the order). Change status from [Draft] to [Open] to confirm the order. [Completed] status is auto set when SO used in Product Shipment / Delivery order.";
 

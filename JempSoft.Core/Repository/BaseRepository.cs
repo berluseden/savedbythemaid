@@ -3,62 +3,99 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Linq.Expressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace JempSoft.Core.Repository
 {
+    /// <summary>
+    /// Generic repository implementation with async support
+    /// </summary>
     public class BaseRepository<T> : IRepository<T> where T : class
     {
-        internal readonly JempSoftDbContext _context;
-        internal DbSet<T> _dbSet;
-
+        protected readonly JempSoftDbContext _context;
+        protected readonly DbSet<T> _dbSet;
 
         public BaseRepository(JempSoftDbContext context)
         {
-            _context = context;
-            this._dbSet = _context.Set<T>();
+            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _dbSet = _context.Set<T>();
         }
 
-        public virtual void Delete(T entity)
+        public virtual async Task<List<T>> GetAllAsync(CancellationToken cancellationToken = default)
         {
-            if(_context.Entry(entity).State == EntityState.Detached)
+            return await _dbSet.ToListAsync(cancellationToken);
+        }
+
+        public virtual async Task<T?> GetByIdAsync(object id, CancellationToken cancellationToken = default)
+        {
+            return await _dbSet.FindAsync(new[] { id }, cancellationToken);
+        }
+
+        public virtual async Task<T> AddAsync(T entity, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(entity);
+            await _dbSet.AddAsync(entity, cancellationToken);
+            return entity;
+        }
+
+        public virtual Task UpdateAsync(T entity, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(entity);
+            _dbSet.Attach(entity);
+            _context.Entry(entity).State = EntityState.Modified;
+            return Task.CompletedTask;
+        }
+
+        public virtual Task DeleteAsync(T entity, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(entity);
+            if (_context.Entry(entity).State == EntityState.Detached)
             {
                 _dbSet.Attach(entity);
             }
             _dbSet.Remove(entity);
+            return Task.CompletedTask;
         }
 
-        public virtual void Delete(object id)
+        public virtual async Task DeleteAsync(object id, CancellationToken cancellationToken = default)
         {
-            var entity = _dbSet.Find(id);
-            Delete(entity);
+            var entity = await GetByIdAsync(id, cancellationToken);
+            if (entity != null)
+            {
+                await DeleteAsync(entity, cancellationToken);
+            }
         }
 
-        public virtual void SoDelete(T entity)
+        public virtual async Task<List<T>> FindAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default)
         {
-            _dbSet.Attach(entity);
-            _context.Entry(entity).State = EntityState.Modified;
+            return await _dbSet.Where(predicate).ToListAsync(cancellationToken);
         }
 
-
-        public virtual List<T> GetAll()
+        public virtual async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default)
         {
-            return _dbSet.ToList();
+            return await _dbSet.FirstOrDefaultAsync(predicate, cancellationToken);
         }
-        
 
-        public virtual T GetById(object id)
+        public virtual async Task<bool> AnyAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default)
         {
-            return _dbSet.Find(id);
+            return await _dbSet.AnyAsync(predicate, cancellationToken);
         }
 
-        public virtual T Save(T entity)
+        public virtual async Task<int> CountAsync(Expression<Func<T, bool>>? predicate = null, CancellationToken cancellationToken = default)
         {
-            _dbSet.Add(entity);
-            return entity;
+            return predicate == null 
+                ? await _dbSet.CountAsync(cancellationToken)
+                : await _dbSet.CountAsync(predicate, cancellationToken);
         }
 
-        public virtual void Update(T entity)
+        public virtual IQueryable<T> Query()
+        {
+            return _dbSet.AsQueryable();
+        }
+
+        public virtual void SoftDelete(T entity)
         {
             _dbSet.Attach(entity);
             _context.Entry(entity).State = EntityState.Modified;

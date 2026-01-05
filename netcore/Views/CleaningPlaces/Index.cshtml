@@ -1,25 +1,47 @@
-﻿@model IEnumerable<JempSoft.Core.Models.CleaningPlace>
+@model IEnumerable<JempSoft.Core.Models.CleaningPlace>
 @{
-    ViewData["Title"] = "Index";
-    Layout = "~/Views/Shared/_AdminlteNetcoreIndex.cshtml";
-    ViewData["EntityIcon"] = "fa fa-tags";
-    ViewData["ListTitle"] = "Cleaning Types List";
-    ViewData["IndexInfo"] = "Description of Cleaning Type";
+    ViewData["Title"] = "Tipos de Inmueble";
+    Layout = "~/Views/Shared/_AdminLTE4Index.cshtml";
+    ViewData["EntityIcon"] = "fa fa-home";
+    ViewData["ListTitle"] = "Tipos de Inmueble";
+    ViewData["CreateLabel"] = "Nuevo Tipo";
+    ViewData["IndexInfo"] = "Define los tipos de inmueble disponibles para limpieza (Casa, Apartamento, Oficina, etc).";
 }
 
+@if (ViewBag.SuccessMessage != null)
+{
+    <div class="alert alert-success alert-dismissible">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+        <h4><i class="icon fa fa-check"></i> ¡Éxito!</h4>
+        @ViewBag.SuccessMessage
+    </div>
+}
 
+@if (ViewBag.ErrorMessage != null)
+{
+    <div class="alert alert-danger alert-dismissible">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+        <h4><i class="icon fa fa-ban"></i> Error</h4>
+        @ViewBag.ErrorMessage
+    </div>
+}
+
+@if (Model == null || !Model.Any())
+{
+    <div class="callout callout-warning">
+        <h4><i class="icon fa fa-warning"></i> Sin Tipos de Inmueble</h4>
+        <p>No hay tipos de inmueble registrados.</p>
+        <a asp-action="Create" class="btn btn-success"><i class="fa fa-plus"></i> Crear Primer Tipo</a>
+    </div>
+}
+else
+{
 <table class="table table-hover table-striped" style="width:100%">
-    <thead>
+    <thead class="bg-primary">
         <tr>
-            <th></th>
-            <th>
-                @Html.DisplayNameFor(model => model.Title)
-            </th>
-
-            <th>
-                @Html.DisplayNameFor(model => model.IsActive)
-            </th>
-
+            <th style="width: 160px;">Acciones</th>
+            <th><i class="fa fa-home"></i> Título</th>
+            <th><i class="fa fa-check-circle"></i> Estado</th>
         </tr>
     </thead>
     <tbody>
@@ -27,23 +49,23 @@
         {
             <tr>
                 <td>
-                    <div class="tools">
-                        <a asp-action="AddPlaceRoom" asp-route-id="@item.CleaningPlaceId" class="btn btn-success btn-xs"><i class="fa fa-plus"></i></a>
-                        <a asp-action="Edit" asp-route-id="@item.CleaningPlaceId" class="btn btn-primary btn-xs"><i class="fa fa-pencil"></i></a>
-                        <a asp-action="Details" asp-route-id="@item.CleaningPlaceId" class="btn btn-primary btn-xs"><i class="fa fa-list"></i></a>
-                        <a asp-action="Delete" asp-route-id="@item.CleaningPlaceId" class="btn btn-danger btn-xs"><i class="fa fa-trash"></i></a>
+                    <div class="btn-group">
+                        <a asp-action="AddPlaceRoom" asp-route-id="@item.CleaningPlaceId" class="btn btn-success btn-sm btn-action" title="Agregar Habitación"><i class="fa fa-plus"></i></a>
+                        <a asp-action="Edit" asp-route-id="@item.CleaningPlaceId" class="btn btn-warning btn-sm btn-action" title="Editar"><i class="fa fa-pencil"></i></a>
+                        <a asp-action="Details" asp-route-id="@item.CleaningPlaceId" class="btn btn-info btn-sm btn-action" title="Ver"><i class="fa fa-eye"></i></a>
+                        <a asp-action="Delete" asp-route-id="@item.CleaningPlaceId" class="btn btn-danger btn-sm btn-action" title="Eliminar"><i class="fa fa-trash"></i></a>
                     </div>
-
                 </td>
+                <td><strong>@item.Title</strong></td>
                 <td>
-                    @Html.DisplayFor(modelItem => item.Title)
+                    @if (item.IsActive) {
+                        <span class="label label-success"><i class="fa fa-check"></i> Activo</span>
+                    } else {
+                        <span class="label label-danger"><i class="fa fa-times"></i> Inactivo</span>
+                    }
                 </td>
-
-                <td>
-                    @Html.DisplayFor(modelItem => item.IsActive)
-                </td>
-
             </tr>
         }
     </tbody>
 </table>
+}

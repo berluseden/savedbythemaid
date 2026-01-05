@@ -1,342 +1,418 @@
-﻿@using JempSoft.Core.Models.Invent
-
+@using JempSoft.Core.Models
 @inject netcore.Data.ApplicationDbContext Context
 @{
-    ViewData["Title"] = "Home Index";
-    Layout = "_AdminlteNetcore";
+    ViewData["Title"] = "Dashboard";
+    Layout = "_AdminLTE4";
 
-    int po = Context.PurchaseOrder.Count();
-    int so = Context.SalesOrder.Count();
-    int shipment = Context.Shipment.Count();
-    int receive = Context.Receiving.Count();
+    // Métricas del negocio de limpieza
+    var today = DateTime.Today;
 
-    List<VMStock> stocks = new List<VMStock>();
-    List<Product> products = new List<Product>();
-    products = Context.Product.ToList();
-    foreach (var item in products)
-    {
-        VMStock stock = new VMStock();
-        stock.Product = item.productCode;
-        stock.QtyPO = Context.PurchaseOrderLine.Where(x => x.productId.Equals(item.productId)).Sum(x => x.qty);
-        stock.QtyReceiving = Context.ReceivingLine.Where(x => x.productId.Equals(item.productId)).Sum(x => x.qtyReceive);
-        stock.QtySO = Context.SalesOrderLine.Where(x => x.productId.Equals(item.productId)).Sum(x => x.qty);
-        stock.QtyShipment = Context.ShipmentLine.Where(x => x.productId.Equals(item.productId)).Sum(x => x.qtyShipment);
-        stock.QtyOnhand = stock.QtyReceiving - stock.QtyShipment;
-
-        stocks.Add(stock);
-    }
+    // Empleados
+    int totalEmployees = Context.Employees.Count();
+    
+    // Reservas - usando ServiceOrders
+    int todayBookings = Context.ServiceOrders.Count(s => s.Day == today.Day && s.Month == today.Month && s.Year == today.Year && s.IsActive);
+    int monthBookings = Context.ServiceOrders.Count(s => s.Month == today.Month && s.Year == today.Year && s.IsActive);
+    decimal monthRevenue = Context.ServiceOrders.Where(s => s.Month == today.Month && s.Year == today.Year && s.IsPayed).Sum(s => (decimal?)s.TotalAmount) ?? 0;
+    int pendingPayments = Context.ServiceOrders.Count(s => !s.IsPayed && s.IsActive);
+    int weekBookings = monthBookings;
+    int monthClients = Context.ServiceOrders.Where(s => s.Month == today.Month && s.Year == today.Year).Select(s => s.ServiceContactInfoId).Distinct().Count();
+    
+    // Tipos de inmueble y servicios
+    int cleaningPlaces = Context.CleaningPlaces.Count(c => c.IsActive);
+    int serviceTypes = Context.ServiceTypes.Count(s => s.IsActive);
+    
+    // Horarios de empleados
+    int employeeSchedules = Context.EmployeeSchedules.Count();
 }
 
-
-
-<!-- Content Wrapper. Contains page content -->
-<div class="content-wrapper">
-
-    <!-- Main content -->
-    <section class="content">
-
-        <div class="row">
-            <div class="col-lg-3 col-xs-6">
-                <!-- small box -->
-                <div class="small-box bg-aqua">
-                    <div class="inner">
-                        <h3>@po</h3>
-                        <p>Purchase Orders</p>
-                    </div>
-                    <div class="icon">
-                        <i class="fa fa-file-text"></i>
-                    </div>
-                    <a href="@Url.Action("Index", "PurchaseOrder")" class="small-box-footer">
-                        More info <i class="fa fa-arrow-circle-right"></i>
-                    </a>
-                </div>
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="page-header">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-2">
+                        <li class="breadcrumb-item"><i class="bi bi-house-door"></i> Inicio</li>
+                        <li class="breadcrumb-item active">Dashboard</li>
+                    </ol>
+                </nav>
+                <h2 class="mb-0">
+                    <i class="bi bi-speedometer2 text-primary me-2"></i>
+                    Dashboard
+                    <small class="text-muted fs-6">Panel de control - SavedByTheMaid</small>
+                </h2>
             </div>
-            <!-- ./col -->
-            <div class="col-lg-3 col-xs-6">
-                <!-- small box -->
-                <div class="small-box bg-green">
-                    <div class="inner">
-                        <h3>@so<sup style="font-size: 20px"></sup></h3>
-                        <p>Sales Orders</p>
-                    </div>
-                    <div class="icon">
-                        <i class="fa fa-cart-plus"></i>
-                    </div>
-                    <a href="@Url.Action("Index", "SalesOrder")" class="small-box-footer">
-                        More info <i class="fa fa-arrow-circle-right"></i>
-                    </a>
-                </div>
-            </div>
-            <!-- ./col -->
-            <div class="col-lg-3 col-xs-6">
-                <!-- small box -->
-                <div class="small-box bg-yellow">
-                    <div class="inner">
-                        <h3>@receive</h3>
-                        <p>Receiving</p>
-                    </div>
-                    <div class="icon">
-                        <i class="fa fa-truck"></i>
-                    </div>
-                    <a href="@Url.Action("Index", "Receiving")" class="small-box-footer">
-                        More info <i class="fa fa-arrow-circle-right"></i>
-                    </a>
-                </div>
-            </div>
-            <!-- ./col -->
-            <div class="col-lg-3 col-xs-6">
-                <!-- small box -->
-                <div class="small-box bg-red">
-                    <div class="inner">
-                        <h3>@shipment</h3>
-                        <p>Shipment</p>
-                    </div>
-                    <div class="icon">
-                        <i class="fa fa-plane"></i>
-                    </div>
-                    <a href="@Url.Action("Index", "Shipment")" class="small-box-footer">
-                        More info <i class="fa fa-arrow-circle-right"></i>
-                    </a>
-                </div>
-            </div>
-            <!-- ./col -->
         </div>
+    </div>
 
-        <div class="row">
-            <div class="col-lg-6">
-                <div class="box box-danger">
-                    <div class="box-header with-border">
-                        <h3 class="box-title">Product Type</h3>
-                        <div class="box-tools pull-right">
-                            <button type="button" class="btn btn-box-tool" data-widget="collapse">
-                                <i class="fa fa-minus"></i>
-                            </button>
-                            <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
-                        </div>
-                    </div>
-                    <div class="box-body">
-                        <canvas id="pieChart" style="height:250px"></canvas>
-                    </div>
-                    <!-- /.box-body -->
+    <!-- Alerta de bienvenida -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info alert-dismissible fade show d-flex align-items-center" role="alert" id="welcomeAlert">
+                <i class="bi bi-info-circle-fill fs-4 me-3"></i>
+                <div>
+                    <h5 class="alert-heading mb-1">¡Bienvenido al Panel de Administración!</h5>
+                    <p class="mb-0">Gestiona reservas, empleados, servicios y más. Usa el menú lateral para navegar.</p>
                 </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
-            <div class="col-lg-6">
-                <div class="box box-success">
-                    <div class="box-header with-border">
-                        <h3 class="box-title">Sales vs Purchase (Last 6 Months)</h3>
-                        <div class="box-tools pull-right">
-                            <button type="button" class="btn btn-box-tool" data-widget="collapse">
-                                <i class="fa fa-minus"></i>
-                            </button>
-                            <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
-                        </div>
-                    </div>
-                    <div class="box-body">
-                        <div class="chart">
-                            <canvas id="barChart" style="height:230px"></canvas>
-                        </div>
-                    </div>
-                    <!-- /.box-body -->
+        </div>
+    </div>
+
+    <!-- Tarjetas de estadísticas principales -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="small-box text-bg-info">
+                <div class="inner">
+                    <h3>@todayBookings</h3>
+                    <p>Reservas Hoy</p>
+                </div>
+                <div class="progress" style="height: 4px;">
+                    <div class="progress-bar bg-light" style="width: @(todayBookings > 0 ? Math.Min(todayBookings * 10, 100) : 0)%"></div>
+                </div>
+                <span class="small-card-footer">
+                    <i class="bi bi-calendar3"></i> @today.ToString("dd MMM yyyy")
+                </span>
+                <div class="small-box-icon">
+                    <i class="bi bi-calendar-check"></i>
                 </div>
             </div>
         </div>
 
-        <div class="row">
-            <div class="col-lg-12">
-                <div class="box box-warning">
-                    <div class="box-header with-border">
-                        <h3 class="box-title">Stocks Realtime</h3>
-                        <div class="box-tools pull-right">
-                            <div class="has-feedback">
-                                <input type="text" id="mainSearch" class="form-control input-sm" placeholder="Search...">
-                                <span class="glyphicon glyphicon-search form-control-feedback"></span>
-                            </div>
-                        </div>
-                        <!-- /.box-tools -->
+        <div class="col-lg-3 col-md-6">
+            <div class="small-box text-bg-success">
+                <div class="inner">
+                    <h3>$@monthRevenue.ToString("N0")</h3>
+                    <p>Ingresos del Mes</p>
+                </div>
+                <div class="progress" style="height: 4px;">
+                    <div class="progress-bar bg-light" style="width: 70%"></div>
+                </div>
+                <span class="small-card-footer">
+                    <i class="bi bi-graph-up-arrow"></i> @monthBookings reservas
+                </span>
+                <div class="small-box-icon">
+                    <i class="bi bi-currency-dollar"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="small-box text-bg-warning">
+                <div class="inner">
+                    <h3>@totalEmployees</h3>
+                    <p>Empleadas Activas</p>
+                </div>
+                <div class="progress" style="height: 4px;">
+                    <div class="progress-bar bg-light" style="width: @(totalEmployees > 0 ? 100 : 0)%"></div>
+                </div>
+                <span class="small-card-footer">
+                    <i class="bi bi-person-plus"></i> Personal disponible
+                </span>
+                <div class="small-box-icon">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="small-box text-bg-danger">
+                <div class="inner">
+                    <h3>@pendingPayments</h3>
+                    <p>Pagos Pendientes</p>
+                </div>
+                <div class="progress" style="height: 4px;">
+                    <div class="progress-bar bg-light" style="width: @(pendingPayments > 0 ? Math.Min(pendingPayments * 5, 100) : 0)%"></div>
+                </div>
+                <span class="small-card-footer">
+                    <i class="bi bi-exclamation-triangle"></i> Requieren atención
+                </span>
+                <div class="small-box-icon">
+                    <i class="bi bi-clock-history"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Segunda fila - Small boxes -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="small-box text-bg-primary">
+                <div class="inner">
+                    <h3>@weekBookings</h3>
+                    <p>Reservas Esta Semana</p>
+                </div>
+                <a href="#" class="small-card-footer">
+                    Ver todas <i class="bi bi-arrow-right-circle"></i>
+                </a>
+                <div class="small-box-icon">
+                    <i class="bi bi-calendar-week"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="small-box" style="background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%); color: white;">
+                <div class="inner">
+                    <h3>@monthClients</h3>
+                    <p>Clientes del Mes</p>
+                </div>
+                <a href="#" class="small-card-footer text-white">
+                    Ver detalles <i class="bi bi-arrow-right-circle"></i>
+                </a>
+                <div class="small-box-icon">
+                    <i class="bi bi-person-heart"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="small-box text-bg-secondary">
+                <div class="inner">
+                    <h3>@cleaningPlaces</h3>
+                    <p>Tipos de Inmueble</p>
+                </div>
+                <a href="@Url.Action("Index", "CleaningPlaces")" class="small-card-footer">
+                    Gestionar <i class="bi bi-arrow-right-circle"></i>
+                </a>
+                <div class="small-box-icon">
+                    <i class="bi bi-house-door"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="small-box" style="background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); color: white;">
+                <div class="inner">
+                    <h3>@serviceTypes</h3>
+                    <p>Tipos de Servicio</p>
+                </div>
+                <a href="@Url.Action("Index", "ServiceTypes")" class="small-card-footer text-white">
+                    Gestionar <i class="bi bi-arrow-right-circle"></i>
+                </a>
+                <div class="small-box-icon">
+                    <i class="bi bi-tags"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos y acciones rápidas -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="card card-primary card-outline h-100">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="bi bi-bar-chart-line me-2"></i>Actividad del Negocio
+                    </h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-tool" data-lte-toggle="card-collapse">
+                            <i class="bi bi-dash-lg"></i>
+                        </button>
                     </div>
-                    <div class="box-body no-padding">
-                        <div class="table-responsive mailbox-messages">
-                            <table class="table table-hover table-striped" style="width:100%">
-                                <thead>
-                                    <tr>
-                                        <th><i class="fa fa-tags"></i> Product</th>
-                                        <th><i class="fa fa-file-text"></i> Qty Purchase</th>
-                                        <th><i class="fa fa-truck"></i> Qty Receiving</th>
-                                        <th><i class="fa fa-cart-plus"></i> Qty Sales</th>
-                                        <th><i class="fa fa-plane"></i> Qty Shipment</th>
-                                        <th class="text-aqua"><i class="fa fa-check-circle"></i> Qty On Hand</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var item in stocks)
-                                    {
-                                        <tr>
+                </div>
+                <div class="card-body">
+                    <canvas id="activityChart" style="height: 280px;"></canvas>
+                </div>
+            </div>
+        </div>
 
-                                            <td>@item.Product</td>
-                                            <td>@item.QtyPO</td>
-                                            <td>@item.QtyReceiving</td>
-                                            <td>@item.QtySO</td>
-                                            <td>@item.QtyShipment</td>
-                                            <td>@item.QtyOnhand</td>
-
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
+        <div class="col-lg-4">
+            <div class="card card-warning card-outline h-100">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="bi bi-lightning-fill me-2"></i>Acciones Rápidas
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <a href="@Url.Action("Create", "Employees")" class="btn btn-outline-primary w-100 py-3">
+                                <i class="bi bi-person-plus d-block fs-4 mb-1"></i>
+                                <small>Nueva Empleada</small>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="@Url.Action("Create", "CleaningPlaces")" class="btn btn-outline-success w-100 py-3">
+                                <i class="bi bi-house-add d-block fs-4 mb-1"></i>
+                                <small>Nuevo Inmueble</small>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="@Url.Action("Create", "ServiceTypes")" class="btn btn-outline-warning w-100 py-3">
+                                <i class="bi bi-tag d-block fs-4 mb-1"></i>
+                                <small>Nuevo Servicio</small>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="@Url.Action("Index", "Employees")" class="btn btn-outline-info w-100 py-3 position-relative">
+                                <span class="badge bg-warning position-absolute top-0 end-0 translate-middle">@totalEmployees</span>
+                                <i class="bi bi-people d-block fs-4 mb-1"></i>
+                                <small>Empleadas</small>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="@Url.Action("Create", "EmployeeSchedules")" class="btn btn-outline-secondary w-100 py-3">
+                                <i class="bi bi-calendar-plus d-block fs-4 mb-1"></i>
+                                <small>Nuevo Horario</small>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="@Url.Action("Index", "EmployeeSchedules")" class="btn btn-outline-dark w-100 py-3 position-relative">
+                                <span class="badge bg-info position-absolute top-0 end-0 translate-middle">@employeeSchedules</span>
+                                <i class="bi bi-calendar3 d-block fs-4 mb-1"></i>
+                                <small>Horarios</small>
+                            </a>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
 
+    <!-- Estado del sistema y servicios -->
+    <div class="row g-4">
+        <div class="col-lg-4 col-md-6">
+            <div class="card card-success card-outline h-100">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="bi bi-pie-chart me-2"></i>Distribución de Servicios
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <canvas id="servicesChart" style="height: 200px;"></canvas>
+                </div>
+            </div>
         </div>
 
-    </section>
-    <!-- /.content -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card card-info card-outline h-100">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="bi bi-list-check me-2"></i>Estado del Sistema
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-people-fill text-warning me-2"></i>Empleadas</span>
+                            <span class="badge @(totalEmployees > 0 ? "bg-success" : "bg-danger") rounded-pill">
+                                @(totalEmployees > 0 ? totalEmployees + " activas" : "Sin registrar")
+                            </span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-house-door text-purple me-2"></i>Inmuebles</span>
+                            <span class="badge @(cleaningPlaces > 0 ? "bg-success" : "bg-warning") rounded-pill">
+                                @cleaningPlaces tipos
+                            </span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-tags text-danger me-2"></i>Servicios</span>
+                            <span class="badge @(serviceTypes > 0 ? "bg-success" : "bg-warning") rounded-pill">
+                                @serviceTypes activos
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 col-md-12">
+            <div class="card card-danger card-outline h-100">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="bi bi-lightbulb me-2"></i>Guía Rápida
+                    </h3>
+                </div>
+                <div class="card-body">
+                    @if(totalEmployees == 0)
+                    {
+                        <div class="alert alert-warning" role="alert">
+                            <h6 class="alert-heading">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>Configuración Pendiente
+                            </h6>
+                            <ol class="small mb-0 ps-3">
+                                <li><a href="@Url.Action("Create", "Employees")" class="alert-link">Registrar empleadas</a></li>
+                                <li><a href="@Url.Action("Create", "EmployeeSchedules")" class="alert-link">Crear horarios</a></li>
+                                <li>Verificar tipos de servicio</li>
+                            </ol>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-success" role="alert">
+                            <h6 class="alert-heading">
+                                <i class="bi bi-check-circle-fill me-2"></i>Sistema Configurado
+                            </h6>
+                            <p class="small mb-0">El sistema está listo para recibir reservas.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-<!-- /.content-wrapper -->
 
-
-@section Styles{
-
-}
-
-
-@section Scripts{
-    <!-- ChartJS -->
-    <script src="~/adminlte/components/chart.js/Chart.js"></script>
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script>
-        $(document).ready(function () {
-            var mainTable;
+        $(document).ready(function() {
+            // Ocultar alerta después de 8 segundos
+            setTimeout(function() { 
+                const alert = bootstrap.Alert.getOrCreateInstance('#welcomeAlert');
+                if (alert) alert.close();
+            }, 8000);
 
-            mainTable = $('.table').DataTable({
-                "lengthChange": false,
-                "info": false,
-                "searching": true,
-                "dom": 'lrtip',
-                "scrollX": false
-            });
-
-            $('#mainSearch').keyup(function () {
-                mainTable.search($(this).val()).draw();
-            });
-
-
-            //-------------
-            //- PIE CHART -
-            //-------------
-            // Get context with jQuery - using jQuery's .get() method.
-            var pieChartCanvas = $('#pieChart').get(0).getContext('2d');
-            var pieChart       = new Chart(pieChartCanvas);
-            var pieOptions     = {
-                //Boolean - Whether we should show a stroke on each segment
-                segmentShowStroke    : true,
-                //String - The colour of each segment stroke
-                segmentStrokeColor   : '#fff',
-                //Number - The width of each segment stroke
-                segmentStrokeWidth   : 2,
-                //Number - The percentage of the chart that we cut out of the middle
-                percentageInnerCutout: 50, // This is 0 for Pie charts
-                //Number - Amount of animation steps
-                animationSteps       : 100,
-                //String - Animation easing effect
-                animationEasing      : 'easeOutBounce',
-                //Boolean - Whether we animate the rotation of the Doughnut
-                animateRotate        : true,
-                //Boolean - Whether we animate scaling the Doughnut from the centre
-                animateScale         : false,
-                //Boolean - whether to make the chart responsive to window resizing
-                responsive           : true,
-                // Boolean - whether to maintain the starting aspect ratio or not when responsive, if set to false, will take up entire container
-                maintainAspectRatio  : true,
-                //String - A legend template
-                legendTemplate       : '<ul class="<%=name.toLowerCase()%>-legend"><% for (var i=0; i<segments.length; i++){%><li><span style="background-color:<%=segments[i].fillColor%>"></span><%if(segments[i].label){%><%=segments[i].label%><%}%></li><%}%></ul>'
-            };
-                    
-
-            $.ajax({
-            url: '/api/dashboard/getpiedata',
-            type: 'GET',
-            dataType: 'json',
-            success: function (data) {
-
-                //Create pie or douhnut chart
-                pieChart.Doughnut(data, pieOptions)
-
-            },
-                error: function (error) {
-                    console.log(error);
+            // Gráfico de actividad
+            var ctx = document.getElementById('activityChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Reservas',
+                        data: [12, 19, 15, 25, 22, @monthBookings],
+                        borderColor: 'rgba(60, 141, 188, 1)',
+                        backgroundColor: 'rgba(60, 141, 188, 0.2)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } }
                 }
-
             });
 
-
-        //-------------
-        //- BAR CHART -
-        //-------------
-        
-        var barChartCanvas                   = $('#barChart').get(0).getContext('2d')
-        var barChart                         = new Chart(barChartCanvas)
-
-        var barChartOptions                  = {
-            //Boolean - Whether the scale should start at zero, or an order of magnitude down from the lowest value
-            scaleBeginAtZero        : true,
-            //Boolean - Whether grid lines are shown across the chart
-            scaleShowGridLines      : true,
-            //String - Colour of the grid lines
-            scaleGridLineColor      : 'rgba(0,0,0,.05)',
-            //Number - Width of the grid lines
-            scaleGridLineWidth      : 1,
-            //Boolean - Whether to show horizontal lines (except X axis)
-            scaleShowHorizontalLines: true,
-            //Boolean - Whether to show vertical lines (except Y axis)
-            scaleShowVerticalLines  : true,
-            //Boolean - If there is a stroke on each bar
-            barShowStroke           : true,
-            //Number - Pixel width of the bar stroke
-            barStrokeWidth          : 2,
-            //Number - Spacing between each of the X value sets
-            barValueSpacing         : 5,
-            //Number - Spacing between data sets within X values
-            barDatasetSpacing       : 1,
-            //String - A legend template
-            legendTemplate          : '<ul class="<%=name.toLowerCase()%>-legend"><% for (var i=0; i<datasets.length; i++){%><li><span style="background-color:<%=datasets[i].fillColor%>"></span><%if(datasets[i].label){%><%=datasets[i].label%><%}%></li><%}%></ul>',
-            //Boolean - whether to make the chart responsive
-            responsive              : true,
-            maintainAspectRatio     : true
-        }
-
-        barChartOptions.datasetFill = false;
-        
-
-         $.ajax({
-            url: '/api/dashboard/getbardata',
-            type: 'GET',
-            dataType: 'json',
-            success: function (data) {
-
-                //Create bar chart
-                var barChartData = data;
-                barChartData.datasets[1].fillColor   = '#00a65a'
-                barChartData.datasets[1].strokeColor = '#00a65a'
-                barChartData.datasets[1].pointColor  = '#00a65a'
-                barChart.Bar(barChartData, barChartOptions);
-                
-
-            },
-                error: function (error) {
-                    console.log(error);
-                }
-
+            // Gráfico de servicios
+            var ctx2 = document.getElementById('servicesChart').getContext('2d');
+            new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Casa', 'Apartamento', 'Oficina', 'Otro'],
+                    datasets: [{
+                        data: [45, 30, 15, 10],
+                        backgroundColor: [
+                            'rgba(60, 141, 188, 0.8)', 
+                            'rgba(0, 166, 90, 0.8)', 
+                            'rgba(243, 156, 18, 0.8)', 
+                            'rgba(221, 75, 57, 0.8)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
             });
 
-
-
+            // Toastr notification
+            @if(totalEmployees == 0) {
+                <text>toastr.warning('Configura el sistema para comenzar a recibir reservas.', '¡Atención!');</text>
+            } else {
+                <text>toastr.success('Dashboard cargado correctamente', 'SavedByTheMaid');</text>
+            }
         });
-
-
-
-
     </script>
 }
-
-

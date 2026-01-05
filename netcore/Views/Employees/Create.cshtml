@@ -1,99 +1,77 @@
-﻿@model JempSoft.Core.Models.Employee
+@model JempSoft.Core.Models.Employee
 
 @{
-    ViewData["Title"] = "Create";
-    Layout = "~/Views/Shared/_AdminlteNetcoreCreate.cshtml";
-    ViewData["EntityIcon"] = "fa fa-tags";
-    ViewData["CreateInfo"] = "Check if the employee user was created.";
+    ViewData["Title"] = "Nueva Empleada";
+    Layout = "~/Views/Shared/_AdminLTE4Create.cshtml";
+    ViewData["EntityIcon"] = "fa fa-user-plus";
+    ViewData["FormTitle"] = "Nueva Empleada";
+    ViewBag.CreateInfo = "Complete los datos de la empleada para registrarla en el sistema.";
 }
 
 <div class="row">
     <div class="col-md-12">
-        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-        <span>@ViewBag.ErrorMessage</span>
-        <div class="form-group col-md-12">
-            <div class="form-group col-md-12">
-                <label asp-for="UserId" class="control-label"></label>
-                <select asp-for="UserId" class="form-control" asp-items="ViewBag.UserId"></select>
+        <div asp-validation-summary="ModelOnly" class="text-danger alert alert-danger" style="display:none;"></div>
+        @if (!string.IsNullOrEmpty(ViewBag.ErrorMessage as string))
+        {
+            <div class="alert alert-danger"><i class="fa fa-exclamation-triangle"></i> @ViewBag.ErrorMessage</div>
+        }
+        
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label asp-for="FirstName" class="control-label"><i class="fa fa-id-card text-muted"></i> Nombre <span class="text-danger">*</span></label>
+                    <input asp-for="FirstName" class="form-control" placeholder="Ej: María" />
+                    <span asp-validation-for="FirstName" class="text-danger"></span>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="form-group">
+                    <label asp-for="LastName" class="control-label"><i class="fa fa-id-card text-muted"></i> Apellidos <span class="text-danger">*</span></label>
+                    <input asp-for="LastName" class="form-control" placeholder="Ej: González Pérez" />
+                    <span asp-validation-for="LastName" class="text-danger"></span>
+                </div>
             </div>
         </div>
 
-        <div class="form-group col-md-12">
-
-            <div class="form-group col-md-4">
-
-                <label asp-for="FirstName" class="control-label"></label>
-                <input asp-for="FirstName" class="form-control" />
-                <span asp-validation-for="FirstName" class="text-danger"></span>
-
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label asp-for="Identification" class="control-label"><i class="fa fa-id-badge text-muted"></i> Identificación</label>
+                    <input asp-for="Identification" class="form-control" placeholder="Cédula o pasaporte" />
+                    <span asp-validation-for="Identification" class="text-danger"></span>
+                </div>
             </div>
-            <div class="form-group col-md-8">
-
-                <label asp-for="LastName" class="control-label"></label>
-                <input asp-for="LastName" class="form-control" />
-                <span asp-validation-for="LastName" class="text-danger"></span>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label asp-for="ContactNumber" class="control-label"><i class="fa fa-phone text-muted"></i> Teléfono</label>
+                    <input asp-for="ContactNumber" class="form-control" placeholder="Ej: 8888-8888" />
+                    <span asp-validation-for="ContactNumber" class="text-danger"></span>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label asp-for="EmailAddress" class="control-label"><i class="fa fa-envelope text-muted"></i> Correo</label>
+                    <input asp-for="EmailAddress" class="form-control" placeholder="correo@ejemplo.com" type="email" />
+                    <span asp-validation-for="EmailAddress" class="text-danger"></span>
+                </div>
             </div>
         </div>
 
-        <div class="form-group col-md-12">
-
-            <div class="form-group col-md-4">
-                <label asp-for="Identification" class="control-label"></label>
-                <input asp-for="Identification" class="form-control" />
-                <span asp-validation-for="Identification" class="text-danger"></span>
-            </div>
-
-            <div class="form-group col-md-4">
-                <label asp-for="ContactNumber" class="control-label"></label>
-                <input asp-for="ContactNumber" class="form-control" />
-                <span asp-validation-for="ContactNumber" class="text-danger"></span>
-            </div>
-
-            <div class="form-group  col-md-4">
-                <label asp-for="EmailAddress" class="control-label"></label>
-                <input asp-for="EmailAddress" class="form-control" />
-                <span asp-validation-for="EmailAddress" class="text-danger"></span>
-            </div>
-
-        </div>
-
-        <div class="form-group col-md-12">
-            <div class="form-group col-md-12">
-                <label asp-for="Address" class="control-label"></label>
-                <input asp-for="Address" class="form-control" />
-                <span asp-validation-for="Address" class="text-danger"></span>
-            </div>
+        <div class="form-group">
+            <label asp-for="Address" class="control-label"><i class="fa fa-map-marker text-muted"></i> Dirección</label>
+            <input asp-for="Address" class="form-control" placeholder="Dirección completa" />
+            <span asp-validation-for="Address" class="text-danger"></span>
         </div>
     </div>
 </div>
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-<script>
-
-    //ShowMessage('Bien');
-    ShowMessageError(@ViewBag.ErrorMessage);
-
-    if (@ViewBag.HasError) {
-
-        swal({
-            title: "Email Invalido",
-            text: @ViewBag.ErrorMessage,
-            type: "error",
-            showCancelButton: false,
-            confirmButtonColor: "#dd4b39",
-            confirmButtonText: "Ok!",
-            closeOnConfirm: true
-        }, function () {
-
-
-
+    <script>
+        $(document).ready(function() {
+            $('[asp-validation-summary]').each(function() {
+                if ($(this).text().trim()) $(this).show();
+            });
         });
-    }
-
-
-</script>
-
-
+    </script>
 }

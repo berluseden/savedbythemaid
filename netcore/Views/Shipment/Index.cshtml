@@ -1,8 +1,8 @@
-﻿@model IEnumerable<JempSoft.Core.Models.Invent.Shipment>
+@model IEnumerable<JempSoft.Core.Models.Invent.Shipment>
 
 @{
     ViewData["Title"] = "Index";
-    Layout = "~/Views/Shared/_AdminlteNetcoreIndex.cshtml";
+    Layout = "~/Views/Shared/_AdminLTE4Index.cshtml";
     ViewData["EntityIcon"] = "fa fa-plane";
     ViewData["ListTitle"] = "Shipment List";
     ViewData["IndexInfo"] = "Shipment is a process of delivering the order to your customer. ";
@@ -52,8 +52,8 @@
         <tr>
             <td>
                 <div class="tools">
-                    <a asp-action="Details" asp-route-id="@item.shipmentId" class="btn btn-primary btn-xs"><i class="fa fa-list"></i></a>
-                    <a asp-action="Delete" asp-route-id="@item.shipmentId" class="btn btn-danger btn-xs"><i class="fa fa-trash"></i></a>
+                    <a asp-action="Details" asp-route-id="@item.shipmentId" class="btn btn-primary btn-sm"><i class="fa fa-list"></i></a>
+                    <a asp-action="Delete" asp-route-id="@item.shipmentId" class="btn btn-danger btn-sm"><i class="fa fa-trash"></i></a>
                 </div>
                 
             </td>

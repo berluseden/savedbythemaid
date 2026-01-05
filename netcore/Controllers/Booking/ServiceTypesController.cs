@@ -6,26 +6,43 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using JempSoft.Core.Models;
-using netcore.Data;
+using JempSoft.Applications;
+using JempSoft.Applications.Services;
 using JempSoft.Applications.Administration.Page;
 
 namespace netcore.Controllers
 {
     public class ServiceTypesController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IServiceTypeServices _serviceTypeService;
         private readonly IPageCookieService _pageCookie;
 
-        public ServiceTypesController(ApplicationDbContext context, IPageCookieService pageCookie)
+        public ServiceTypesController(IServiceTypeServices serviceTypeService, IPageCookieService pageCookie)
         {
-            _context = context;
+            _serviceTypeService = serviceTypeService;
             _pageCookie = pageCookie;
         }
 
         // GET: ServiceTypes
         public async Task<IActionResult> Index()
         {
-            return View(await _context.ServiceTypes.ToListAsync());
+            if (TempData["SuccessMessage"] != null)
+            {
+                ViewBag.SuccessMessage = TempData["SuccessMessage"];
+            }
+            if (TempData["ErrorMessage"] != null)
+            {
+                ViewBag.ErrorMessage = TempData["ErrorMessage"];
+            }
+
+            var result = await _serviceTypeService.GetAllAsync();
+            if (result.IsFailure)
+            {
+                ViewBag.ErrorMessage = result.Error;
+                return View(new List<ServiceType>());
+            }
+
+            return View(result.Value);
         }
 
         // GET: ServiceTypes/Details/5
@@ -36,14 +53,13 @@ namespace netcore.Controllers
                 return NotFound();
             }
 
-            var serviceType = await _context.ServiceTypes
-                .SingleOrDefaultAsync(m => m.ServiceTypeId == id);
-            if (serviceType == null)
+            var result = await _serviceTypeService.GetByIdAsync(id.Value);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
 
-            return View(serviceType);
+            return View(result.Value);
         }
 
         // GET: ServiceTypes/Create
@@ -53,22 +69,36 @@ namespace netcore.Controllers
         }
 
         // POST: ServiceTypes/Create
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("ServiceTypeId,Title,Cost,Price,IsActive,CreatorUserId,CreationDate,UpdateUserId,UpdateDate,DeleteUserId,DeleteDate,IsDeleted")] ServiceType serviceType)
+        public async Task<IActionResult> Create(ServiceTypeInputDto input)
         {
-            if (ModelState.IsValid)
+            try
             {
-                serviceType.CreatorUserId = Convert.ToInt32(_pageCookie.GetCookie("UserId"));
-                serviceType.CreationDate = DateTime.UtcNow;
+                if (string.IsNullOrWhiteSpace(input.Title))
+                {
+                    ViewBag.ErrorMessage = "El título es requerido.";
+                    return View(MapToServiceType(input));
+                }
 
-                _context.Add(serviceType);
-                await _context.SaveChangesAsync();
+                input.CreatorUserId = Convert.ToInt32(_pageCookie.GetCookie("UserId"));
+                input.IsActive = true;
+
+                var result = await _serviceTypeService.SaveAsync(input);
+                if (result.IsFailure)
+                {
+                    ViewBag.ErrorMessage = result.Error;
+                    return View(MapToServiceType(input));
+                }
+
+                TempData["SuccessMessage"] = $"Tipo de servicio '{input.Title}' creado exitosamente.";
                 return RedirectToAction(nameof(Index));
             }
-            return View(serviceType);
+            catch (Exception ex)
+            {
+                ViewBag.ErrorMessage = "Error al guardar: " + ex.Message;
+                return View(MapToServiceType(input));
+            }
         }
 
         // GET: ServiceTypes/Edit/5
@@ -79,50 +109,56 @@ namespace netcore.Controllers
                 return NotFound();
             }
 
-            var serviceType = await _context.ServiceTypes.SingleOrDefaultAsync(m => m.ServiceTypeId == id);
-            if (serviceType == null)
+            var result = await _serviceTypeService.GetByIdAsync(id.Value);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
-            return View(serviceType);
+
+            return View(result.Value);
         }
 
         // POST: ServiceTypes/Edit/5
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("ServiceTypeId,Title,Cost,Price,IsActive,CreatorUserId,CreationDate,UpdateUserId,UpdateDate,DeleteUserId,DeleteDate,IsDeleted")] ServiceType serviceType)
+        public async Task<IActionResult> Edit(int id, ServiceTypeInputDto input)
         {
-            if (id != serviceType.ServiceTypeId)
+            try
             {
-                return NotFound();
-            }
-
-            if (ModelState.IsValid)
-            {
-                try
+                if (string.IsNullOrWhiteSpace(input.Title))
                 {
-                    serviceType.UpdateUserId = Convert.ToInt32(_pageCookie.GetCookie("UserId"));
-                    serviceType.UpdateDate = DateTime.UtcNow;
+                    ViewBag.ErrorMessage = "El título es requerido.";
+                    var entity = await _serviceTypeService.GetByIdAsync(id);
+                    return View(entity.IsSuccess ? entity.Value : MapToServiceType(input, id));
+                }
 
-                    _context.Update(serviceType);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
+                input.CreatorUserId = Convert.ToInt32(_pageCookie.GetCookie("UserId"));
+
+                var result = await _serviceTypeService.UpdateByIdAsync(id, input);
+                if (result.IsFailure)
                 {
-                    if (!ServiceTypeExists(serviceType.ServiceTypeId))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    ViewBag.ErrorMessage = result.Error;
+                    var entity = await _serviceTypeService.GetByIdAsync(id);
+                    return View(entity.IsSuccess ? entity.Value : MapToServiceType(input, id));
                 }
+
+                TempData["SuccessMessage"] = $"Tipo de servicio '{input.Title}' actualizado exitosamente.";
                 return RedirectToAction(nameof(Index));
             }
-            return View(serviceType);
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!_serviceTypeService.Exists(id))
+                {
+                    return NotFound();
+                }
+                throw;
+            }
+            catch (Exception ex)
+            {
+                ViewBag.ErrorMessage = "Error al guardar: " + ex.Message;
+                var entity = await _serviceTypeService.GetByIdAsync(id);
+                return View(entity.IsSuccess ? entity.Value : MapToServiceType(input, id));
+            }
         }
 
         // GET: ServiceTypes/Delete/5
@@ -133,14 +169,13 @@ namespace netcore.Controllers
                 return NotFound();
             }
 
-            var serviceType = await _context.ServiceTypes
-                .SingleOrDefaultAsync(m => m.ServiceTypeId == id);
-            if (serviceType == null)
+            var result = await _serviceTypeService.GetByIdAsync(id.Value);
+            if (result.IsFailure)
             {
                 return NotFound();
             }
 
-            return View(serviceType);
+            return View(result.Value);
         }
 
         // POST: ServiceTypes/Delete/5
@@ -148,27 +183,56 @@ namespace netcore.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var serviceType = await _context.ServiceTypes.SingleOrDefaultAsync(m => m.ServiceTypeId == id);
-            _context.ServiceTypes.Remove(serviceType);
-            await _context.SaveChangesAsync();
+            try
+            {
+                var entity = await _serviceTypeService.GetByIdAsync(id);
+                var title = entity.IsSuccess ? entity.Value.Title : "";
+
+                var result = await _serviceTypeService.DeleteAsync(id);
+                if (result.IsFailure)
+                {
+                    TempData["ErrorMessage"] = result.Error;
+                }
+                else
+                {
+                    TempData["SuccessMessage"] = $"Tipo de servicio '{title}' eliminado exitosamente.";
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "Error al eliminar: " + ex.Message;
+            }
             return RedirectToAction(nameof(Index));
         }
 
-        private bool ServiceTypeExists(int id)
-        {
-            return _context.ServiceTypes.Any(e => e.ServiceTypeId == id);
-        }
-
         [HttpGet, ActionName("GetServiceTypeById")]
-        public JsonResult GetById(int? id) {
-
-            if(id.HasValue)
+        public async Task<JsonResult> GetById(int? id)
+        {
+            if (id.HasValue)
             {
-                var result = _context.ServiceTypes.FirstOrDefault(c => c.ServiceTypeId == id.Value);
-                return Json(new { Status = true, Data = result });
+                var result = await _serviceTypeService.GetByIdAsync(id.Value);
+                if (result.IsSuccess)
+                {
+                    return Json(new { Status = true, Data = result.Value });
+                }
             }
             return Json(new { Status = false });
         }
 
+        #region Private Helpers
+
+        private static ServiceType MapToServiceType(ServiceTypeInputDto input, int? id = null)
+        {
+            return new ServiceType
+            {
+                ServiceTypeId = id ?? 0,
+                Title = input.Title,
+                Cost = input.Cost,
+                Price = input.Price,
+                IsActive = input.IsActive
+            };
+        }
+
+        #endregion
     }
 }

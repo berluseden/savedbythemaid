@@ -1,12 +1,12 @@
-﻿@model JempSoft.Core.Models.Invent.PurchaseOrder
+@model JempSoft.Core.Models.Invent.PurchaseOrder
 
 @{
     ViewData["Title"] = "Delete";
-    Layout = "~/Views/Shared/_AdminlteNetcoreDelete.cshtml";
+    Layout = "~/Views/Shared/_AdminLTE4Delete.cshtml";
     ViewData["EntityIcon"] = "fa fa-file-text";
     ViewData["DeleteInfo"] = "[Completed] Purchase Order (PO) can not be deleted. Rollback status to [Open] by deleting related Purchase Receive (Receiving)";
     ViewData["IsCanDeleted"] = false;
-    if (Model.purchaseOrderStatus != netcore.Models.Invent.PurchaseOrderStatus.Completed)
+    if (Model.purchaseOrderStatus != JempSoft.Core.Models.Invent.PurchaseOrderStatus.Completed)
     {
         ViewData["IsCanDeleted"] = true;
     }

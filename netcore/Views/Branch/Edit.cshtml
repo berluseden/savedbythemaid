@@ -1,8 +1,8 @@
-﻿@model JempSoft.Core.Models.Invent.Branch
+@model JempSoft.Core.Models.Invent.Branch
 
 @{
     ViewData["Title"] = "Edit";
-    Layout = "~/Views/Shared/_AdminlteNetcoreEdit.cshtml";
+    Layout = "~/Views/Shared/_AdminLTE4Edit.cshtml";
     ViewData["EntityIcon"] = "fa fa-building-o";
 }
 
@@ -79,7 +79,7 @@
 @section Styles{
 
     <!-- iCheck -->
-    <link rel="stylesheet" href="~/adminlte/plugins/iCheck/all.css" />
+    
 
 }
 
@@ -89,7 +89,7 @@
 
 @section Scripts {
     <!-- iCheck -->
-    <script src="~/adminlte/plugins/iCheck/icheck.min.js"></script>
+    
 
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
 

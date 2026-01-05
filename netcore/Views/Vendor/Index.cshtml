@@ -1,14 +1,22 @@
-﻿@model IEnumerable<JempSoft.Core.Models.Invent.Vendor>
+@model IEnumerable<JempSoft.Core.Models.Invent.Vendor>
 
 @{
     ViewData["Title"] = "Index";
-    Layout = "~/Views/Shared/_AdminlteNetcoreIndex.cshtml";
+    Layout = "~/Views/Shared/_AdminLTE4Index.cshtml";
     ViewData["EntityIcon"] = "fa fa-industry";
     ViewData["ListTitle"] = "Vendor List";
     ViewData["IndexInfo"] = "Vendor is an organization that supplies products to your company. Your company buy products from them.";
 }
 
-
+@if (Model == null || !Model.Any())
+{
+    <div class="alert alert-info">
+        <h4><i class="icon fa fa-info"></i> No Vendors Found</h4>
+        There are no vendors registered yet. <a asp-action="Create" class="alert-link">Create your first vendor</a> to start managing your suppliers.
+    </div>
+}
+else
+{
 <table class="table table-hover table-striped" style="width:100%">
     <thead>
         <tr>
@@ -46,9 +54,9 @@
         <tr>
             <td>
                 <div class="tools">
-                    <a asp-action="Edit" asp-route-id="@item.vendorId" class="btn btn-primary btn-xs"><i class="fa fa-pencil"></i></a>
-                    <a asp-action="Details" asp-route-id="@item.vendorId" class="btn btn-primary btn-xs"><i class="fa fa-list"></i></a>
-                    <a asp-action="Delete" asp-route-id="@item.vendorId" class="btn btn-danger btn-xs"><i class="fa fa-trash"></i></a>
+                    <a asp-action="Edit" asp-route-id="@item.vendorId" class="btn btn-primary btn-sm"><i class="fa fa-pencil"></i></a>
+                    <a asp-action="Details" asp-route-id="@item.vendorId" class="btn btn-primary btn-sm"><i class="fa fa-list"></i></a>
+                    <a asp-action="Delete" asp-route-id="@item.vendorId" class="btn btn-danger btn-sm"><i class="fa fa-trash"></i></a>
                 </div>
                 
             </td>
@@ -81,3 +89,4 @@
         }
     </tbody>
 </table>
+}

@@ -31,95 +31,84 @@ namespace EService.Web.Controllers
         }
 
         [HttpGet]
-        public JsonResult GetAllCleaningPlace()
+        public async Task<JsonResult> GetAllCleaningPlace()
         {
-            var result = _cleaningPlaceServices.GetComboBoxOutPut();
-
-            return Json(new { CleaningPlaces = result });
+            var result = await _cleaningPlaceServices.GetComboBoxOutputAsync();
+            return Json(new { CleaningPlaces = result.IsSuccess ? result.Value : new List<ComboBoxOutPutDto>() });
         }
 
         [HttpGet]
-        public JsonResult GetRoomsByCleaningPlaceId(int? id)
+        public async Task<JsonResult> GetRoomsByCleaningPlaceId(int? id)
         {
-            var result = _cleaningPlaceRoomServices.GetComboBoxByCleaningPlaceId(id);
-
-            return Json(new { CleaningPlaceRooms = result });
+            if (!id.HasValue)
+                return Json(new { CleaningPlaceRooms = new List<ComboBoxOutPutDto>() });
+            
+            var result = await _cleaningPlaceRoomServices.GetComboBoxByCleaningPlaceIdAsync(id.Value);
+            return Json(new { CleaningPlaceRooms = result.IsSuccess ? result.Value : new List<ComboBoxOutPutDto>() });
         }
 
         [HttpGet]
-        public JsonResult GetServiceTypeByPlaceRoomsId(int? id)
+        public async Task<JsonResult> GetServiceTypeByPlaceRoomsId(int? id)
         {
-            var result = _serviceTypeServices.GetComboBoxByCleaningPlaceRoomId(id);
-
-            return Json(new { CleaningPlaceRooms = result });
+            if (!id.HasValue)
+                return Json(new { CleaningPlaceRooms = new List<ComboBoxOutPutDto>() });
+            
+            var result = await _serviceTypeServices.GetComboBoxByCleaningPlaceRoomIdAsync(id.Value);
+            return Json(new { CleaningPlaceRooms = result.IsSuccess ? result.Value : new List<ComboBoxOutPutDto>() });
         }
 
         [HttpGet]
-        public JsonResult HasPendingOrders(string email)
+        public async Task<JsonResult> HasPendingOrders(string email)
         {
-            var result = _serviceTypeServices.GetComboBoxByCleaningPlaceRoomId(1);
-
-            return Json(new { CleaningPlaceRooms = result });
+            var result = await _serviceTypeServices.GetComboBoxByCleaningPlaceRoomIdAsync(1);
+            return Json(new { CleaningPlaceRooms = result.IsSuccess ? result.Value : new List<ComboBoxOutPutDto>() });
         }
 
         [HttpPost]
         public async Task<IActionResult> Book(BookInputDto input)
         {
-            var cartItem = await _bookingService.Book(input);
-
-
-            return Json(new { CartItemId = cartItem.CartItemId });
+            var result = await _bookingService.BookAsync(input);
+            if (result.IsFailure)
+                return BadRequest(new { Error = result.Error });
+            
+            return Json(new { CartItemId = result.Value.CartItemId });
         }
 
-        public IActionResult ProcessToCheckOut(int id)
+        public async Task<IActionResult> ProcessToCheckOut(int id)
         {
-            int value;
-
-            if (User.Identity.IsAuthenticated)
+            if (User.Identity?.IsAuthenticated == true)
             {
-
-                var item = _bookingService.ProcessToCheckOut(id);
-                if (item != null)
+                var result = await _bookingService.ProcessToCheckOutAsync(id);
+                if (result.IsSuccess)
                 {
-                    return View(item);
-
+                    return View(result.Value);
                 }
                 return NotFound();
-
             }
             else
             {
                 return RedirectToAction("Login", "Account", new { returnUrl = string.Format("/Booking/ProcessToCheckOut?id=" + id) });
             }
-
-
-
         }
 
         [HttpGet]
-        public JsonResult GetAvaliableMaidByMonth(string date)
+        public async Task<JsonResult> GetAvaliableMaidByMonth(string date)
         {
             var day = Convert.ToDateTime(date);
-
-            var avaliableMaids = _bookingService.GetAvaliableMaidThisMonth(new DateTime(year: day.Year, month: day.Month, day: day.Day));
-
-            return Json(new { AvaliableMaids = avaliableMaids });
+            var result = await _bookingService.GetAvailableMaidThisMonthAsync(new DateTime(year: day.Year, month: day.Month, day: day.Day));
+            return Json(new { AvaliableMaids = result.IsSuccess ? result.Value : new AvaliableMaidMonthOutputDto() });
         }
 
         [HttpGet]
-        public JsonResult GetAvaliableMaidByDay(int year, int month, int day)
+        public async Task<JsonResult> GetAvaliableMaidByDay(int year, int month, int day)
         {
-            var avaliableMaids = _bookingService.GetAvaliablesMaidsByDay(new DateTime(year: year, month: month, day: day));
-
-            return Json(new { AvaliableMaids = avaliableMaids });
+            var result = await _bookingService.GetAvailableMaidsByDayAsync(new DateTime(year: year, month: month, day: day));
+            return Json(new { AvaliableMaids = result.IsSuccess ? result.Value : 0 });
         }
 
-        //cartItemId: cartItem.value, day: day, month: month, year: year, hour: hour, minute: minute 
-
         [HttpPost]
-        public JsonResult AddToCart(int cartItemId, int day, int month, int year, int hour, int minute, List<int> aditionalServices, ServiceContactInfoInputDto contactInfo)
+        public async Task<JsonResult> AddToCart(int cartItemId, int day, int month, int year, int hour, int minute, List<int> aditionalServices, ServiceContactInfoInputDto contactInfo)
         {
-
             var serviceOrder = new ServiceOrderInputDto
             {
                 CartItemId = cartItemId,
@@ -131,29 +120,26 @@ namespace EService.Web.Controllers
                 IsActive = true,
                 IsComplete = false,
                 IsPayed = false,
-                Email = User.Identity.Name
+                Email = User.Identity?.Name ?? string.Empty
             };
 
-            contactInfo.Email = User.Identity.Name;
+            contactInfo.Email = User.Identity?.Name ?? string.Empty;
 
-            if (User.Identity.IsAuthenticated)
+            if (User.Identity?.IsAuthenticated == true)
             {
-                long serviceOrderId;
-
-                var isAddToCart = _bookingService.AddToCart(serviceOrder, aditionalServices, contactInfo, out serviceOrderId);
-
-                if (isAddToCart != false)
+                var result = await _bookingService.AddToCartAsync(serviceOrder, aditionalServices, contactInfo);
+                
+                if (result.IsSuccess)
                 {
-                    var cartServiceByUserName = _bookingService.GetCartServiceByUserName(User.Identity.Name);
+                    await _bookingService.GetCartServiceByUserNameAsync(User.Identity.Name!);
                 }
 
-                return Json(new { IsAdded = true, IsAuthenticated = true, serviceOrderId, serviceOrder });
+                return Json(new { IsAdded = result.IsSuccess, IsAuthenticated = true, serviceOrderId = result.IsSuccess ? result.Value : 0, serviceOrder });
             }
             else
             {
                 return Json(new { IsAdded = false, IsAuthenticated = false, ServiceOrder = serviceOrder, AdditionalServices = aditionalServices, ContactInfo = contactInfo });
             }           
-
         }
 
         /// <summary>
