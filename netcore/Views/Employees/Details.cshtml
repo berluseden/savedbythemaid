@@ -3,82 +3,81 @@
 @{
     ViewData["Title"] = "Detalles del Empleado";
     Layout = "~/Views/Shared/_AdminLTE4Index.cshtml";
-    ViewData["EntityIcon"] = "fa fa-user";
-    ViewData["ListTitle"] = "Detalles del Empleado";
-    ViewData["IndexInfo"] = "Información del empleado y horarios de trabajo";
+    ViewBag.EntityName = "Empleado";
+    ViewBag.EntityNamePlural = "Empleados";
 }
 
 @if (Model?.Employee == null)
 {
-    <div class="callout callout-warning">
-        <h4><i class="icon fa fa-warning"></i> No Encontrado</h4>
-        <p>El empleado no fue encontrado. <a asp-action="Index">Volver a la lista</a></p>
+    <div class="alert alert-warning d-flex align-items-center" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <div>El empleado no fue encontrado. <a asp-action="Index">Volver a la lista</a></div>
     </div>
 }
 else
 {
     <div class="row">
         <div class="col-md-12">
-            <div class="card card-primary">
-                <div class="card-header with-border" style="background: linear-gradient(135deg, #3c8dbc 0%, #367fa9 100%); color: white; border-radius: 3px 3px 0 0;">
-                    <h4 class="card-title"><i class="fa fa-user"></i> Información del Empleado</h4>
+            <div class="card card-primary card-outline">
+                <div class="card-header">
+                    <h4 class="card-title"><i class="bi bi-person me-2"></i> Información del Empleado</h4>
                 </div>
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <div class="detail-row" style="padding: 10px; border-bottom: 1px solid #f4f4f4;">
-                                <div class="detail-label text-muted"><i class="fa fa-user"></i> Nombre Completo</div>
-                                <div class="detail-value"><strong>@Model.Employee.FullName</strong></div>
-                            </div>
+                            <dl class="row">
+                                <dt class="col-sm-4"><i class="bi bi-person me-1"></i> Nombre Completo</dt>
+                                <dd class="col-sm-8"><strong>@Model.Employee.FullName</strong></dd>
+                            </dl>
                         </div>
                         <div class="col-md-6">
-                            <div class="detail-row" style="padding: 10px; border-bottom: 1px solid #f4f4f4;">
-                                <div class="detail-label text-muted"><i class="fa fa-id-card"></i> Identificación</div>
-                                <div class="detail-value">@Model.Employee.Identification</div>
-                            </div>
+                            <dl class="row">
+                                <dt class="col-sm-4"><i class="bi bi-card-text me-1"></i> Identificación</dt>
+                                <dd class="col-sm-8">@Model.Employee.Identification</dd>
+                            </dl>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6">
-                            <div class="detail-row" style="padding: 10px; border-bottom: 1px solid #f4f4f4;">
-                                <div class="detail-label text-muted"><i class="fa fa-phone"></i> Teléfono</div>
-                                <div class="detail-value">@Model.Employee.ContactNumber</div>
-                            </div>
+                            <dl class="row">
+                                <dt class="col-sm-4"><i class="bi bi-telephone me-1"></i> Teléfono</dt>
+                                <dd class="col-sm-8">@Model.Employee.ContactNumber</dd>
+                            </dl>
                         </div>
                         <div class="col-md-6">
-                            <div class="detail-row" style="padding: 10px; border-bottom: 1px solid #f4f4f4;">
-                                <div class="detail-label text-muted"><i class="fa fa-envelope"></i> Email</div>
-                                <div class="detail-value">@Model.Employee.EmailAddress</div>
-                            </div>
+                            <dl class="row">
+                                <dt class="col-sm-4"><i class="bi bi-envelope me-1"></i> Email</dt>
+                                <dd class="col-sm-8">@Model.Employee.EmailAddress</dd>
+                            </dl>
                         </div>
                     </div>
                 </div>
-                <div class="card-footer">
-                    <a asp-action="Create" asp-controller="EmployeeSchedules" asp-route-id="@Model.Employee.EmployeeId" class="btn btn-success"><i class="fa fa-calendar-plus-o"></i> Agregar Horario</a>
-                    <a asp-action="Edit" asp-route-id="@Model.Employee.EmployeeId" class="btn btn-primary"><i class="fa fa-pencil"></i> Editar</a>
-                    <a asp-action="Index" class="btn btn-default"><i class="fa fa-arrow-left"></i> Volver</a>
+                <div class="card-footer d-flex gap-2">
+                    <a asp-action="Create" asp-controller="EmployeeSchedules" asp-route-id="@Model.Employee.EmployeeId" class="btn btn-success"><i class="bi bi-calendar-plus me-1"></i> Agregar Horario</a>
+                    <a asp-action="Edit" asp-route-id="@Model.Employee.EmployeeId" class="btn btn-warning"><i class="bi bi-pencil me-1"></i> Editar</a>
+                    <a asp-action="Index" class="btn btn-secondary"><i class="bi bi-arrow-left me-1"></i> Volver</a>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="card card-info">
-        <div class="card-header with-border" style="background: linear-gradient(135deg, #00c0ef 0%, #00a7d0 100%); color: white; border-radius: 3px 3px 0 0;">
-            <h4 class="card-title"><i class="fa fa-calendar"></i> Horarios de Trabajo</h4>
+    <div class="card card-info card-outline">
+        <div class="card-header">
+            <h4 class="card-title"><i class="bi bi-calendar3 me-2"></i> Horarios de Trabajo</h4>
         </div>
         <div class="card-body">
             @if (Model.EmployeeSchedule == null || !Model.EmployeeSchedule.Any())
             {
-                <div class="callout callout-info">
-                    <h4><i class="icon fa fa-info"></i> Sin Horarios</h4>
-                    <p>No se encontraron horarios para este empleado.
-                    <a asp-action="Create" asp-controller="EmployeeSchedules" asp-route-id="@Model.Employee.EmployeeId" class="alert-link"><strong>Agregar el primer horario</strong></a>.</p>
+                <div class="alert alert-info d-flex align-items-center" role="alert">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    <div>No se encontraron horarios para este empleado.
+                    <a asp-action="Create" asp-controller="EmployeeSchedules" asp-route-id="@Model.Employee.EmployeeId" class="alert-link"><strong>Agregar el primer horario</strong></a>.</div>
                 </div>
             }
             else
             {
                 <table class="table table-hover table-striped" style="width:100%">
-                    <thead style="background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);">
+                    <thead class="table-light">
                         <tr>
                             <th style="width: 100px;">Acciones</th>
                             <th>Día</th>
@@ -93,8 +92,8 @@ else
                             <tr>
                                 <td>
                                     <div class="btn-group">
-                                        <a asp-controller="EmployeeSchedules" asp-action="Details" asp-route-id="@item.EmployeeScheduleId" class="btn btn-primary btn-sm" title="Ver Detalles"><i class="fa fa-eye"></i></a>
-                                        <a asp-controller="EmployeeSchedules" asp-action="Delete" asp-route-id="@item.EmployeeScheduleId" class="btn btn-danger btn-sm" title="Eliminar"><i class="fa fa-trash"></i></a>
+                                        <a asp-controller="EmployeeSchedules" asp-action="Details" asp-route-id="@item.EmployeeScheduleId" class="btn btn-primary btn-sm" title="Ver Detalles"><i class="bi bi-eye"></i></a>
+                                        <a asp-controller="EmployeeSchedules" asp-action="Delete" asp-route-id="@item.EmployeeScheduleId" class="btn btn-danger btn-sm" title="Eliminar"><i class="bi bi-trash"></i></a>
                                     </div>
                                 </td>
                                 <td>@item.AvaliableDay.Day</td>

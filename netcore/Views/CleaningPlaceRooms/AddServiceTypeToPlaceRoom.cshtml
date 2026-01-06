@@ -1,8 +1,9 @@
 @model netcore.VMs.PlaceRoomsServiceTypesVM
 @{
-    ViewData["Title"] = "AddPlaceRoom";
-    Layout = "~/Views/Shared/_AdminLTE4Custom.cshtml";
-    ViewData["EntityIcon"] = "fa fa-tags";
+    ViewData["Title"] = "Agregar Servicios";
+    Layout = "~/Views/Shared/_AdminLTE4Edit.cshtml";
+    ViewBag.EntityName = "Servicio";
+    ViewBag.EntityNamePlural = "Tipos de Habitación";
 
     ViewBag.ControllerActionView = "AddServiceToPlaceRoom";
 

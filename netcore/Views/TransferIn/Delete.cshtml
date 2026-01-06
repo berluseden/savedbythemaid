@@ -1,71 +1,62 @@
 @model JempSoft.Core.Models.Invent.TransferIn
 
 @{
-    ViewData["Title"] = "Delete";
+    ViewData["Title"] = "Eliminar Entrada";
     Layout = "~/Views/Shared/_AdminLTE4Delete.cshtml";
-    ViewData["EntityIcon"] = "fa fa-download";
-    ViewData["DeleteInfo"] = "Deleting goods receive will rollback the status of transfer order into [Open]. After this process, should be followed by deletion of goods issue.";
+    ViewBag.EntityName = "Entrada de Inventario";
+    ViewBag.EntityNamePlural = "Entradas de Inventario";
+    ViewBag.EntityId = Model.transferInId;
 }
 
+<input type="hidden" asp-for="transferInId" />
 
-@Html.Partial("_StatusMessage", (string)ViewBag.StatusMessage)
-<div>
-
-    <dl class="dl-horizontal">
-        <dt>
-            @Html.DisplayNameFor(model => model.transferInNumber)
-        </dt>
-        <dd>
-            @Html.DisplayFor(model => model.transferInNumber)
-        </dd>
-        <dt>
-            @Html.DisplayNameFor(model => model.transferInDate)
-        </dt>
-        <dd>
-            @Html.DisplayFor(model => model.transferInDate)
-        </dd>
-        <dt>
-            @Html.DisplayNameFor(model => model.description)
-        </dt>
-        <dd>
-            @Html.DisplayFor(model => model.description)
-        </dd>
-        <dt>
-            @Html.DisplayNameFor(model => model.branchIdFrom)
-        </dt>
-        <dd>
-            @Html.DisplayFor(model => model.branchFrom.branchName)
-        </dd>
-        <dt>
-            @Html.DisplayNameFor(model => model.warehouseIdFrom)
-        </dt>
-        <dd>
-            @Html.DisplayFor(model => model.warehouseFrom.warehouseName)
-        </dd>
-        <dt>
-            @Html.DisplayNameFor(model => model.branchIdTo)
-        </dt>
-        <dd>
-            @Html.DisplayFor(model => model.branchTo.branchName)
-        </dd>
-        <dt>
-            @Html.DisplayNameFor(model => model.warehouseIdTo)
-        </dt>
-        <dd>
-            @Html.DisplayFor(model => model.warehouseTo.warehouseName)
-        </dd>
-        <dt>
-            @Html.DisplayNameFor(model => model.createdAt)
-        </dt>
-        <dd>
-            @Html.DisplayFor(model => model.createdAt)
-        </dd>
-        <dt>
-            @Html.DisplayNameFor(model => model.transferOrder)
-        </dt>
-        <dd>
-            @Html.DisplayFor(model => model.transferOrder.transferOrderNumber)
-        </dd>
-    </dl>
-
-</div>
+<dl class="row">
+    <dt class="col-sm-3">
+        <i class="bi bi-hash me-1"></i> @Html.DisplayNameFor(model => model.transferInNumber)
+    </dt>
+    <dd class="col-sm-9">
+        @Html.DisplayFor(model => model.transferInNumber)
+    </dd>
+    <dt class="col-sm-3">
+        <i class="bi bi-calendar me-1"></i> @Html.DisplayNameFor(model => model.transferInDate)
+    </dt>
+    <dd class="col-sm-9">
+        @Model.transferInDate.ToString("dd/MM/yyyy")
+    </dd>
+    <dt class="col-sm-3">
+        <i class="bi bi-text-paragraph me-1"></i> @Html.DisplayNameFor(model => model.description)
+    </dt>
+    <dd class="col-sm-9">
+        @Html.DisplayFor(model => model.description)
+    </dd>
+    <dt class="col-sm-3">
+        <i class="bi bi-building me-1"></i> Sucursal Origen
+    </dt>
+    <dd class="col-sm-9">
+        @Html.DisplayFor(model => model.branchFrom.branchName)
+    </dd>
+    <dt class="col-sm-3">
+        <i class="bi bi-box-seam me-1"></i> Almacén Origen
+    </dt>
+    <dd class="col-sm-9">
+        @Html.DisplayFor(model => model.warehouseFrom.warehouseName)
+    </dd>
+    <dt class="col-sm-3">
+        <i class="bi bi-building me-1"></i> Sucursal Destino
+    </dt>
+    <dd class="col-sm-9">
+        @Html.DisplayFor(model => model.branchTo.branchName)
+    </dd>
+    <dt class="col-sm-3">
+        <i class="bi bi-box-seam me-1"></i> Almacén Destino
+    </dt>
+    <dd class="col-sm-9">
+        @Html.DisplayFor(model => model.warehouseTo.warehouseName)
+    </dd>
+    <dt class="col-sm-3">
+        <i class="bi bi-file-earmark-text me-1"></i> Orden de Transferencia
+    </dt>
+    <dd class="col-sm-9">
+        @Html.DisplayFor(model => model.transferOrder.transferOrderNumber)
+    </dd>
+</dl>

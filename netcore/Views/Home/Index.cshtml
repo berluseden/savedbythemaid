@@ -63,73 +63,97 @@
     <!-- Tarjetas de estadísticas principales -->
     <div class="row g-4 mb-4">
         <div class="col-lg-3 col-md-6">
-            <div class="small-box text-bg-info">
-                <div class="inner">
-                    <h3>@todayBookings</h3>
-                    <p>Reservas Hoy</p>
+            <div class="card border-0 shadow-sm h-100 overflow-hidden">
+                <div class="card-body position-relative" style="background: linear-gradient(135deg, #06B6D4 0%, #0891B2 100%);">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="text-white">
+                            <h2 class="mb-1 fw-bold">@todayBookings</h2>
+                            <p class="mb-0 opacity-75">Reservas Hoy</p>
+                        </div>
+                        <div class="rounded-circle p-2" style="background: rgba(255,255,255,0.2);">
+                            <i class="bi bi-calendar-check fs-4 text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="progress" style="height: 4px; background: rgba(255,255,255,0.3);">
+                            <div class="progress-bar bg-white" style="width: @(todayBookings > 0 ? Math.Min(todayBookings * 10, 100) : 0)%"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="progress" style="height: 4px;">
-                    <div class="progress-bar bg-light" style="width: @(todayBookings > 0 ? Math.Min(todayBookings * 10, 100) : 0)%"></div>
-                </div>
-                <span class="small-card-footer">
-                    <i class="bi bi-calendar3"></i> @today.ToString("dd MMM yyyy")
-                </span>
-                <div class="small-box-icon">
-                    <i class="bi bi-calendar-check"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-3 col-md-6">
-            <div class="small-box text-bg-success">
-                <div class="inner">
-                    <h3>$@monthRevenue.ToString("N0")</h3>
-                    <p>Ingresos del Mes</p>
-                </div>
-                <div class="progress" style="height: 4px;">
-                    <div class="progress-bar bg-light" style="width: 70%"></div>
-                </div>
-                <span class="small-card-footer">
-                    <i class="bi bi-graph-up-arrow"></i> @monthBookings reservas
-                </span>
-                <div class="small-box-icon">
-                    <i class="bi bi-currency-dollar"></i>
+                <div class="card-footer bg-white border-0 py-2">
+                    <small class="text-muted"><i class="bi bi-calendar3 me-1"></i>@today.ToString("dd MMM yyyy")</small>
                 </div>
             </div>
         </div>
 
         <div class="col-lg-3 col-md-6">
-            <div class="small-box text-bg-warning">
-                <div class="inner">
-                    <h3>@totalEmployees</h3>
-                    <p>Empleadas Activas</p>
+            <div class="card border-0 shadow-sm h-100 overflow-hidden">
+                <div class="card-body position-relative" style="background: linear-gradient(135deg, #10B981 0%, #059669 100%);">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="text-white">
+                            <h2 class="mb-1 fw-bold">$@monthRevenue.ToString("N0")</h2>
+                            <p class="mb-0 opacity-75">Ingresos del Mes</p>
+                        </div>
+                        <div class="rounded-circle p-2" style="background: rgba(255,255,255,0.2);">
+                            <i class="bi bi-currency-dollar fs-4 text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="progress" style="height: 4px; background: rgba(255,255,255,0.3);">
+                            <div class="progress-bar bg-white" style="width: 70%"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="progress" style="height: 4px;">
-                    <div class="progress-bar bg-light" style="width: @(totalEmployees > 0 ? 100 : 0)%"></div>
-                </div>
-                <span class="small-card-footer">
-                    <i class="bi bi-person-plus"></i> Personal disponible
-                </span>
-                <div class="small-box-icon">
-                    <i class="bi bi-people-fill"></i>
+                <div class="card-footer bg-white border-0 py-2">
+                    <small class="text-muted"><i class="bi bi-graph-up-arrow me-1"></i>@monthBookings reservas</small>
                 </div>
             </div>
         </div>
 
         <div class="col-lg-3 col-md-6">
-            <div class="small-box text-bg-danger">
-                <div class="inner">
-                    <h3>@pendingPayments</h3>
-                    <p>Pagos Pendientes</p>
+            <div class="card border-0 shadow-sm h-100 overflow-hidden">
+                <div class="card-body position-relative" style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="text-white">
+                            <h2 class="mb-1 fw-bold">@totalEmployees</h2>
+                            <p class="mb-0 opacity-75">Empleadas Activas</p>
+                        </div>
+                        <div class="rounded-circle p-2" style="background: rgba(255,255,255,0.2);">
+                            <i class="bi bi-people-fill fs-4 text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="progress" style="height: 4px; background: rgba(255,255,255,0.3);">
+                            <div class="progress-bar bg-white" style="width: @(totalEmployees > 0 ? 100 : 0)%"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="progress" style="height: 4px;">
-                    <div class="progress-bar bg-light" style="width: @(pendingPayments > 0 ? Math.Min(pendingPayments * 5, 100) : 0)%"></div>
+                <div class="card-footer bg-white border-0 py-2">
+                    <small class="text-muted"><i class="bi bi-person-plus me-1"></i>Personal disponible</small>
                 </div>
-                <span class="small-card-footer">
-                    <i class="bi bi-exclamation-triangle"></i> Requieren atención
-                </span>
-                <div class="small-box-icon">
-                    <i class="bi bi-clock-history"></i>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100 overflow-hidden">
+                <div class="card-body position-relative" style="background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="text-white">
+                            <h2 class="mb-1 fw-bold">@pendingPayments</h2>
+                            <p class="mb-0 opacity-75">Pagos Pendientes</p>
+                        </div>
+                        <div class="rounded-circle p-2" style="background: rgba(255,255,255,0.2);">
+                            <i class="bi bi-clock-history fs-4 text-white"></i>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="progress" style="height: 4px; background: rgba(255,255,255,0.3);">
+                            <div class="progress-bar bg-white" style="width: @(pendingPayments > 0 ? Math.Min(pendingPayments * 5, 100) : 0)%"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-white border-0 py-2">
+                    <small class="text-muted"><i class="bi bi-exclamation-triangle me-1"></i>Requieren atención</small>
                 </div>
             </div>
         </div>
@@ -138,61 +162,77 @@
     <!-- Segunda fila - Small boxes -->
     <div class="row g-4 mb-4">
         <div class="col-lg-3 col-md-6">
-            <div class="small-box text-bg-primary">
-                <div class="inner">
-                    <h3>@weekBookings</h3>
-                    <p>Reservas Esta Semana</p>
+            <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #4F46E5 !important;">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h3 class="mb-1 fw-bold text-primary">@weekBookings</h3>
+                        <p class="text-muted mb-0 small">Reservas Esta Semana</p>
+                    </div>
+                    <div class="rounded-3 p-3" style="background: linear-gradient(135deg, #E0E7FF 0%, #C7D2FE 100%);">
+                        <i class="bi bi-calendar-week fs-4 text-primary"></i>
+                    </div>
                 </div>
-                <a href="#" class="small-card-footer">
-                    Ver todas <i class="bi bi-arrow-right-circle"></i>
-                </a>
-                <div class="small-box-icon">
-                    <i class="bi bi-calendar-week"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-3 col-md-6">
-            <div class="small-box" style="background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%); color: white;">
-                <div class="inner">
-                    <h3>@monthClients</h3>
-                    <p>Clientes del Mes</p>
-                </div>
-                <a href="#" class="small-card-footer text-white">
-                    Ver detalles <i class="bi bi-arrow-right-circle"></i>
-                </a>
-                <div class="small-box-icon">
-                    <i class="bi bi-person-heart"></i>
+                <div class="card-footer bg-transparent border-0 pt-0">
+                    <a href="@Url.Action("Index", "ServiceMeet")" class="text-decoration-none small">
+                        Ver todas <i class="bi bi-arrow-right"></i>
+                    </a>
                 </div>
             </div>
         </div>
 
         <div class="col-lg-3 col-md-6">
-            <div class="small-box text-bg-secondary">
-                <div class="inner">
-                    <h3>@cleaningPlaces</h3>
-                    <p>Tipos de Inmueble</p>
+            <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #DC2626 !important;">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h3 class="mb-1 fw-bold text-danger">@monthClients</h3>
+                        <p class="text-muted mb-0 small">Clientes del Mes</p>
+                    </div>
+                    <div class="rounded-3 p-3" style="background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%);">
+                        <i class="bi bi-people-fill fs-4 text-danger"></i>
+                    </div>
                 </div>
-                <a href="@Url.Action("Index", "CleaningPlaces")" class="small-card-footer">
-                    Gestionar <i class="bi bi-arrow-right-circle"></i>
-                </a>
-                <div class="small-box-icon">
-                    <i class="bi bi-house-door"></i>
+                <div class="card-footer bg-transparent border-0 pt-0">
+                    <a href="@Url.Action("Index", "Customer")" class="text-decoration-none small">
+                        Ver detalles <i class="bi bi-arrow-right"></i>
+                    </a>
                 </div>
             </div>
         </div>
 
         <div class="col-lg-3 col-md-6">
-            <div class="small-box" style="background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); color: white;">
-                <div class="inner">
-                    <h3>@serviceTypes</h3>
-                    <p>Tipos de Servicio</p>
+            <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #6B7280 !important;">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h3 class="mb-1 fw-bold text-secondary">@cleaningPlaces</h3>
+                        <p class="text-muted mb-0 small">Tipos de Inmueble</p>
+                    </div>
+                    <div class="rounded-3 p-3" style="background: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%);">
+                        <i class="bi bi-house-door fs-4 text-secondary"></i>
+                    </div>
                 </div>
-                <a href="@Url.Action("Index", "ServiceTypes")" class="small-card-footer text-white">
-                    Gestionar <i class="bi bi-arrow-right-circle"></i>
-                </a>
-                <div class="small-box-icon">
-                    <i class="bi bi-tags"></i>
+                <div class="card-footer bg-transparent border-0 pt-0">
+                    <a href="@Url.Action("Index", "CleaningPlaces")" class="text-decoration-none small">
+                        Gestionar <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6">
+            <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #10B981 !important;">
+                <div class="card-body d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h3 class="mb-1 fw-bold text-success">@serviceTypes</h3>
+                        <p class="text-muted mb-0 small">Tipos de Servicio</p>
+                    </div>
+                    <div class="rounded-3 p-3" style="background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);">
+                        <i class="bi bi-tags fs-4 text-success"></i>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 pt-0">
+                    <a href="@Url.Action("Index", "ServiceTypes")" class="text-decoration-none small">
+                        Gestionar <i class="bi bi-arrow-right"></i>
+                    </a>
                 </div>
             </div>
         </div>
@@ -225,44 +265,44 @@
                         <i class="bi bi-lightning-fill me-2"></i>Acciones Rápidas
                     </h3>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-2">
                     <div class="row g-2">
                         <div class="col-6">
-                            <a href="@Url.Action("Create", "Employees")" class="btn btn-outline-primary w-100 py-3">
-                                <i class="bi bi-person-plus d-block fs-4 mb-1"></i>
-                                <small>Nueva Empleada</small>
+                            <a href="@Url.Action("Create", "Employees")" class="btn btn-outline-primary w-100 py-2 d-flex flex-column align-items-center">
+                                <i class="bi bi-person-plus fs-5 mb-1"></i>
+                                <span style="font-size: 0.75rem;">Nueva Empleada</span>
                             </a>
                         </div>
                         <div class="col-6">
-                            <a href="@Url.Action("Create", "CleaningPlaces")" class="btn btn-outline-success w-100 py-3">
-                                <i class="bi bi-house-add d-block fs-4 mb-1"></i>
-                                <small>Nuevo Inmueble</small>
+                            <a href="@Url.Action("Create", "CleaningPlaces")" class="btn btn-outline-success w-100 py-2 d-flex flex-column align-items-center">
+                                <i class="bi bi-house-add fs-5 mb-1"></i>
+                                <span style="font-size: 0.75rem;">Nuevo Inmueble</span>
                             </a>
                         </div>
                         <div class="col-6">
-                            <a href="@Url.Action("Create", "ServiceTypes")" class="btn btn-outline-warning w-100 py-3">
-                                <i class="bi bi-tag d-block fs-4 mb-1"></i>
-                                <small>Nuevo Servicio</small>
+                            <a href="@Url.Action("Create", "ServiceTypes")" class="btn btn-outline-warning w-100 py-2 d-flex flex-column align-items-center">
+                                <i class="bi bi-tag fs-5 mb-1"></i>
+                                <span style="font-size: 0.75rem;">Nuevo Servicio</span>
                             </a>
                         </div>
                         <div class="col-6">
-                            <a href="@Url.Action("Index", "Employees")" class="btn btn-outline-info w-100 py-3 position-relative">
-                                <span class="badge bg-warning position-absolute top-0 end-0 translate-middle">@totalEmployees</span>
-                                <i class="bi bi-people d-block fs-4 mb-1"></i>
-                                <small>Empleadas</small>
+                            <a href="@Url.Action("Index", "Employees")" class="btn btn-outline-info w-100 py-2 d-flex flex-column align-items-center position-relative">
+                                <span class="badge bg-warning position-absolute top-0 end-0" style="font-size: 0.6rem;">@totalEmployees</span>
+                                <i class="bi bi-people fs-5 mb-1"></i>
+                                <span style="font-size: 0.75rem;">Empleadas</span>
                             </a>
                         </div>
                         <div class="col-6">
-                            <a href="@Url.Action("Create", "EmployeeSchedules")" class="btn btn-outline-secondary w-100 py-3">
-                                <i class="bi bi-calendar-plus d-block fs-4 mb-1"></i>
-                                <small>Nuevo Horario</small>
+                            <a href="@Url.Action("Create", "EmployeeSchedules")" class="btn btn-outline-secondary w-100 py-2 d-flex flex-column align-items-center">
+                                <i class="bi bi-calendar-plus fs-5 mb-1"></i>
+                                <span style="font-size: 0.75rem;">Nuevo Horario</span>
                             </a>
                         </div>
                         <div class="col-6">
-                            <a href="@Url.Action("Index", "EmployeeSchedules")" class="btn btn-outline-dark w-100 py-3 position-relative">
-                                <span class="badge bg-info position-absolute top-0 end-0 translate-middle">@employeeSchedules</span>
-                                <i class="bi bi-calendar3 d-block fs-4 mb-1"></i>
-                                <small>Horarios</small>
+                            <a href="@Url.Action("Index", "EmployeeSchedules")" class="btn btn-outline-dark w-100 py-2 d-flex flex-column align-items-center position-relative">
+                                <span class="badge bg-info position-absolute top-0 end-0" style="font-size: 0.6rem;">@employeeSchedules</span>
+                                <i class="bi bi-calendar3 fs-5 mb-1"></i>
+                                <span style="font-size: 0.75rem;">Horarios</span>
                             </a>
                         </div>
                     </div>

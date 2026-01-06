@@ -7,7 +7,7 @@
     ViewData["EditInfo"] = " TO have three status: 1. Draft (Unconfirmed TO, not ready for transfer), 2. Open (Confirmed TO, ready for transfer) and 3. Completed (Closed TO, already do the transfer process). Change status from [Draft] to [Open] to confirm the transfer order. [Completed] status is auto set when goods issue and goods receive already done.";
 }
 
-@Html.Partial("_StatusMessage", (string)ViewBag.StatusMessage)
+<partial name="_StatusMessage" model="(string)ViewBag.StatusMessage" />
 <div class="row">
     <div class="col-md-12">
         <div asp-validation-summary="ModelOnly" class="text-danger"></div>

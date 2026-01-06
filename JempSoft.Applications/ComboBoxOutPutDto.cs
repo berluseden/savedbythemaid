@@ -13,5 +13,10 @@ namespace JempSoft.Applications
         public string Title { get; set; } = string.Empty;
         
         public string Name { get; set; } = string.Empty;
+        
+        /// <summary>
+        /// Price for service types (optional)
+        /// </summary>
+        public decimal Price { get; set; } = 0;
     }
 }

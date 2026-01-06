@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.DataProtection;
 using netcore.Data;
 using netcore.Models;
 using netcore.Services;
@@ -59,11 +60,16 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
-// cookie settings
+// Cookie settings - SHARED between netcore and EService.Web for SSO
+var sharedCookieSection = builder.Configuration.GetSection("SharedCookie");
+var applicationName = sharedCookieSection["ApplicationName"] ?? "SavedByTheMaid";
+var cookieName = sharedCookieSection["CookieName"] ?? ".SavedByTheMaid.Auth";
+
 if (identityDefaultOptions != null)
 {
     builder.Services.ConfigureApplicationCookie(options =>
     {
+        options.Cookie.Name = cookieName;
         options.Cookie.HttpOnly = identityDefaultOptions.CookieHttpOnly;
         options.ExpireTimeSpan = TimeSpan.FromDays(identityDefaultOptions.CookieExpiration);
         options.LoginPath = identityDefaultOptions.LoginPath;
@@ -72,6 +78,10 @@ if (identityDefaultOptions != null)
         options.SlidingExpiration = identityDefaultOptions.SlidingExpiration;
     });
 }
+
+// Add Data Protection with shared application name for SSO
+builder.Services.AddDataProtection()
+    .SetApplicationName(applicationName);
 
 // Custom Services
 builder.Services.AddScoped<ICleaningPlaceServices, CleaningPlaceServices>();
@@ -163,8 +173,18 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Admin routes (attribute-based routing handles /admin prefix)
+app.MapControllers();
+
+// Area routing with explicit area prefix
 app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    name: "areas",
+    pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
+
+// Client portal at root path (using Client area)
+app.MapControllerRoute(
+    name: "client",
+    pattern: "{controller=Home}/{action=Index}/{id?}",
+    defaults: new { area = "Client" });
 
 app.Run();

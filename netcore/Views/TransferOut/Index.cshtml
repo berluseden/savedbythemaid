@@ -1,11 +1,11 @@
 @model IEnumerable<JempSoft.Core.Models.Invent.TransferOut>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Salidas de Inventario";
     Layout = "~/Views/Shared/_AdminLTE4Index.cshtml";
-    ViewData["EntityIcon"] = "fa fa-upload";
-    ViewData["ListTitle"] = "Goods Issue List";
-    ViewData["IndexInfo"] = "Goods Issue is a process of delivering the products from a warehouse based on transfer order (TO)";
+    ViewBag.EntityName = "Salida";
+    ViewBag.EntityNamePlural = "Salidas de Inventario";
+    ViewBag.EntityIcon = "bi bi-box-arrow-right";
 }
 
 
@@ -45,11 +45,11 @@
         {
         <tr>
             <td>
-                <div class="tools">
-                    <a asp-action="Details" asp-route-id="@item.transferOutId" class="btn btn-primary btn-sm"><i class="fa fa-list"></i></a>
-                    <a asp-action="Delete" asp-route-id="@item.transferOutId" class="btn btn-danger btn-sm"><i class="fa fa-trash"></i></a>
+                <div class="btn-group btn-group-sm">
+                    <a asp-action="Details" asp-route-id="@item.transferOutId" class="btn btn-primary btn-sm" title="Ver detalles"><i class="bi bi-eye"></i></a>
+                    <a asp-action="Edit" asp-route-id="@item.transferOutId" class="btn btn-warning btn-sm" title="Editar"><i class="bi bi-pencil"></i></a>
+                    <a asp-action="Delete" asp-route-id="@item.transferOutId" class="btn btn-danger btn-sm" title="Eliminar"><i class="bi bi-trash"></i></a>
                 </div>
-          
             </td>
             <td>
                 @Html.DisplayFor(modelItem => item.transferOutNumber)

@@ -1,0 +1,829 @@
+@{
+    ViewData["Title"] = "Professional Cleaning Services";
+}
+
+@section Styles {
+<style>
+    /* === INDEX PAGE SPECIFIC STYLES === */
+    
+    /* Hero Section */
+    .hero-section {
+        position: relative;
+        min-height: 90vh;
+        background: linear-gradient(135deg, var(--brand-primary) 0%, #1e40af 50%, #0f172a 100%);
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+        margin-top: -80px;
+        padding-top: 80px;
+    }
+    
+    .hero-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        opacity: 0.5;
+    }
+    
+    .hero-floating-shapes .shape {
+        position: absolute;
+        border-radius: 50%;
+        background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(37, 99, 235, 0.1));
+        animation: floatShape 20s ease-in-out infinite;
+    }
+    
+    .hero-floating-shapes .shape-1 {
+        width: 300px;
+        height: 300px;
+        top: -100px;
+        right: -100px;
+        animation-delay: 0s;
+    }
+    
+    .hero-floating-shapes .shape-2 {
+        width: 200px;
+        height: 200px;
+        bottom: -50px;
+        left: 10%;
+        animation-delay: -5s;
+    }
+    
+    .hero-floating-shapes .shape-3 {
+        width: 150px;
+        height: 150px;
+        top: 30%;
+        right: 20%;
+        animation-delay: -10s;
+    }
+    
+    @@keyframes floatShape {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        25% { transform: translateY(-20px) rotate(5deg); }
+        50% { transform: translateY(0) rotate(0deg); }
+        75% { transform: translateY(20px) rotate(-5deg); }
+    }
+    
+    .hero-content h1 {
+        font-size: 3.5rem;
+        font-weight: 800;
+        line-height: 1.1;
+        margin-bottom: 1.5rem;
+        color: white;
+    }
+    
+    .hero-content p.lead {
+        font-size: 1.25rem;
+        opacity: 0.9;
+        margin-bottom: 2rem;
+        color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .hero-buttons .btn {
+        padding: 1rem 2rem;
+        font-weight: 600;
+        border-radius: 12px;
+        margin-right: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .btn-hero-primary {
+        background: white;
+        color: var(--brand-primary);
+        border: none;
+    }
+    
+    .btn-hero-primary:hover {
+        background: rgba(255, 255, 255, 0.9);
+        color: #1e40af;
+        transform: translateY(-2px);
+    }
+    
+    .btn-hero-outline {
+        background: transparent;
+        color: white;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .btn-hero-outline:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: white;
+        color: white;
+    }
+    
+    .hero-contact-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 2.5rem;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .hero-contact-card h3 {
+        color: var(--brand-primary);
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+    }
+    
+    .hero-contact-card .form-control,
+    .hero-contact-card .form-select {
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        padding: 0.875rem 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .hero-contact-card .form-control:focus,
+    .hero-contact-card .form-select:focus {
+        border-color: var(--brand-primary);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    
+    .hero-contact-card .btn-primary {
+        padding: 1rem;
+        font-weight: 600;
+        border-radius: 10px;
+    }
+    
+    /* Stats Section */
+    .stats-section {
+        background: white;
+        padding: 4rem 0;
+        margin-top: -50px;
+        position: relative;
+        z-index: 10;
+    }
+    
+    .stats-card {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        text-align: center;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
+    }
+    
+    .stats-icon {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, var(--brand-primary), #38bdf8);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        color: white;
+        font-size: 1.5rem;
+    }
+    
+    .stats-number {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: var(--brand-primary);
+        line-height: 1;
+    }
+    
+    .stats-label {
+        color: #64748b;
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+    }
+    
+    /* Section Styles */
+    .section-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(56, 189, 248, 0.1));
+        color: var(--brand-primary);
+        padding: 0.5rem 1.25rem;
+        border-radius: 50px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+    
+    .section-title {
+        font-size: 2.75rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: 1rem;
+    }
+    
+    .section-title .highlight {
+        background: linear-gradient(135deg, var(--brand-primary), #38bdf8);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .section-subtitle {
+        color: #64748b;
+        font-size: 1.1rem;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
+    /* Service Cards */
+    .service-card-modern {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        transition: all 0.4s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .service-card-modern:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 50px rgba(37, 99, 235, 0.15);
+        border-color: var(--brand-primary);
+    }
+    
+    .service-icon-box {
+        width: 70px;
+        height: 70px;
+        background: linear-gradient(135deg, var(--brand-primary), #38bdf8);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.5rem;
+        font-size: 1.75rem;
+        color: white;
+    }
+    
+    .service-card-modern h4 {
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 1rem;
+    }
+    
+    .service-card-modern p {
+        color: #64748b;
+        line-height: 1.7;
+        flex-grow: 1;
+    }
+    
+    .btn-service {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--brand-primary);
+        font-weight: 600;
+        text-decoration: none;
+        margin-top: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-service:hover {
+        gap: 0.75rem;
+        color: #1e40af;
+    }
+    
+    /* Process Steps */
+    .process-section {
+        background: linear-gradient(180deg, #f8fafc 0%, white 100%);
+    }
+    
+    .process-step {
+        text-align: center;
+        position: relative;
+    }
+    
+    .process-step::after {
+        content: '';
+        position: absolute;
+        top: 40px;
+        left: 60%;
+        width: 80%;
+        height: 2px;
+        background: linear-gradient(90deg, var(--brand-primary), transparent);
+        opacity: 0.3;
+    }
+    
+    .process-step:last-child::after {
+        display: none;
+    }
+    
+    .process-number {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, var(--brand-primary), #38bdf8);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 2rem;
+        font-weight: 800;
+        color: white;
+        box-shadow: 0 10px 30px rgba(37, 99, 235, 0.3);
+    }
+    
+    .process-step h4 {
+        font-weight: 700;
+        margin-bottom: 0.75rem;
+    }
+    
+    .process-step p {
+        color: #64748b;
+        font-size: 0.95rem;
+    }
+    
+    /* Testimonials */
+    .testimonial-card {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .testimonial-text {
+        font-size: 1.1rem;
+        line-height: 1.8;
+        color: #475569;
+        font-style: italic;
+        margin-bottom: 1.5rem;
+    }
+    
+    .testimonial-author {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .testimonial-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    
+    .testimonial-name {
+        font-weight: 700;
+        color: #0f172a;
+    }
+    
+    .testimonial-role {
+        font-size: 0.875rem;
+        color: #64748b;
+    }
+    
+    .testimonial-stars {
+        color: #fbbf24;
+    }
+    
+    /* CTA Section */
+    .cta-section {
+        background: linear-gradient(135deg, var(--brand-primary) 0%, #1e40af 100%);
+        padding: 5rem 0;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .cta-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+    
+    .cta-content h2 {
+        color: white;
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin-bottom: 1rem;
+    }
+    
+    .cta-content p {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 1.1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .btn-cta-light {
+        background: white;
+        color: var(--brand-primary);
+        padding: 1rem 2.5rem;
+        border-radius: 12px;
+        font-weight: 700;
+        border: none;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-cta-light:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        background: white;
+        color: #1e40af;
+    }
+    
+    @@media (max-width: 991.98px) {
+        .hero-content h1 {
+            font-size: 2.5rem;
+        }
+        
+        .hero-section {
+            min-height: auto;
+            padding: 8rem 0 4rem;
+        }
+        
+        .hero-contact-card {
+            margin-top: 2rem;
+        }
+        
+        .section-title {
+            font-size: 2rem;
+        }
+        
+        .process-step::after {
+            display: none;
+        }
+    }
+</style>
+}
+
+<!-- Hero Section -->
+<section class="hero-section" data-aos="fade-up">
+    <div class="hero-floating-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+    
+    <div class="container position-relative">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6">
+                <div class="hero-content" data-aos="fade-right" data-aos-delay="200">
+                    <h1>Professional Cleaning Services You Can Trust</h1>
+                    <p class="lead">We provide high quality cleaning services for your home and office. Fast, reliable, and affordable.</p>
+                    <div class="hero-buttons">
+                        <a href="@Url.Action("Schedule", "Booking")" class="btn btn-hero-primary">
+                            <i class="bi bi-calendar-check me-2"></i>Book Now
+                        </a>
+                        <a href="@Url.Action("Services", "Home")" class="btn btn-hero-outline">
+                            <i class="bi bi-grid me-2"></i>Our Services
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="hero-contact-card" data-aos="fade-left" data-aos-delay="300">
+                    <h3><i class="bi bi-envelope-check me-2"></i>Quick Contact</h3>
+                    <form id="quickContactForm">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <input type="text" class="form-control" placeholder="Your Name" required>
+                            </div>
+                            <div class="col-md-6">
+                                <input type="tel" class="form-control" placeholder="Phone Number" required>
+                            </div>
+                            <div class="col-12">
+                                <input type="email" class="form-control" placeholder="Email Address" required>
+                            </div>
+                            <div class="col-12">
+                                <select class="form-select" id="cleaningPlaceSelect">
+                                    <option value="">Select Service Type</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <textarea class="form-control" rows="2" placeholder="Additional Information"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-send me-2"></i>Send Request
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Stats Section -->
+<section class="stats-section">
+    <div class="container">
+        <div class="row g-4" data-aos="fade-up" data-aos-delay="100">
+            <div class="col-md-3 col-6">
+                <div class="stats-card">
+                    <div class="stats-icon">
+                        <i class="bi bi-house-check"></i>
+                    </div>
+                    <div class="stats-number">2,500+</div>
+                    <div class="stats-label">Happy Customers</div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="stats-card">
+                    <div class="stats-icon">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <div class="stats-number">50+</div>
+                    <div class="stats-label">Expert Cleaners</div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="stats-card">
+                    <div class="stats-icon">
+                        <i class="bi bi-award"></i>
+                    </div>
+                    <div class="stats-number">15+</div>
+                    <div class="stats-label">Years Experience</div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="stats-card">
+                    <div class="stats-icon">
+                        <i class="bi bi-star"></i>
+                    </div>
+                    <div class="stats-number">4.9</div>
+                    <div class="stats-label">Average Rating</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Services Section -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="text-center mb-5" data-aos="fade-up">
+            <span class="section-badge">✨ Our Services</span>
+            <h2 class="section-title">What We <span class="highlight">Offer</span></h2>
+            <p class="section-subtitle">Comprehensive cleaning solutions tailored to meet your unique needs</p>
+        </div>
+        
+        <div class="row g-4">
+            <!-- Service 1 -->
+            <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="100">
+                <div class="service-card-modern">
+                    <div class="service-icon-box">
+                        <i class="bi bi-building"></i>
+                    </div>
+                    <h4>Office & Commercial</h4>
+                    <p>Professional cleaning for offices, retail spaces, and commercial buildings. Keep your workspace pristine.</p>
+                    <a href="@Url.Action("Schedule", "Booking")" class="btn-service">
+                        Book Now <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Service 2 -->
+            <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="200">
+                <div class="service-card-modern">
+                    <div class="service-icon-box">
+                        <i class="bi bi-house-door"></i>
+                    </div>
+                    <h4>Residential Cleaning</h4>
+                    <p>Transform your home into a spotless sanctuary. Routine cleaning to deep sanitization services.</p>
+                    <a href="@Url.Action("Schedule", "Booking")" class="btn-service">
+                        Book Now <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Service 3 -->
+            <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="300">
+                <div class="service-card-modern">
+                    <div class="service-icon-box">
+                        <i class="bi bi-droplet"></i>
+                    </div>
+                    <h4>Deep Cleaning</h4>
+                    <p>Intensive cleaning that reaches every corner. Perfect for spring cleaning or move-in/out situations.</p>
+                    <a href="@Url.Action("Schedule", "Booking")" class="btn-service">
+                        Book Now <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Service 4 -->
+            <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="400">
+                <div class="service-card-modern">
+                    <div class="service-icon-box">
+                        <i class="bi bi-window"></i>
+                    </div>
+                    <h4>Window Cleaning</h4>
+                    <p>Crystal-clear windows inside and out. Professional streak-free cleaning for any building type.</p>
+                    <a href="@Url.Action("Schedule", "Booking")" class="btn-service">
+                        Book Now <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Service 5 -->
+            <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="500">
+                <div class="service-card-modern">
+                    <div class="service-icon-box">
+                        <i class="bi bi-box-seam"></i>
+                    </div>
+                    <h4>Move In/Out Cleaning</h4>
+                    <p>Comprehensive cleaning for properties during transitions. Ensure a fresh start for new occupants.</p>
+                    <a href="@Url.Action("Schedule", "Booking")" class="btn-service">
+                        Book Now <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Service 6 -->
+            <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="600">
+                <div class="service-card-modern">
+                    <div class="service-icon-box">
+                        <i class="bi bi-hammer"></i>
+                    </div>
+                    <h4>Post-Construction</h4>
+                    <p>Specialized cleaning after renovations or construction. Remove dust and debris completely.</p>
+                    <a href="@Url.Action("Schedule", "Booking")" class="btn-service">
+                        Book Now <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-5" data-aos="fade-up">
+            <a href="@Url.Action("Services", "Home")" class="btn btn-primary btn-lg px-5">
+                <i class="bi bi-grid me-2"></i>View All Services
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Process Section -->
+<section class="process-section py-5">
+    <div class="container">
+        <div class="text-center mb-5" data-aos="fade-up">
+            <span class="section-badge">🔄 How It Works</span>
+            <h2 class="section-title">Easy Booking <span class="highlight">Process</span></h2>
+            <p class="section-subtitle">Get your space cleaned in just a few simple steps</p>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-3" data-aos="fade-up" data-aos-delay="100">
+                <div class="process-step">
+                    <div class="process-number">1</div>
+                    <h4>Choose Service</h4>
+                    <p>Select the type of cleaning you need</p>
+                </div>
+            </div>
+            <div class="col-md-3" data-aos="fade-up" data-aos-delay="200">
+                <div class="process-step">
+                    <div class="process-number">2</div>
+                    <h4>Pick a Date</h4>
+                    <p>Schedule at your convenience</p>
+                </div>
+            </div>
+            <div class="col-md-3" data-aos="fade-up" data-aos-delay="300">
+                <div class="process-step">
+                    <div class="process-number">3</div>
+                    <h4>We Clean</h4>
+                    <p>Our experts handle everything</p>
+                </div>
+            </div>
+            <div class="col-md-3" data-aos="fade-up" data-aos-delay="400">
+                <div class="process-step">
+                    <div class="process-number">4</div>
+                    <h4>Enjoy</h4>
+                    <p>Relax in your spotless space</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Testimonials Section -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="text-center mb-5" data-aos="fade-up">
+            <span class="section-badge">💬 Testimonials</span>
+            <h2 class="section-title">What Our <span class="highlight">Clients Say</span></h2>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-lg-4" data-aos="fade-up" data-aos-delay="100">
+                <div class="testimonial-card h-100">
+                    <div class="testimonial-stars mb-3">
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                    </div>
+                    <p class="testimonial-text">"Exceptional service! The team was professional, punctual, and thorough. My office has never looked better."</p>
+                    <div class="testimonial-author">
+                        <img src="~/img/client-1.jpg" alt="Sarah M." class="testimonial-avatar" onerror="this.src='https://ui-avatars.com/api/?name=Sarah+M&background=2563eb&color=fff'">
+                        <div>
+                            <div class="testimonial-name">Sarah M.</div>
+                            <div class="testimonial-role">Business Owner</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4" data-aos="fade-up" data-aos-delay="200">
+                <div class="testimonial-card h-100">
+                    <div class="testimonial-stars mb-3">
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                    </div>
+                    <p class="testimonial-text">"I've been using their services for 2 years now. Consistent quality and always reliable. Highly recommended!"</p>
+                    <div class="testimonial-author">
+                        <img src="~/img/client-2.jpg" alt="Michael R." class="testimonial-avatar" onerror="this.src='https://ui-avatars.com/api/?name=Michael+R&background=2563eb&color=fff'">
+                        <div>
+                            <div class="testimonial-name">Michael R.</div>
+                            <div class="testimonial-role">Homeowner</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4" data-aos="fade-up" data-aos-delay="300">
+                <div class="testimonial-card h-100">
+                    <div class="testimonial-stars mb-3">
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                    </div>
+                    <p class="testimonial-text">"The deep cleaning service was amazing. They transformed my apartment completely. Worth every penny!"</p>
+                    <div class="testimonial-author">
+                        <img src="~/img/client-3.jpg" alt="Emily T." class="testimonial-avatar" onerror="this.src='https://ui-avatars.com/api/?name=Emily+T&background=2563eb&color=fff'">
+                        <div>
+                            <div class="testimonial-name">Emily T.</div>
+                            <div class="testimonial-role">Apartment Resident</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta-section" data-aos="fade-up">
+    <div class="container position-relative">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center cta-content">
+                <h2>Ready for a Spotless Space?</h2>
+                <p>Book your cleaning service today and experience the difference. First-time customers get 20% off!</p>
+                <a href="@Url.Action("Schedule", "Booking")" class="btn btn-cta-light">
+                    <i class="bi bi-calendar-check me-2"></i>Schedule Your Cleaning
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+<script>
+    $(document).ready(function() {
+        // Load cleaning places for the dropdown
+        $.ajax({
+            url: '@Url.Action("GetAllCleaningPlace", "Booking")',
+            type: 'GET',
+            success: function(response) {
+                if (response && response.Result) {
+                    var select = $('#cleaningPlaceSelect');
+                    $.each(response.Result, function(i, item) {
+                        select.append($('<option></option>').val(item.Id).text(item.Title));
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading cleaning places:', error);
+            }
+        });
+        
+        // Quick contact form submission
+        $('#quickContactForm').on('submit', function(e) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'success',
+                title: 'Request Sent!',
+                text: 'We will contact you shortly.',
+                confirmButtonColor: '#2563eb'
+            });
+        });
+    });
+</script>
+}

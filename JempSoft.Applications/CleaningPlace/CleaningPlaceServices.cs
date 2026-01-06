@@ -223,12 +223,11 @@ namespace JempSoft.Applications.Services
                     return Result.Failure($"Cleaning place with ID {id} not found");
                 }
 
-                // Soft delete
-                cleaningPlace.IsActive = false;
-                _context.Entry(cleaningPlace).State = EntityState.Modified;
+                // Hard delete - remove from database
+                _context.CleaningPlaces.Remove(cleaningPlace);
                 await _context.SaveChangesAsync(cancellationToken);
 
-                _logger.LogInformation("Cleaning place soft-deleted: {Id}", id);
+                _logger.LogInformation("Cleaning place deleted: {Id}", id);
                 return Result.Success();
             }
             catch (Exception ex)

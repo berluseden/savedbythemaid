@@ -3,49 +3,49 @@
 @{
     ViewData["Title"] = "Empleadas";
     Layout = "~/Views/Shared/_AdminLTE4Index.cshtml";
-    ViewData["EntityIcon"] = "fa fa-users";
-    ViewData["ListTitle"] = "Gestión de Empleadas";
-    ViewData["CreateLabel"] = "Nueva Empleada";
-    ViewData["IndexInfo"] = "Administra el personal de limpieza. Puedes crear horarios, editar información y gestionar cada empleada.";
+    ViewBag.EntityName = "Empleada";
+    ViewBag.EntityNamePlural = "Empleadas";
+    ViewBag.ListTitle = "Gestión de Empleadas";
+    ViewBag.CreateLabel = "Nueva Empleada";
+    ViewBag.IndexInfo = "Administra el personal de limpieza. Puedes crear horarios, editar información y gestionar cada empleada.";
 }
 
 @if (ViewBag.SuccessMessage != null)
 {
-    <div class="alert alert-success alert-dismissible">
-        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-        <h4><i class="icon fa fa-check"></i> ¡Éxito!</h4>
-        @ViewBag.SuccessMessage
+    <div class="alert alert-success alert-dismissible fade show d-flex align-items-center" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        <div>@ViewBag.SuccessMessage</div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 }
 
 @if (ViewBag.ErrorMessage != null)
 {
-    <div class="alert alert-danger alert-dismissible">
-        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-        <h4><i class="icon fa fa-ban"></i> Error</h4>
-        @ViewBag.ErrorMessage
+    <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <div>@ViewBag.ErrorMessage</div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 }
 
 @if (!Model.Any())
 {
-    <div class="callout callout-warning">
-        <h4><i class="icon fa fa-warning"></i> Sin Empleadas Registradas</h4>
-        <p>No hay empleadas registradas en el sistema.</p>
-        <a asp-action="Create" class="btn btn-success"><i class="fa fa-plus"></i> Registrar Primera Empleada</a>
+    <div class="alert alert-warning d-flex align-items-center" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <div>No hay empleadas registradas. <a asp-action="Create" class="alert-link">Registrar primera empleada</a></div>
     </div>
 }
 else
 {
 <table class="table table-hover table-striped" style="width:100%">
-    <thead class="bg-primary">
+    <thead class="table-dark">
         <tr>
             <th style="width: 180px;">Acciones</th>
-            <th><i class="fa fa-user"></i> Nombre</th>
-            <th><i class="fa fa-user"></i> Apellido</th>
-            <th><i class="fa fa-id-card"></i> Identificación</th>
-            <th><i class="fa fa-phone"></i> Teléfono</th>
-            <th><i class="fa fa-envelope"></i> Email</th>
+            <th><i class="bi bi-person"></i> Nombre</th>
+            <th><i class="bi bi-person"></i> Apellido</th>
+            <th><i class="bi bi-card-text"></i> Identificación</th>
+            <th><i class="bi bi-telephone"></i> Teléfono</th>
+            <th><i class="bi bi-envelope"></i> Email</th>
         </tr>
     </thead>
     <tbody>
@@ -54,25 +54,25 @@ else
         <tr>
             <td>
                 <div class="btn-group">
-                    <a asp-action="Create" asp-controller="EmployeeSchedules" asp-route-id="@item.EmployeeId" class="btn btn-success btn-sm btn-action" title="Crear Horario">
-                        <i class="fa fa-calendar-plus-o"></i>
+                    <a asp-action="Create" asp-controller="EmployeeSchedules" asp-route-id="@item.EmployeeId" class="btn btn-success btn-sm" title="Agregar Horario">
+                        <i class="bi bi-calendar-plus"></i>
                     </a>
-                    <a asp-action="Edit" asp-route-id="@item.EmployeeId" class="btn btn-warning btn-sm btn-action" title="Editar">
-                        <i class="fa fa-pencil"></i>
+                    <a asp-action="Edit" asp-route-id="@item.EmployeeId" class="btn btn-warning btn-sm" title="Editar">
+                        <i class="bi bi-pencil"></i>
                     </a>
-                    <a asp-action="Details" asp-route-id="@item.EmployeeId" class="btn btn-info btn-sm btn-action" title="Ver Detalles">
-                        <i class="fa fa-eye"></i>
+                    <a asp-action="Details" asp-route-id="@item.EmployeeId" class="btn btn-info btn-sm" title="Ver Detalles">
+                        <i class="bi bi-eye"></i>
                     </a>
-                    <a asp-action="Delete" asp-route-id="@item.EmployeeId" class="btn btn-danger btn-sm btn-action" title="Eliminar">
-                        <i class="fa fa-trash"></i>
+                    <a asp-action="Delete" asp-route-id="@item.EmployeeId" class="btn btn-danger btn-sm" title="Eliminar">
+                        <i class="bi bi-trash"></i>
                     </a>
                 </div>
             </td>
             <td><strong>@item.FirstName</strong></td>
             <td>@item.LastName</td>
             <td><code>@item.Identification</code></td>
-            <td><a href="tel:@item.ContactNumber">@item.ContactNumber</a></td>
-            <td><a href="mailto:@item.EmailAddress">@item.EmailAddress</a></td>
+            <td>@item.ContactNumber</td>
+            <td>@item.EmailAddress</td>
         </tr>
         }
     </tbody>

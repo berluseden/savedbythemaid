@@ -8,7 +8,7 @@
     ViewData["CreateInfo"] = "Transfer Order (TO) is a process of transfering products from one warehouse to another warehouse. From and To Warehouse should be different";
 }
 
-@Html.Partial("_StatusMessage", (string)ViewBag.StatusMessage)
+<partial name="_StatusMessage" model="(string)ViewBag.StatusMessage" />
 <div class="row">
     <div class="col-md-12">
         <div asp-validation-summary="ModelOnly" class="text-danger"></div>

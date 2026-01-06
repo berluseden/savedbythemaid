@@ -48,7 +48,11 @@ namespace JempSoft.Applications.Services
         {
             try
             {
-                var entities = await _context.Employees.ToListAsync(cancellationToken);
+                var entities = await _context.Employees
+                    .Where(x => x.IsActive)
+                    .OrderBy(x => x.FirstName)
+                    .ThenBy(x => x.LastName)
+                    .ToListAsync(cancellationToken);
                 return entities;
             }
             catch (Exception ex)
@@ -137,12 +141,11 @@ namespace JempSoft.Applications.Services
                     return Result.Failure($"Employee with ID {id} not found");
                 }
 
-                // Soft delete
-                entity.IsActive = false;
-                _context.Entry(entity).State = EntityState.Modified;
+                // Hard delete - remove from database
+                _context.Employees.Remove(entity);
                 await _context.SaveChangesAsync(cancellationToken);
 
-                _logger.LogInformation("Employee soft-deleted: {Id}", id);
+                _logger.LogInformation("Employee deleted: {Id}", id);
                 return Result.Success();
             }
             catch (Exception ex)

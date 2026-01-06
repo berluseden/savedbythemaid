@@ -3,7 +3,7 @@
 @{
     ViewData["Title"] = "Horarios";
     Layout = "~/Views/Shared/_AdminLTE4Index.cshtml";
-    ViewData["EntityIcon"] = "fa fa-calendar";
+    ViewData["EntityIcon"] = "bi bi-calendar3";
     ViewData["ListTitle"] = "Horarios de Empleadas";
     ViewData["CreateLabel"] = "Nuevo Horario";
     ViewData["IndexInfo"] = "Gestiona los días y horas de disponibilidad de cada empleada.";
@@ -11,20 +11,23 @@
 
 @if (Model == null || !Model.Any())
 {
-    <div class="callout callout-warning">
-        <h4><i class="icon fa fa-warning"></i> Sin Horarios Registrados</h4>
-        <p>No hay horarios de empleadas registrados.</p>
-        <a asp-controller="Employees" asp-action="Index" class="btn btn-info"><i class="fa fa-users"></i> Ver Empleadas</a>
+    <div class="alert alert-warning d-flex align-items-center" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
+        <div>
+            <h5 class="alert-heading mb-1">Sin Horarios Registrados</h5>
+            <p class="mb-2">No hay horarios de empleadas registrados.</p>
+            <a asp-controller="Employees" asp-action="Index" class="btn btn-info btn-sm"><i class="bi bi-people me-1"></i> Ver Empleadas</a>
+        </div>
     </div>
 }
 else
 {
     <table class="table table-hover table-striped" style="width:100%">
-        <thead class="bg-primary">
+        <thead class="table-light">
             <tr>
                 <th style="width: 140px;">Acciones</th>
-                <th><i class="fa fa-calendar"></i> Día Disponible</th>
-                <th><i class="fa fa-user"></i> Empleada</th>
+                <th><i class="bi bi-calendar-date me-1"></i> Día Disponible</th>
+                <th><i class="bi bi-person me-1"></i> Empleada</th>
             </tr>
         </thead>
         <tbody>
@@ -32,14 +35,15 @@ else
             {
                 <tr>
                     <td>
-                        <div class="btn-group">
-                            <a asp-action="Edit" asp-route-id="@item.EmployeeScheduleId" class="btn btn-warning btn-sm btn-action" title="Editar"><i class="fa fa-pencil"></i></a>
-                            <a asp-action="Details" asp-route-id="@item.EmployeeScheduleId" class="btn btn-info btn-sm btn-action" title="Ver"><i class="fa fa-eye"></i></a>
-                            <a asp-action="Delete" asp-route-id="@item.EmployeeScheduleId" class="btn btn-danger btn-sm btn-action" title="Eliminar"><i class="fa fa-trash"></i></a>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a asp-action="Edit" asp-route-id="@item.EmployeeScheduleId" class="btn btn-warning" title="Editar"><i class="bi bi-pencil"></i></a>
+                            <a asp-action="Details" asp-route-id="@item.EmployeeScheduleId" class="btn btn-info" title="Ver"><i class="bi bi-eye"></i></a>
+                            <a asp-action="Delete" asp-route-id="@item.EmployeeScheduleId" class="btn btn-danger" title="Eliminar"><i class="bi bi-trash"></i></a>
                         </div>
                     </td>
                     <td>
-                        <span class="label label-info">@item.AvaliableDay</span>
+                        <span class="badge bg-primary">@item.AvaliableDay.ToString("dd/MM/yyyy")</span>
+                        <small class="text-muted ms-2">@item.AvaliableDay.ToString("dddd")</small>
                     </td>
                     <td><strong>@(item.Employee?.FullName ?? "N/A")</strong></td>
                 </tr>

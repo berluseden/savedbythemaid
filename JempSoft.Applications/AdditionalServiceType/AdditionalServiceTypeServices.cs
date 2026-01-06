@@ -131,14 +131,11 @@ namespace JempSoft.Applications.Services
                     return Result.Failure($"AdditionalServiceType with ID {id} not found");
                 }
 
-                // Soft delete
-                entity.IsActive = false;
-                entity.DeleteUserId = entity.UpdateUserId;
-                entity.DeleteDate = DateTime.UtcNow;
-                _context.Entry(entity).State = EntityState.Modified;
+                // Hard delete - remove from database
+                _context.AdditionalServiceTypes.Remove(entity);
                 await _context.SaveChangesAsync(cancellationToken);
 
-                _logger.LogInformation("AdditionalServiceType soft-deleted: {Id}", id);
+                _logger.LogInformation("AdditionalServiceType deleted: {Id}", id);
                 return Result.Success();
             }
             catch (Exception ex)

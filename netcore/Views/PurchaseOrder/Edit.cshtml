@@ -7,7 +7,7 @@
     ViewData["EditInfo"] = " PO have three status: 1. Draft (Unconfirmed PO, not ready to receive), 2. Open (Confirmed PO, ready to receive) and 3. Completed (Closed PO, already receive the products). Change status from [Draft] to [Open] to confirm the order. [Completed] status is auto set when PO used in Product Receive / Receiving.";
 }
 
-@Html.Partial("_StatusMessage", (string)ViewBag.StatusMessage)
+<partial name="_StatusMessage" model="(string)ViewBag.StatusMessage" />
 <div class="row">
     <div class="col-md-12">
         <div asp-validation-summary="ModelOnly" class="text-danger"></div>

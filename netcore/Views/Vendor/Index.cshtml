@@ -1,4 +1,4 @@
-@model IEnumerable<JempSoft.Core.Models.Invent.Vendor>
+@model IEnumerable<JempSoft.Applications.Invent.Dto.VendorOutputDto>
 
 @{
     ViewData["Title"] = "Index";
@@ -22,28 +22,28 @@ else
         <tr>
             <th></th>
             <th>
-                @Html.DisplayNameFor(model => model.vendorName)
+                @Html.DisplayNameFor(model => model.VendorName)
             </th>
             <th class="hidden">
-                @Html.DisplayNameFor(model => model.description)
+                @Html.DisplayNameFor(model => model.Description)
             </th>
             <th>
-                @Html.DisplayNameFor(model => model.size)
+                @Html.DisplayNameFor(model => model.Size)
             </th>
             <th class="hidden">
-                @Html.DisplayNameFor(model => model.street1)
+                @Html.DisplayNameFor(model => model.Street1)
             </th>
             <th class="hidden">
-                @Html.DisplayNameFor(model => model.street2)
+                @Html.DisplayNameFor(model => model.Street2)
             </th>
             <th class="hidden">
-                @Html.DisplayNameFor(model => model.city)
+                @Html.DisplayNameFor(model => model.City)
             </th>
             <th class="hidden">
-                @Html.DisplayNameFor(model => model.province)
+                @Html.DisplayNameFor(model => model.Province)
             </th>
             <th class="hidden">
-                @Html.DisplayNameFor(model => model.country)
+                @Html.DisplayNameFor(model => model.Country)
             </th>
 
         </tr>
@@ -54,35 +54,35 @@ else
         <tr>
             <td>
                 <div class="tools">
-                    <a asp-action="Edit" asp-route-id="@item.vendorId" class="btn btn-primary btn-sm"><i class="fa fa-pencil"></i></a>
-                    <a asp-action="Details" asp-route-id="@item.vendorId" class="btn btn-primary btn-sm"><i class="fa fa-list"></i></a>
-                    <a asp-action="Delete" asp-route-id="@item.vendorId" class="btn btn-danger btn-sm"><i class="fa fa-trash"></i></a>
+                    <a asp-action="Edit" asp-route-id="@item.VendorId" class="btn btn-primary btn-sm"><i class="fa fa-pencil"></i></a>
+                    <a asp-action="Details" asp-route-id="@item.VendorId" class="btn btn-primary btn-sm"><i class="fa fa-list"></i></a>
+                    <a asp-action="Delete" asp-route-id="@item.VendorId" class="btn btn-danger btn-sm"><i class="fa fa-trash"></i></a>
                 </div>
                 
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.vendorName)
+                @Html.DisplayFor(modelItem => item.VendorName)
             </td>
             <td class="hidden">
-                @Html.DisplayFor(modelItem => item.description)
+                @Html.DisplayFor(modelItem => item.Description)
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.size)
+                @Html.DisplayFor(modelItem => item.Size)
             </td>
             <td class="hidden">
-                @Html.DisplayFor(modelItem => item.street1)
+                @Html.DisplayFor(modelItem => item.Street1)
             </td>
             <td class="hidden">
-                @Html.DisplayFor(modelItem => item.street2)
+                @Html.DisplayFor(modelItem => item.Street2)
             </td>
             <td class="hidden">
-                @Html.DisplayFor(modelItem => item.city)
+                @Html.DisplayFor(modelItem => item.City)
             </td>
             <td class="hidden">
-                @Html.DisplayFor(modelItem => item.province)
+                @Html.DisplayFor(modelItem => item.Province)
             </td>
             <td class="hidden">
-                @Html.DisplayFor(modelItem => item.country)
+                @Html.DisplayFor(modelItem => item.Country)
             </td>
 
         </tr>

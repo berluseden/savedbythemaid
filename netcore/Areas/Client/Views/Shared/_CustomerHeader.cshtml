@@ -1,0 +1,188 @@
+@* ============================================
+   🧭 ecoMaid 911 - Header Navigation
+   Modern responsive navbar - English
+   ============================================ *@
+
+<nav class="customer-navbar">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <!-- Logo -->
+            <a href="@Url.Action("Index", "Home")" class="navbar-brand text-decoration-none">
+                <img src="~/img/logo.png" alt="ecoMaid 911" height="45" class="d-none d-sm-inline">
+                <span class="d-sm-none">ecoMaid</span>
+            </a>
+            
+            <!-- Desktop Navigation -->
+            <div class="d-none d-lg-flex align-items-center gap-2">
+                <a href="@Url.Action("Index", "Home")" class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Index" && ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")">
+                    <i class="bi bi-house me-1"></i> Home
+                </a>
+                <a href="@Url.Action("About", "Home")" class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "About" ? "active" : "")">
+                    <i class="bi bi-info-circle me-1"></i> About
+                </a>
+                <a href="@Url.Action("Services", "Home")" class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Services" ? "active" : "")">
+                    <i class="bi bi-stars me-1"></i> Services
+                </a>
+                <a href="@Url.Action("Contact", "Home")" class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Contact" ? "active" : "")">
+                    <i class="bi bi-envelope me-1"></i> Contact
+                </a>
+            </div>
+            
+            <!-- Right Side -->
+            <div class="d-flex align-items-center gap-3">
+                <!-- Cart -->
+                <a href="@Url.Action("Index", "Cart")" class="nav-link cart-badge position-relative">
+                    <i class="bi bi-cart3 fs-5"></i>
+                    <span class="badge" id="cartCount">0</span>
+                </a>
+                
+                <!-- User Menu -->
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <div class="dropdown">
+                        <a href="#" class="nav-link dropdown-toggle d-flex align-items-center gap-2" data-bs-toggle="dropdown">
+                            <div class="user-avatar-sm">
+                                <i class="bi bi-person-fill"></i>
+                            </div>
+                            <span class="d-none d-md-inline">@User.Identity.Name?.Split("@@")[0]</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end animate__animated animate__fadeIn">
+                            <li>
+                                <a class="dropdown-item" href="@Url.Action("Profile", "Account")">
+                                    <i class="bi bi-person me-2"></i> My Profile
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="@Url.Action("Index", "Cart")">
+                                    <i class="bi bi-calendar-check me-2"></i> My Bookings
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form asp-controller="Account" asp-action="Logout" method="post">
+                                    <button type="submit" class="dropdown-item text-danger">
+                                        <i class="bi bi-box-arrow-right me-2"></i> Sign Out
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                }
+                else
+                {
+                    <a href="@Url.Action("Login", "Account")" class="nav-link d-none d-md-flex">
+                        <i class="bi bi-person me-1"></i> Sign In
+                    </a>
+                }
+                
+                <!-- Book Now Button -->
+                <a href="@Url.Action("Schedule", "Booking")" class="btn-book-now d-none d-md-flex">
+                    <i class="bi bi-calendar-plus me-1"></i> Book Now
+                </a>
+                
+                <!-- Mobile Menu Toggle -->
+                <button class="btn d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileMenu">
+                    <i class="bi bi-list fs-3"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Mobile Menu Offcanvas -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="mobileMenu">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title">
+            <img src="~/img/logo.png" alt="ecoMaid 911" height="35">
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body">
+        <div class="d-flex flex-column gap-2">
+            <a href="@Url.Action("Index", "Home")" class="nav-link">
+                <i class="bi bi-house me-2"></i> Home
+            </a>
+            <a href="@Url.Action("About", "Home")" class="nav-link">
+                <i class="bi bi-info-circle me-2"></i> About
+            </a>
+            <a href="@Url.Action("Services", "Home")" class="nav-link">
+                <i class="bi bi-stars me-2"></i> Services
+            </a>
+            <a href="@Url.Action("Contact", "Home")" class="nav-link">
+                <i class="bi bi-envelope me-2"></i> Contact
+            </a>
+            
+            <hr>
+            
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <a href="@Url.Action("Profile", "Account")" class="nav-link">
+                    <i class="bi bi-person me-2"></i> My Profile
+                </a>
+                <a href="@Url.Action("Index", "Cart")" class="nav-link">
+                    <i class="bi bi-calendar-check me-2"></i> My Bookings
+                </a>
+            }
+            else
+            {
+                <a href="@Url.Action("Login", "Account")" class="nav-link">
+                    <i class="bi bi-box-arrow-in-right me-2"></i> Sign In
+                </a>
+                <a href="@Url.Action("Register", "Account")" class="nav-link">
+                    <i class="bi bi-person-plus me-2"></i> Register
+                </a>
+            }
+            
+            <hr>
+            
+            <a href="@Url.Action("Schedule", "Booking")" class="btn-primary-gradient text-center mt-2">
+                <i class="bi bi-calendar-plus me-2"></i> Book Now
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .user-avatar-sm {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--gradient-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+    }
+    
+    .dropdown-menu {
+        border: none;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-xl);
+        padding: 0.5rem;
+    }
+    
+    .dropdown-item {
+        border-radius: var(--radius-sm);
+        padding: 0.75rem 1rem;
+        font-weight: 500;
+        transition: var(--transition-fast);
+    }
+    
+    .dropdown-item:hover {
+        background: rgba(102, 126, 234, 0.1);
+    }
+    
+    .offcanvas {
+        max-width: 320px;
+    }
+    
+    .offcanvas .nav-link {
+        padding: 1rem 1.25rem;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+    }
+    
+    .offcanvas .nav-link:hover {
+        background: rgba(102, 126, 234, 0.1);
+    }
+</style>

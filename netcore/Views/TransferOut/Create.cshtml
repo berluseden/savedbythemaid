@@ -8,7 +8,7 @@
     ViewData["CreateInfo"] = "Goods issue or transfer out, can only process [Open] transfer order that have not been processed as goods issue or goods receive. Already processed transfer order will not show in dropdownlist.";
 }
 
-@Html.Partial("_StatusMessage", (string)ViewBag.StatusMessage)
+<partial name="_StatusMessage" model="(string)ViewBag.StatusMessage" />
 <div class="row">
     <div class="col-md-12">
         <div asp-validation-summary="ModelOnly" class="text-danger"></div>

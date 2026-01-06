@@ -1,0 +1,314 @@
+@model JempSoft.Applications.Book.Dto.ServiceItemsOnCartDto
+@{
+    ViewData["Title"] = "Your Cart";
+    Layout = "~/Views/Shared/_CustomerLayout.cshtml";
+}
+
+<!-- Cart Hero -->
+<section class="cart-hero py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center" data-aos="fade-up">
+                <span class="badge bg-primary-subtle text-primary mb-3 px-3 py-2 rounded-pill">
+                    <i class="bi bi-cart3 me-2"></i>Shopping Cart
+                </span>
+                <h1 class="display-5 fw-bold mb-3">Your Cart</h1>
+                <p class="lead text-muted mb-0">Review your selected services before checkout</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Cart Content -->
+<section class="cart-section pb-5">
+    <div class="container">
+        @if (Model?.Services == null || !Model.Services.Any())
+        {
+            <div class="row justify-content-center">
+                <div class="col-lg-6 text-center" data-aos="fade-up">
+                    <div class="empty-cart-card">
+                        <i class="bi bi-cart-x display-1 text-muted mb-4"></i>
+                        <h3>Your Cart is Empty</h3>
+                        <p class="text-muted mb-4">Looks like you haven't added any services yet.</p>
+                        <a href="@Url.Action("Schedule", "Booking")" class="btn btn-primary btn-lg">
+                            <i class="bi bi-calendar-plus me-2"></i>Book a Service
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="row g-4">
+                <!-- Cart Items -->
+                <div class="col-lg-8" data-aos="fade-up" data-aos-delay="100">
+                    <div class="cart-items-card">
+                        <div class="cart-header">
+                            <h4 class="mb-0">
+                                <i class="bi bi-bag-check me-2"></i>
+                                Services (@Model.Services.Count item@(Model.Services.Count > 1 ? "s" : ""))
+                            </h4>
+                        </div>
+                        <div class="cart-body">
+                            @foreach (var item in Model.Services)
+                            {
+                                <div class="cart-item" id="item-@item.ServiceId">
+                                    <div class="item-icon">
+                                        <i class="bi bi-house-heart"></i>
+                                    </div>
+                                    <div class="item-details">
+                                        <h5 class="item-title">@item.CleaningPlace</h5>
+                                        <p class="item-meta mb-1">
+                                            <span class="badge bg-light text-dark me-2">
+                                                <i class="bi bi-door-open me-1"></i>@item.CleaningPlaceRoom
+                                            </span>
+                                            <span class="badge bg-light text-dark">
+                                                <i class="bi bi-stars me-1"></i>@item.ServiceType
+                                            </span>
+                                        </p>
+                                        <small class="text-muted">Order #@item.CartItemId</small>
+                                        
+                                        @if (item.AdditionalServicesOnCart != null && item.AdditionalServicesOnCart.Any())
+                                        {
+                                            <div class="additional-services mt-3">
+                                                <small class="text-muted fw-semibold">Additional Services:</small>
+                                                <ul class="list-unstyled mb-0 mt-1">
+                                                    @foreach (var addon in item.AdditionalServicesOnCart)
+                                                    {
+                                                        <li class="addon-item">
+                                                            <i class="bi bi-plus-circle text-success me-1"></i>
+                                                            @addon.Title
+                                                            <span class="addon-price">+$@addon.Price.ToString("F2")</span>
+                                                        </li>
+                                                    }
+                                                </ul>
+                                            </div>
+                                        }
+                                    </div>
+                                    <div class="item-price text-end">
+                                        <span class="price-value">$@item.ServiceTypePrice.ToString("F2")</span>
+                                        <button class="btn btn-outline-danger btn-sm mt-2 btn-delete-item" data-id="@item.ServiceId">
+                                            <i class="bi bi-trash me-1"></i>Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    
+                    <!-- Continue Shopping -->
+                    <div class="mt-4">
+                        <a href="@Url.Action("Schedule", "Booking")" class="btn btn-outline-primary">
+                            <i class="bi bi-plus-circle me-2"></i>Add Another Service
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Order Summary -->
+                <div class="col-lg-4" data-aos="fade-up" data-aos-delay="200">
+                    <div class="summary-card sticky-top" style="top: 100px;">
+                        <div class="summary-header">
+                            <h4><i class="bi bi-receipt me-2"></i>Order Summary</h4>
+                        </div>
+                        <div class="summary-body">
+                            <div class="summary-row">
+                                <span>Subtotal</span>
+                                <span>$@Model.Footer.SubTotal.ToString("F2")</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>Estimated Tax</span>
+                                <span>$5.00</span>
+                            </div>
+                            <hr>
+                            <div class="summary-row total">
+                                <span class="fw-bold fs-5">Total</span>
+                                <span class="fw-bold fs-4 text-primary">$@Model.Footer.Total.ToString("F2")</span>
+                            </div>
+                            
+                            <!-- Promo Code -->
+                            <div class="promo-code mt-4">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" placeholder="Promo Code" id="promoCode">
+                                    <button class="btn btn-outline-primary" type="button" id="btnApplyPromo">Apply</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Checkout Button -->
+                            <button class="btn btn-success btn-lg w-100 mt-4" id="btnProceedToPayment">
+                                <i class="bi bi-credit-card me-2"></i>Proceed to Payment
+                            </button>
+                            
+                            <!-- Trust Badges -->
+                            <div class="trust-badges mt-4">
+                                <div class="d-flex justify-content-center gap-3">
+                                    <div class="text-center">
+                                        <i class="bi bi-shield-check text-success fs-5"></i>
+                                        <small class="d-block text-muted">Secure</small>
+                                    </div>
+                                    <div class="text-center">
+                                        <i class="bi bi-lock text-success fs-5"></i>
+                                        <small class="d-block text-muted">Encrypted</small>
+                                    </div>
+                                    <div class="text-center">
+                                        <i class="bi bi-arrow-counterclockwise text-success fs-5"></i>
+                                        <small class="d-block text-muted">Refundable</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Help Card -->
+                    <div class="help-card mt-4">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-headset text-primary fs-3 me-3"></i>
+                            <div>
+                                <h6 class="mb-0">Need Help?</h6>
+                                <small class="text-muted">Call us at (305) 555-0123</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Delete item handler
+            $('.btn-delete-item').on('click', function() {
+                const itemId = $(this).data('id');
+                const itemElement = $('#item-' + itemId);
+                
+                Swal.fire({
+                    title: 'Remove Item?',
+                    text: 'Are you sure you want to remove this service from your cart?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Yes, remove it'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.post('/Cart/DeleteItem', { id: itemId }, function(response) {
+                            if (response.isDelete) {
+                                itemElement.fadeOut(300, function() {
+                                    $(this).remove();
+                                    // Check if cart is empty
+                                    if ($('.cart-item').length === 0) {
+                                        location.reload();
+                                    }
+                                });
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Removed!',
+                                    text: 'The service has been removed from your cart.',
+                                    showConfirmButton: false,
+                                    timer: 1500
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: response.resultMessage || 'Could not remove item.',
+                                    confirmButtonColor: '#2563eb'
+                                });
+                            }
+                        }).fail(function() {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'An error occurred. Please try again.',
+                                confirmButtonColor: '#2563eb'
+                            });
+                        });
+                    }
+                });
+            });
+            
+            // Promo code handler
+            $('#btnApplyPromo').on('click', function() {
+                const code = $('#promoCode').val().trim();
+                if (!code) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Enter Promo Code',
+                        text: 'Please enter a promo code to apply.',
+                        confirmButtonColor: '#2563eb'
+                    });
+                    return;
+                }
+                
+                // TODO: Implement promo code validation
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Coming Soon',
+                    text: 'Promo code functionality will be available soon!',
+                    confirmButtonColor: '#2563eb'
+                });
+            });
+            
+            // Proceed to payment handler
+            $('#btnProceedToPayment').on('click', function() {
+                // TODO: Implement payment integration
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Coming Soon',
+                    text: 'Payment processing will be available soon! For now, your booking has been registered.',
+                    confirmButtonColor: '#2563eb'
+                }).then(function() {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Booking Confirmed!',
+                        text: 'Thank you for your booking. We will contact you shortly to confirm your appointment.',
+                        confirmButtonColor: '#22c55e'
+                    }).then(function() {
+                        window.location.href = '/';
+                    });
+                });
+            });
+        });
+    </script>
+
+    <style>
+        .cart-hero { background: linear-gradient(135deg, rgba(37, 99, 235, 0.05) 0%, rgba(56, 189, 248, 0.05) 100%); }
+        
+        .empty-cart-card { background: white; border-radius: 1rem; padding: 4rem 2rem; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); }
+        
+        .cart-items-card { background: white; border-radius: 1rem; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); }
+        .cart-header { background: linear-gradient(135deg, var(--primary-color) 0%, #1e40af 100%); color: white; padding: 1.25rem 1.5rem; }
+        .cart-body { padding: 0; }
+        
+        .cart-item { display: flex; gap: 1.25rem; padding: 1.5rem; border-bottom: 1px solid #f1f5f9; transition: background 0.3s ease; }
+        .cart-item:hover { background: #f8fafc; }
+        .cart-item:last-child { border-bottom: none; }
+        
+        .item-icon { width: 60px; height: 60px; background: linear-gradient(135deg, rgba(37, 99, 235, 0.1) 0%, rgba(56, 189, 248, 0.1) 100%); border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--primary-color); flex-shrink: 0; }
+        .item-details { flex: 1; }
+        .item-title { font-weight: 600; margin-bottom: 0.5rem; }
+        .item-price { min-width: 100px; }
+        .price-value { font-size: 1.25rem; font-weight: 600; color: var(--primary-color); }
+        
+        .addon-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; padding: 0.25rem 0; }
+        .addon-price { margin-left: auto; font-weight: 500; color: #22c55e; }
+        
+        .summary-card { background: white; border-radius: 1rem; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); }
+        .summary-header { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; padding: 1.25rem 1.5rem; }
+        .summary-header h4 { margin: 0; font-size: 1.1rem; }
+        .summary-body { padding: 1.5rem; }
+        .summary-row { display: flex; justify-content: space-between; padding: 0.5rem 0; }
+        .summary-row.total { padding-top: 1rem; }
+        
+        .promo-code .form-control { border-radius: 0.5rem 0 0 0.5rem; }
+        .promo-code .btn { border-radius: 0 0.5rem 0.5rem 0; }
+        
+        .help-card { background: white; border-radius: 1rem; padding: 1.25rem; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); }
+        
+        @@media (max-width: 768px) {
+            .cart-item { flex-direction: column; }
+            .item-price { text-align: left !important; margin-top: 1rem; display: flex; align-items: center; justify-content: space-between; }
+        }
+    </style>
+}

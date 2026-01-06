@@ -3,43 +3,45 @@
 @{
     ViewData["Title"] = "Eliminar Empleado";
     Layout = "~/Views/Shared/_AdminLTE4Delete.cshtml";
-    ViewData["EntityIcon"] = "fa fa-user-times";
+    ViewBag.EntityName = "Empleado";
+    ViewBag.EntityNamePlural = "Empleados";
+    ViewBag.EntityId = Model?.EmployeeId;
 }
 
 @if (Model == null)
 {
-    <div class="callout callout-warning">
-        <h4><i class="icon fa fa-warning"></i> No Encontrado</h4>
-        <p>El empleado no fue encontrado. <a asp-action="Index">Volver a la lista</a></p>
+    <div class="alert alert-warning d-flex align-items-center" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <div>El empleado no fue encontrado. <a asp-action="Index">Volver a la lista</a></div>
     </div>
 }
 else
 {
-    <dl class="dl-horizontal">
-        <dt><i class="fa fa-user text-muted"></i> Nombre</dt>
-        <dd><strong>@Model.FirstName @Model.LastName</strong></dd>
+    <input type="hidden" asp-for="EmployeeId" />
+    
+    <dl class="row">
+        <dt class="col-sm-3"><i class="bi bi-person me-1"></i> Nombre</dt>
+        <dd class="col-sm-9"><strong>@Model.FirstName @Model.LastName</strong></dd>
         
-        <dt><i class="fa fa-id-card text-muted"></i> Identificación</dt>
-        <dd>@Model.Identification</dd>
+        <dt class="col-sm-3"><i class="bi bi-card-text me-1"></i> Identificación</dt>
+        <dd class="col-sm-9">@Model.Identification</dd>
         
-        <dt><i class="fa fa-phone text-muted"></i> Teléfono</dt>
-        <dd>@Model.ContactNumber</dd>
+        <dt class="col-sm-3"><i class="bi bi-telephone me-1"></i> Teléfono</dt>
+        <dd class="col-sm-9">@Model.ContactNumber</dd>
         
-        <dt><i class="fa fa-envelope text-muted"></i> Email</dt>
-        <dd>@Model.EmailAddress</dd>
+        <dt class="col-sm-3"><i class="bi bi-envelope me-1"></i> Email</dt>
+        <dd class="col-sm-9">@Model.EmailAddress</dd>
         
-        <dt><i class="fa fa-lock text-muted"></i> Cuenta de Usuario</dt>
-        <dd>@(Model.User?.UserName ?? "Sin cuenta vinculada")</dd>
+        <dt class="col-sm-3"><i class="bi bi-person-lock me-1"></i> Cuenta de Usuario</dt>
+        <dd class="col-sm-9">@(Model.User?.UserName ?? "Sin cuenta vinculada")</dd>
         
-        <dt><i class="fa fa-check-circle text-muted"></i> Estado</dt>
-        <dd>
+        <dt class="col-sm-3"><i class="bi bi-toggle-on me-1"></i> Estado</dt>
+        <dd class="col-sm-9">
             @if (Model.IsActive) {
-                <span class="label label-success">Activo</span>
+                <span class="badge bg-success">Activo</span>
             } else {
-                <span class="label label-danger">Inactivo</span>
+                <span class="badge bg-danger">Inactivo</span>
             }
         </dd>
     </dl>
-    
-    <input type="hidden" name="EmployeeId" value="@Model.EmployeeId" />
 }

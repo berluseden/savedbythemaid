@@ -10,7 +10,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@ViewData["Title"] - JempSoft</title>
+    <title>@ViewData["Title"] - SavedByTheMaid</title>
     
     @await Html.PartialAsync("_AdminLTE4Styles")
     @await RenderSectionAsync("Styles", required: false)
@@ -22,9 +22,10 @@
         
         @await Html.PartialAsync("_AdminLTE4Sidebar", appUser)
         
-        <main class="app-main">
-            @RenderBody()
-            
+        <main class="app-main d-flex flex-column">
+            <div class="app-content flex-grow-1">
+                @RenderBody()
+            </div>
             @await Html.PartialAsync("_AdminLTE4Footer")
         </main>
     </div>

@@ -397,8 +397,8 @@ namespace JempSoft.Applications.Book
                     return Result.Failure<ServiceOrder>($"Service order {serviceOrderId} not found");
                 }
 
-                serviceOrder.IsActive = false;
-                _context.Entry(serviceOrder).State = EntityState.Modified;
+                // Hard delete - remove from database
+                _context.ServiceOrders.Remove(serviceOrder);
                 await _context.SaveChangesAsync(cancellationToken);
 
                 _logger.LogInformation("Service order {ServiceOrderId} removed from cart", serviceOrderId);

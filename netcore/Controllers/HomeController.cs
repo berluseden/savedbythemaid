@@ -11,6 +11,8 @@ using netcore.Models;
 
 namespace netcore.Controllers
 {
+    [Route("admin")]
+    [Route("admin/[controller]")]
     [Authorize(Roles = "Home")]
     public class HomeController : Controller
     {

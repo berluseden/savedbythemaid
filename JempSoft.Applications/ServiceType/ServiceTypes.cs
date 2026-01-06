@@ -90,6 +90,8 @@ namespace JempSoft.Applications.Services
             try
             {
                 var serviceTypes = await _context.ServiceTypes
+                    .Where(x => x.IsActive)
+                    .OrderBy(x => x.Title)
                     .ToListAsync(cancellationToken);
 
                 return serviceTypes;
@@ -105,16 +107,18 @@ namespace JempSoft.Applications.Services
         {
             try
             {
-                // Optimized: Single query with join instead of N+1
+                // Query using only mapped columns, then format in memory
                 var comboBoxItems = await (
                     from cprs in _context.CleaningPlaceRoomServiceTypes
                         .Where(c => c.CleaningPlaceRoomId == cleaningPlaceRoomId)
                     join st in _context.ServiceTypes on cprs.ServiceTypeId equals st.ServiceTypeId
-                    orderby st.FullDescription
+                    where st.IsActive
+                    orderby st.Title
                     select new ComboBoxOutPutDto
                     {
                         Id = st.ServiceTypeId,
-                        Title = st.FullDescription
+                        Title = st.Title + " - $USD " + st.Price.ToString("N2"),
+                        Price = (decimal)st.Price
                     }
                 ).ToListAsync(cancellationToken);
 
@@ -219,12 +223,11 @@ namespace JempSoft.Applications.Services
                     return Result.Failure($"Service type with ID {id} not found");
                 }
 
-                // Soft delete
-                serviceType.IsActive = false;
-                _context.Entry(serviceType).State = EntityState.Modified;
+                // Hard delete - remove from database
+                _context.ServiceTypes.Remove(serviceType);
                 await _context.SaveChangesAsync(cancellationToken);
 
-                _logger.LogInformation("Service type soft-deleted: {Id}", id);
+                _logger.LogInformation("Service type deleted: {Id}", id);
                 return Result.Success();
             }
             catch (Exception ex)

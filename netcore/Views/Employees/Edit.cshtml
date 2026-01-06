@@ -1,78 +1,64 @@
 @model JempSoft.Core.Models.Employee
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Editar Empleada";
     Layout = "~/Views/Shared/_AdminLTE4Edit.cshtml";
-    ViewData["EntityIcon"] = "fa fa-tags";
+    ViewBag.EntityName = "Empleada";
+    ViewBag.EntityNamePlural = "Empleadas";
 }
 
-<hr />
+<div asp-validation-summary="ModelOnly" class="text-danger"></div>
+<input type="hidden" asp-for="EmployeeId" />
+<input type="hidden" asp-for="UserId" />
+
 <div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="EmployeeId" />
-            <div class="form-group col-md-12">
-                <div class="form-group col-md-12">
-                    <label asp-for="UserId" class="control-label"></label>
-                    <select asp-for="UserId" class="form-control" asp-items="ViewBag.UserId"></select>
-                </div>
-            </div>
-
-            <div class="form-group col-md-12">
-
-                <div class="form-group col-md-4">
-
-                    <label asp-for="FirstName" class="control-label"></label>
-                    <input asp-for="FirstName" class="form-control" />
-                    <span asp-validation-for="FirstName" class="text-danger"></span>
-
-                </div>
-                <div class="form-group col-md-8">
-
-                    <label asp-for="LastName" class="control-label"></label>
-                    <input asp-for="LastName" class="form-control" />
-                    <span asp-validation-for="LastName" class="text-danger"></span>
-                </div>
-            </div>
-
-            <div class="form-group col-md-12">
-
-                <div class="form-group col-md-4">
-                    <label asp-for="Identification" class="control-label"></label>
-                    <input asp-for="Identification" class="form-control" />
-                    <span asp-validation-for="Identification" class="text-danger"></span>
-                </div>
-
-                <div class="form-group col-md-4">
-                    <label asp-for="ContactNumber" class="control-label"></label>
-                    <input asp-for="ContactNumber" class="form-control" />
-                    <span asp-validation-for="ContactNumber" class="text-danger"></span>
-                </div>
-
-                <div class="form-group  col-md-4">
-                    <label asp-for="EmailAddress" class="control-label"></label>
-                    <input asp-for="EmailAddress" class="form-control" />
-                    <span asp-validation-for="EmailAddress" class="text-danger"></span>
-                </div>
-
-            </div>
-
-            <div class="form-group col-md-12">
-                <div class="form-group col-md-12">
-                    <label asp-for="Address" class="control-label"></label>
-                    <input asp-for="Address" class="form-control" />
-                    <span asp-validation-for="Address" class="text-danger"></span>
-                </div>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-default" />
-            </div>
-        </form>
-    </div>    
+    <div class="col-md-6">
+        <div class="mb-3">
+            <label asp-for="FirstName" class="form-label"><i class="bi bi-person me-1"></i> Nombre <span class="text-danger">*</span></label>
+            <input asp-for="FirstName" class="form-control" placeholder="Ej: María" />
+            <span asp-validation-for="FirstName" class="text-danger"></span>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="mb-3">
+            <label asp-for="LastName" class="form-label"><i class="bi bi-person me-1"></i> Apellidos <span class="text-danger">*</span></label>
+            <input asp-for="LastName" class="form-control" placeholder="Ej: García López" />
+            <span asp-validation-for="LastName" class="text-danger"></span>
+        </div>
+    </div>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
+<div class="row">
+    <div class="col-md-4">
+        <div class="mb-3">
+            <label asp-for="Identification" class="form-label"><i class="bi bi-card-text me-1"></i> Identificación</label>
+            <input asp-for="Identification" class="form-control" placeholder="Número de documento" />
+            <span asp-validation-for="Identification" class="text-danger"></span>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="mb-3">
+            <label asp-for="ContactNumber" class="form-label"><i class="bi bi-telephone me-1"></i> Teléfono</label>
+            <input asp-for="ContactNumber" class="form-control" placeholder="Ej: 809-555-1234" />
+            <span asp-validation-for="ContactNumber" class="text-danger"></span>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="mb-3">
+            <label asp-for="EmailAddress" class="form-label"><i class="bi bi-envelope me-1"></i> Email</label>
+            <input asp-for="EmailAddress" class="form-control" type="email" placeholder="correo@ejemplo.com" />
+            <span asp-validation-for="EmailAddress" class="text-danger"></span>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="mb-3">
+            <label asp-for="Address" class="form-label"><i class="bi bi-geo-alt me-1"></i> Dirección</label>
+            <input asp-for="Address" class="form-control" placeholder="Dirección completa" />
+            <span asp-validation-for="Address" class="text-danger"></span>
+        </div>
+    </div>
 </div>
 

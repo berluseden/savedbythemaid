@@ -1,35 +1,54 @@
 @model JempSoft.Core.Models.EmployeeSchedule
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Editar Horario";
     Layout = "~/Views/Shared/_AdminLTE4Edit.cshtml";
-    ViewData["EntityIcon"] = "fa fa-bank";
+    ViewData["EntityIcon"] = "bi bi-calendar-check";
+    ViewData["EditTitle"] = "Editar Horario de Trabajo";
 }
 
-
-<h2>Edit</h2>
-
-<h4>EmployeeSchedule</h4>
-<hr />
 <div class="row">
-    <div class="col-md-4">
+    <div class="col-md-8">
         <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
             <input type="hidden" asp-for="EmployeeScheduleId" />
-            <div class="form-group">
-                <label asp-for="EmployeeId" class="control-label"></label>
-                <select asp-for="EmployeeId" class="form-control" asp-items="ViewBag.EmployeeId"></select>
-                <span asp-validation-for="EmployeeId" class="text-danger"></span>
+            
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0"><i class="bi bi-calendar-date me-2"></i>Información del Horario</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="EmployeeId" class="form-label fw-semibold">
+                                <i class="bi bi-person text-primary me-1"></i>Empleada <span class="text-danger">*</span>
+                            </label>
+                            <select asp-for="EmployeeId" class="form-select" asp-items="ViewBag.EmployeeId"></select>
+                            <span asp-validation-for="EmployeeId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="AvaliableDay" class="form-label fw-semibold">
+                                <i class="bi bi-calendar-date text-success me-1"></i>Día Disponible <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" asp-for="AvaliableDay" class="form-control" />
+                            <span asp-validation-for="AvaliableDay" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="form-group">
-                <label asp-for="AvaliableDay" class="control-label"></label>
-                <input asp-for="AvaliableDay" class="form-control" />
-                <span asp-validation-for="AvaliableDay" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <button type="submit" class="btn btn-primary"><i class="fa fa-save"></i> Save</button>
-                <a asp-action="Index" class="btn btn-default">Cancel</a>
+            
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save me-2"></i>Guardar Cambios
+                </button>
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle me-2"></i>Cancelar
+                </a>
             </div>
         </form>
     </div>
 </div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

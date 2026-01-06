@@ -8,7 +8,7 @@
     ViewData["CreateInfo"] = "Goods receive or transfer in, can only process [Open] transfer order that already processed the goods issue.";
 }
 
-@Html.Partial("_StatusMessage", (string)ViewBag.StatusMessage)
+<partial name="_StatusMessage" model="(string)ViewBag.StatusMessage" />
 <div class="row">
     <div class="col-md-12">
         <div asp-validation-summary="ModelOnly" class="text-danger"></div>

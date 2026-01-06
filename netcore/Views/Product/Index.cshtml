@@ -1,4 +1,4 @@
-@model IEnumerable<JempSoft.Core.Models.Invent.Product>
+@model IEnumerable<JempSoft.Applications.Invent.Dto.ProductOutputDto>
 
 @{
     ViewData["Title"] = "Index";
@@ -22,25 +22,25 @@ else
         <tr>
             <th></th>
             <th>
-                @Html.DisplayNameFor(model => model.productCode)
+                @Html.DisplayNameFor(model => model.ProductCode)
             </th>
             <th>
-                @Html.DisplayNameFor(model => model.productName)
+                @Html.DisplayNameFor(model => model.ProductName)
             </th>
             <th class="hidden">
-                @Html.DisplayNameFor(model => model.description)
+                @Html.DisplayNameFor(model => model.Description)
             </th>
             <th class="hidden">
-                @Html.DisplayNameFor(model => model.barcode)
+                @Html.DisplayNameFor(model => model.Barcode)
             </th>
             <th class="hidden">
-                @Html.DisplayNameFor(model => model.serialNumber)
+                @Html.DisplayNameFor(model => model.SerialNumber)
             </th>
             <th>
-                @Html.DisplayNameFor(model => model.productType)
+                @Html.DisplayNameFor(model => model.ProductType)
             </th>
             <th class="hidden">
-                @Html.DisplayNameFor(model => model.uom)
+                @Html.DisplayNameFor(model => model.Uom)
             </th>
 
         </tr>
@@ -51,32 +51,32 @@ else
             <tr>
                 <td>
                     <div class="tools">
-                        <a asp-action="Edit" asp-route-id="@item.productId" class="btn btn-primary btn-sm"><i class="fa fa-pencil"></i></a>
-                        <a asp-action="Details" asp-route-id="@item.productId" class="btn btn-primary btn-sm"><i class="fa fa-list"></i></a>
-                        <a asp-action="Delete" asp-route-id="@item.productId" class="btn btn-danger btn-sm"><i class="fa fa-trash"></i></a>
+                        <a asp-action="Edit" asp-route-id="@item.ProductId" class="btn btn-primary btn-sm"><i class="fa fa-pencil"></i></a>
+                        <a asp-action="Details" asp-route-id="@item.ProductId" class="btn btn-primary btn-sm"><i class="fa fa-list"></i></a>
+                        <a asp-action="Delete" asp-route-id="@item.ProductId" class="btn btn-danger btn-sm"><i class="fa fa-trash"></i></a>
                     </div>
                     
                 </td>
                 <td>
-                    @Html.DisplayFor(modelItem => item.productCode)
+                    @Html.DisplayFor(modelItem => item.ProductCode)
                 </td>
                 <td>
-                    @Html.DisplayFor(modelItem => item.productName)
+                    @Html.DisplayFor(modelItem => item.ProductName)
                 </td>
                 <td class="hidden">
-                    @Html.DisplayFor(modelItem => item.description)
+                    @Html.DisplayFor(modelItem => item.Description)
                 </td>
                 <td class="hidden">
-                    @Html.DisplayFor(modelItem => item.barcode)
+                    @Html.DisplayFor(modelItem => item.Barcode)
                 </td>
                 <td class="hidden">
-                    @Html.DisplayFor(modelItem => item.serialNumber)
+                    @Html.DisplayFor(modelItem => item.SerialNumber)
                 </td>
                 <td>
-                    @Html.DisplayFor(modelItem => item.productType)
+                    @Html.DisplayFor(modelItem => item.ProductType)
                 </td>
                 <td class="hidden">
-                    @Html.DisplayFor(modelItem => item.uom)
+                    @Html.DisplayFor(modelItem => item.Uom)
                 </td>
 
             </tr>

@@ -1,8 +1,9 @@
 @model netcore.VMs.CleaningPlacePlaceRoomsVM
 @{
-    ViewData["Title"] = "AddPlaceRoom";
-    Layout = "~/Views/Shared/_AdminLTE4Custom.cshtml";
-    ViewData["EntityIcon"] = "fa fa-tags";
+    ViewData["Title"] = "Agregar Habitaciones";
+    Layout = "~/Views/Shared/_AdminLTE4Edit.cshtml";
+    ViewBag.EntityName = "Habitación";
+    ViewBag.EntityNamePlural = "Tipos de Inmueble";
 
     ViewBag.ControllerActionView = "AddPlaceRoom";
 

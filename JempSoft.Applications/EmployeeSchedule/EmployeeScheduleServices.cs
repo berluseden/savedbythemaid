@@ -51,6 +51,8 @@ namespace JempSoft.Applications.Services
             {
                 var entities = await _context.EmployeeSchedules
                     .Include(x => x.Employee)
+                    .Where(x => x.IsActive)
+                    .OrderBy(x => x.AvaliableDay)
                     .ToListAsync(cancellationToken);
                 return entities;
             }

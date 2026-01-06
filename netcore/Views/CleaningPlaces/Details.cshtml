@@ -3,52 +3,53 @@
 @{
     ViewData["Title"] = "Detalles del Tipo de Inmueble";
     Layout = "~/Views/Shared/_AdminLTE4Details.cshtml";
-    ViewData["EntityIcon"] = "fa fa-home";
-    ViewData["DetailsTitle"] = "Tipo de Inmueble";
+    ViewBag.EntityName = "Tipo de Inmueble";
+    ViewBag.EntityNamePlural = "Tipos de Inmueble";
+    ViewBag.EntityId = Model?.CleaningPlaceId;
 }
 
 @if (Model == null)
 {
-    <div class="callout callout-warning">
-        <h4><i class="icon fa fa-warning"></i> No Encontrado</h4>
-        <p>El tipo de inmueble no fue encontrado.</p>
+    <div class="alert alert-warning d-flex align-items-center" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <div>El tipo de inmueble no fue encontrado.</div>
     </div>
 }
 else
 {
     <div class="row">
         <div class="col-md-6">
-            <div class="detail-row">
-                <div class="detail-label"><i class="fa fa-home text-muted"></i> Título</div>
-                <div class="detail-value"><strong>@Model.Title</strong></div>
-            </div>
+            <dl class="row">
+                <dt class="col-sm-4"><i class="bi bi-house me-1"></i> Título</dt>
+                <dd class="col-sm-8"><strong>@Model.Title</strong></dd>
+            </dl>
         </div>
         <div class="col-md-6">
-            <div class="detail-row">
-                <div class="detail-label"><i class="fa fa-check-circle text-muted"></i> Estado</div>
-                <div class="detail-value">
+            <dl class="row">
+                <dt class="col-sm-4"><i class="bi bi-toggle-on me-1"></i> Estado</dt>
+                <dd class="col-sm-8">
                     @if (Model.IsActive) {
-                        <span class="label label-success"><i class="fa fa-check"></i> Activo</span>
+                        <span class="badge bg-success"><i class="bi bi-check me-1"></i> Activo</span>
                     } else {
-                        <span class="label label-danger"><i class="fa fa-times"></i> Inactivo</span>
+                        <span class="badge bg-danger"><i class="bi bi-x me-1"></i> Inactivo</span>
                     }
-                </div>
-            </div>
+                </dd>
+            </dl>
         </div>
     </div>
     
-    <div class="row" style="margin-top: 15px;">
+    <div class="row mt-3">
         <div class="col-md-6">
-            <div class="detail-row">
-                <div class="detail-label"><i class="fa fa-calendar text-muted"></i> Creación</div>
-                <div class="detail-value">@Model.CreationDate.ToString("dd/MM/yyyy HH:mm")</div>
-            </div>
+            <dl class="row">
+                <dt class="col-sm-4"><i class="bi bi-calendar me-1"></i> Creación</dt>
+                <dd class="col-sm-8">@Model.CreationDate.ToString("dd/MM/yyyy HH:mm")</dd>
+            </dl>
         </div>
         <div class="col-md-6">
-            <div class="detail-row">
-                <div class="detail-label"><i class="fa fa-refresh text-muted"></i> Actualización</div>
-                <div class="detail-value">@(Model.UpdateDate?.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</div>
-            </div>
+            <dl class="row">
+                <dt class="col-sm-4"><i class="bi bi-arrow-clockwise me-1"></i> Actualización</dt>
+                <dd class="col-sm-8">@(Model.UpdateDate?.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</dd>
+            </dl>
         </div>
     </div>
 }

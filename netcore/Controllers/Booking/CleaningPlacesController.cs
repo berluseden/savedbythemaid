@@ -124,32 +124,59 @@ namespace netcore.Controllers
             {
                 return NotFound();
             }
-            return View(result.Value);
+
+            var cleaningPlace = result.Value;
+            
+            // Obtener todas las habitaciones y las que ya están asociadas
+            var allRooms = await _context.CleaningPlaceRooms.Where(r => r.IsActive).ToListAsync();
+            var assignedRoomIds = await _context.CleaningPlaceCleaningPlaceRooms
+                .Where(c => c.CleaningPlaceId == id.Value)
+                .Select(c => c.CleaningPlaceRoomId)
+                .ToListAsync();
+
+            var viewModel = new CleaningPlaceEditVM
+            {
+                CleaningPlaceId = cleaningPlace.CleaningPlaceId,
+                Title = cleaningPlace.Title,
+                IsActive = cleaningPlace.IsActive,
+                CreatorUserId = cleaningPlace.CreatorUserId,
+                CreationDate = cleaningPlace.CreationDate,
+                AvailableRooms = allRooms.Select(r => new RoomSelectionItem
+                {
+                    CleaningPlaceRoomId = r.CleaningPlaceRoomId,
+                    Title = r.Title,
+                    IsActive = r.IsActive,
+                    IsSelected = assignedRoomIds.Contains(r.CleaningPlaceRoomId)
+                }).ToList()
+            };
+
+            return View(viewModel);
         }
 
         // POST: CleaningPlaces/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("CleaningPlaceId,Title,IsActive")] CleaningPlace cleaningPlace)
+        public async Task<IActionResult> Edit(int id, CleaningPlaceEditVM viewModel, int[] SelectedRoomIds)
         {
-            if (id != cleaningPlace.CleaningPlaceId)
+            if (id != viewModel.CleaningPlaceId)
             {
                 return NotFound();
             }
 
             try
             {
-                if (string.IsNullOrWhiteSpace(cleaningPlace.Title))
+                if (string.IsNullOrWhiteSpace(viewModel.Title))
                 {
                     ViewBag.ErrorMessage = "El título es requerido.";
-                    return View(cleaningPlace);
+                    return await ReloadEditView(viewModel);
                 }
 
+                // Actualizar el tipo de inmueble
                 var input = new CleaningPlaceInputDto
                 {
-                    CleaningPlaceId = cleaningPlace.CleaningPlaceId,
-                    Title = cleaningPlace.Title,
-                    IsActive = cleaningPlace.IsActive,
+                    CleaningPlaceId = viewModel.CleaningPlaceId,
+                    Title = viewModel.Title,
+                    IsActive = viewModel.IsActive,
                     CreateUserId = Convert.ToInt32(_pageCookie.GetCookie("UserId"))
                 };
 
@@ -157,15 +184,38 @@ namespace netcore.Controllers
                 if (result.IsFailure)
                 {
                     ViewBag.ErrorMessage = result.Error;
-                    return View(cleaningPlace);
+                    return await ReloadEditView(viewModel);
                 }
+
+                // Actualizar las habitaciones asociadas
+                var existingRooms = await _context.CleaningPlaceCleaningPlaceRooms
+                    .Where(c => c.CleaningPlaceId == id)
+                    .ToListAsync();
                 
-                TempData["SuccessMessage"] = $"Tipo de inmueble '{cleaningPlace.Title}' actualizado exitosamente.";
+                // Eliminar las que ya no están seleccionadas
+                var roomsToRemove = existingRooms.Where(e => !SelectedRoomIds.Contains(e.CleaningPlaceRoomId)).ToList();
+                _context.CleaningPlaceCleaningPlaceRooms.RemoveRange(roomsToRemove);
+
+                // Agregar las nuevas seleccionadas
+                var existingRoomIds = existingRooms.Select(e => e.CleaningPlaceRoomId).ToList();
+                var roomsToAdd = SelectedRoomIds.Where(r => !existingRoomIds.Contains(r)).ToList();
+                foreach (var roomId in roomsToAdd)
+                {
+                    _context.CleaningPlaceCleaningPlaceRooms.Add(new CleaningPlaceCleaningPlaceRoom
+                    {
+                        CleaningPlaceId = id,
+                        CleaningPlaceRoomId = roomId
+                    });
+                }
+
+                await _context.SaveChangesAsync();
+                
+                TempData["SuccessMessage"] = $"Tipo de inmueble '{viewModel.Title}' actualizado exitosamente.";
                 return RedirectToAction(nameof(Index));
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!_cleaningPlaceService.Exists(cleaningPlace.CleaningPlaceId))
+                if (!_cleaningPlaceService.Exists(viewModel.CleaningPlaceId))
                 {
                     return NotFound();
                 }
@@ -174,8 +224,27 @@ namespace netcore.Controllers
             catch (Exception ex)
             {
                 ViewBag.ErrorMessage = "Error al guardar: " + (ex.InnerException?.Message ?? ex.Message);
-                return View(cleaningPlace);
+                return await ReloadEditView(viewModel);
             }
+        }
+
+        private async Task<IActionResult> ReloadEditView(CleaningPlaceEditVM viewModel)
+        {
+            var allRooms = await _context.CleaningPlaceRooms.Where(r => r.IsActive).ToListAsync();
+            var assignedRoomIds = await _context.CleaningPlaceCleaningPlaceRooms
+                .Where(c => c.CleaningPlaceId == viewModel.CleaningPlaceId)
+                .Select(c => c.CleaningPlaceRoomId)
+                .ToListAsync();
+
+            viewModel.AvailableRooms = allRooms.Select(r => new RoomSelectionItem
+            {
+                CleaningPlaceRoomId = r.CleaningPlaceRoomId,
+                Title = r.Title,
+                IsActive = r.IsActive,
+                IsSelected = assignedRoomIds.Contains(r.CleaningPlaceRoomId)
+            }).ToList();
+
+            return View(viewModel);
         }
 
         // GET: CleaningPlaces/Delete/5

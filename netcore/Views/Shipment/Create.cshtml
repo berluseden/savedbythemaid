@@ -8,7 +8,7 @@
     ViewData["CreateInfo"] = "Shipment is a process of delivering the order to your customer. Only [Open] sales order will be available to select for shipment.";
 }
 
-@Html.Partial("_StatusMessage", (string)ViewBag.StatusMessage)
+<partial name="_StatusMessage" model="(string)ViewBag.StatusMessage" />
 <div class="row">
     <div class="col-md-12">
         <div asp-validation-summary="ModelOnly" class="text-danger"></div>

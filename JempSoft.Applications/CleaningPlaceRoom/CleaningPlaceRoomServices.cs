@@ -49,7 +49,10 @@ namespace JempSoft.Applications.Services
         {
             try
             {
-                var entities = await _context.CleaningPlaceRooms.ToListAsync(cancellationToken);
+                var entities = await _context.CleaningPlaceRooms
+                    .Where(x => x.IsActive)
+                    .OrderBy(x => x.Title)
+                    .ToListAsync(cancellationToken);
                 return entities;
             }
             catch (Exception ex)
@@ -175,12 +178,11 @@ namespace JempSoft.Applications.Services
                     return Result.Failure($"CleaningPlaceRoom with ID {id} not found");
                 }
 
-                // Soft delete
-                entity.IsActive = false;
-                _context.Entry(entity).State = EntityState.Modified;
+                // Hard delete - remove from database
+                _context.CleaningPlaceRooms.Remove(entity);
                 await _context.SaveChangesAsync(cancellationToken);
 
-                _logger.LogInformation("CleaningPlaceRoom soft-deleted: {Id}", id);
+                _logger.LogInformation("CleaningPlaceRoom deleted: {Id}", id);
                 return Result.Success();
             }
             catch (Exception ex)

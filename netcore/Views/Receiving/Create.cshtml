@@ -8,7 +8,7 @@
     ViewData["CreateInfo"] = "Receiving is a process of product receive from your vendor. After inspecting and confirm all goods have been received, warehouse team then will issue internal document called Goods Service Receive Note (GSRN) as a proof of products receive.  Only [Open] purchase order will be available to select for receiving.";
 }
 
-@Html.Partial("_StatusMessage", (string)ViewBag.StatusMessage)
+<partial name="_StatusMessage" model="(string)ViewBag.StatusMessage" />
 <div class="row">
     <div class="col-md-12">
         <div asp-validation-summary="ModelOnly" class="text-danger"></div>
