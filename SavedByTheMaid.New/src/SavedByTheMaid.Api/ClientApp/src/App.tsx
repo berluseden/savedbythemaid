@@ -11,6 +11,8 @@ import { AdminDashboardPage } from '@/pages/admin/DashboardPage';
 import { AdminBookingsPage } from '@/pages/admin/BookingsPage';
 import { AdminEmployeesPage } from '@/pages/admin/EmployeesPage';
 import { AdminServicesPage } from '@/pages/admin/ServicesPage';
+import { AdminServiceAreasPage } from '@/pages/admin/ServiceAreasPage';
+import { AdminUsersPage } from '@/pages/admin/UsersPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -80,6 +82,22 @@ function App() {
               element={
                 <ProtectedRoute requiredRoles={['Admin']}>
                   <AdminServicesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/service-areas"
+              element={
+                <ProtectedRoute requiredRoles={['Admin']}>
+                  <AdminServiceAreasPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <ProtectedRoute requiredRoles={['Admin']}>
+                  <AdminUsersPage />
                 </ProtectedRoute>
               }
             />

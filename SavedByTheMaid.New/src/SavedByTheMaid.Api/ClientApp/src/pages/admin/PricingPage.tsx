@@ -1,11 +1,8 @@
 import { useState, useEffect } from 'react';
 import {
-  DollarSign,
   Plus,
   Edit2,
   Trash2,
-  Save,
-  X,
   Home,
   Bath,
   Square,
@@ -56,10 +53,6 @@ export function AdminPricingPage() {
   const [sizePricing, setSizePricing] = useState<SizePricing[]>([]);
   const [additionalServices, setAdditionalServices] = useState<AdditionalService[]>([]);
   const [zonePricing, setZonePricing] = useState<ZonePricing[]>([]);
-  
-  // Modal state
-  const [showModal, setShowModal] = useState(false);
-  const [editingItem, setEditingItem] = useState<any>(null);
 
   useEffect(() => {
     fetchPricingData();

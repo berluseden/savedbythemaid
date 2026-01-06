@@ -196,6 +196,9 @@ export interface UserInfo {
   roles: string[];
 }
 
+// Alias for backward compatibility
+export type User = UserInfo;
+
 export const authApi = {
   login: (request: LoginRequest) =>
     api.post<AuthResponse>('/auth/login', request),

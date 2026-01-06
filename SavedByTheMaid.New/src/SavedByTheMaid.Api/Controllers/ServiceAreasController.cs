@@ -100,7 +100,65 @@ public class ServiceAreasController : ControllerBase
 
         return serviceAreaZip.ServiceArea;
     }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateServiceArea(int id, UpdateServiceAreaRequest request)
+    {
+        var serviceArea = await _context.ServiceAreas.FindAsync(id);
+        if (serviceArea == null || serviceArea.IsDeleted)
+        {
+            return NotFound();
+        }
+
+        serviceArea.Name = request.Name;
+        serviceArea.Description = request.Description;
+        serviceArea.IsActive = request.IsActive;
+        serviceArea.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteServiceArea(int id)
+    {
+        var serviceArea = await _context.ServiceAreas
+            .Include(s => s.ZipCodes)
+            .FirstOrDefaultAsync(s => s.Id == id);
+
+        if (serviceArea == null)
+        {
+            return NotFound();
+        }
+
+        // Soft delete
+        serviceArea.IsDeleted = true;
+        foreach (var zip in serviceArea.ZipCodes)
+        {
+            zip.IsDeleted = true;
+        }
+
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpDelete("{id}/zipcodes/{zipId}")]
+    public async Task<IActionResult> DeleteZipCode(int id, int zipId)
+    {
+        var zip = await _context.ServiceAreaZips
+            .FirstOrDefaultAsync(z => z.Id == zipId && z.ServiceAreaId == id);
+
+        if (zip == null)
+        {
+            return NotFound();
+        }
+
+        zip.IsDeleted = true;
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
 }
 
 public record CreateServiceAreaRequest(string Name, string? Description);
+public record UpdateServiceAreaRequest(string Name, string? Description, bool IsActive);
 public record AddZipCodeRequest(string ZipCode);

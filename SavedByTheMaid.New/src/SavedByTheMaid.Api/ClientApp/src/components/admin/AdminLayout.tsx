@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -12,8 +12,9 @@ import {
   Bell,
   Menu,
   X,
+  MapPin,
+  Shield,
 } from 'lucide-react';
-import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface AdminLayoutProps {
@@ -25,6 +26,8 @@ const navigation = [
   { name: 'Reservas', href: '/admin/bookings', icon: Calendar },
   { name: 'Empleados', href: '/admin/employees', icon: Users },
   { name: 'Servicios', href: '/admin/services', icon: Briefcase },
+  { name: 'Zonas de Servicio', href: '/admin/service-areas', icon: MapPin },
+  { name: 'Usuarios', href: '/admin/users', icon: Shield },
   { name: 'Configuración', href: '/admin/settings', icon: Settings },
 ];
 

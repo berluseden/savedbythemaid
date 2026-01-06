@@ -12,7 +12,7 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
         // Usar una conexión por defecto para design-time
         var connectionString = "Server=172.18.0.2;Port=3306;Database=SavedByTheMaidNew;User=root;Password=Root@123456;";
         
-        optionsBuilder.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+        optionsBuilder.UseMySQL(connectionString);
 
         return new ApplicationDbContext(optionsBuilder.Options);
     }

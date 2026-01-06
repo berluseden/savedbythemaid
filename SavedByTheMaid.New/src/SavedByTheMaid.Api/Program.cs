@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SavedByTheMaid.Api.Auth;
 using SavedByTheMaid.Api.Middleware;
+using SavedByTheMaid.Domain.Entities;
 using SavedByTheMaid.Infrastructure;
 using SavedByTheMaid.Infrastructure.Data;
 using System.Text.Json.Serialization;
@@ -221,6 +222,9 @@ else
 // Seed de roles al iniciar
 await SeedRolesAsync(app.Services);
 
+// Seed de usuario admin
+await SeedAdminUserAsync(app.Services);
+
 app.Run();
 
 // ============================================
@@ -255,6 +259,50 @@ static async Task SeedRolesAsync(IServiceProvider services)
     catch (Exception ex)
     {
         logger.LogError(ex, "Error al crear roles iniciales");
+    }
+}
+
+static async Task SeedAdminUserAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+    const string adminEmail = "admin@savedbytemaid.com";
+    const string adminPassword = "Admin123!";
+
+    try
+    {
+        var adminUser = await userManager.FindByEmailAsync(adminEmail);
+        if (adminUser == null)
+        {
+            adminUser = new ApplicationUser
+            {
+                UserName = adminEmail,
+                Email = adminEmail,
+                FirstName = "Admin",
+                LastName = "System",
+                EmailConfirmed = true,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var result = await userManager.CreateAsync(adminUser, adminPassword);
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(adminUser, Roles.Admin);
+                logger.LogInformation("Usuario admin creado: {Email}", adminEmail);
+            }
+            else
+            {
+                logger.LogError("Error al crear usuario admin: {Errors}", 
+                    string.Join(", ", result.Errors.Select(e => e.Description)));
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error al crear usuario admin");
     }
 }
 

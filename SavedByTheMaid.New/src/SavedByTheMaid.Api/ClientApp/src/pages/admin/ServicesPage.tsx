@@ -7,7 +7,6 @@ import {
   MoreVertical,
   DollarSign,
   Clock,
-  Check,
   X,
 } from 'lucide-react';
 import { AdminLayout } from '../../components/admin/AdminLayout';

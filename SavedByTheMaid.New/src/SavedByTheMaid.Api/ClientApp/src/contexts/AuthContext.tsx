@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { authApi, User } from '../lib/api';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { authApi, type User } from '../lib/api';
 
 interface AuthContextType {
   user: User | null;
@@ -37,8 +37,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = async () => {
     try {
-      const userData = await authApi.me();
-      setUser(userData);
+      const response = await authApi.me();
+      setUser(response.data);
     } catch {
       // Token invalid or expired
       localStorage.removeItem('token');
@@ -50,8 +50,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       const response = await authApi.login({ email, password });
-      localStorage.setItem('token', response.token);
-      setUser(response.user);
+      localStorage.setItem('token', response.data.accessToken);
+      setUser(response.data.user);
     } finally {
       setIsLoading(false);
     }
@@ -61,8 +61,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       const response = await authApi.register(data);
-      localStorage.setItem('token', response.token);
-      setUser(response.user);
+      localStorage.setItem('token', response.data.accessToken);
+      setUser(response.data.user);
     } finally {
       setIsLoading(false);
     }
@@ -131,7 +131,7 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
   }
 
   if (requiredRoles && requiredRoles.length > 0) {
-    const hasRequiredRole = user?.roles?.some(role => requiredRoles.includes(role));
+    const hasRequiredRole = user?.roles?.some((role: string) => requiredRoles.includes(role));
     if (!hasRequiredRole) {
       return <Navigate to="/" replace />;
     }

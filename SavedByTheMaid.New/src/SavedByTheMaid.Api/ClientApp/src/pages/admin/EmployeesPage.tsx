@@ -7,11 +7,8 @@ import {
   Mail,
   Phone,
   Star,
-  Calendar,
   X,
   User,
-  MapPin,
-  Clock,
 } from 'lucide-react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 

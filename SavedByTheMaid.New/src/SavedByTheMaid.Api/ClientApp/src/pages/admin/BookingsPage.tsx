@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
   Search,
-  Filter,
   Calendar,
   Clock,
   MapPin,
@@ -59,7 +58,6 @@ export function AdminBookingsPage() {
   const [filterDate, setFilterDate] = useState<string>('');
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [showFilters, setShowFilters] = useState(false);
   const itemsPerPage = 10;
 
   useEffect(() => {
