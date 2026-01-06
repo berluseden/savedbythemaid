@@ -4,14 +4,12 @@ using Microsoft.AspNetCore.DataProtection;
 using netcore.Data;
 using netcore.Models;
 using netcore.Services;
-using JempSoft.Applications;
-using JempSoft.Applications.Administration.Page;
-using JempSoft.Applications.Book;
-using JempSoft.Applications.Services;
-using JempSoft.Applications.ServiceMeet;
-using JempSoft.Applications.Invent;
-using JempSoft.Core.Data;
-using JempSoft.Core.UnitOfWork;
+using netcore.Services.Administration.Page;
+using netcore.Services.Book;
+using netcore.Services.Services;
+using netcore.Services.ServiceMeet;
+using netcore.UnitOfWork;
+using netcore.POCOs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,9 +19,6 @@ var serverVersion = new MySqlServerVersion(new Version(8, 0, 0));
 
 // Add services to the container.
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseMySql(connectionString, serverVersion));
-
-builder.Services.AddDbContext<JempSoftDbContext>(options =>
     options.UseMySql(connectionString, serverVersion));
 
 // Get Identity Default Options
@@ -92,13 +87,6 @@ builder.Services.AddScoped<IEmployeeServices, EmployeeServices>();
 builder.Services.AddScoped<IEmployeeScheduleServices, EmployeeScheduleServices>();
 builder.Services.AddScoped<IServiceMeetServices, ServiceMeetServices>();
 
-// Invent Services
-builder.Services.AddScoped<IBranchServices, BranchServices>();
-builder.Services.AddScoped<IWarehouseServices, WarehouseServices>();
-builder.Services.AddScoped<IProductServices, ProductServices>();
-builder.Services.AddScoped<ICustomerServices, CustomerServices>();
-builder.Services.AddScoped<IVendorServices, VendorServices>();
-
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPageCookieService, PageCookieService>();
@@ -139,7 +127,7 @@ using (var scope = app.Services.CreateScope())
         // Ensure database is created
         context.Database.EnsureCreated();
         
-        var jempSoftContext = services.GetRequiredService<JempSoftDbContext>();
+        var jempSoftContext = services.GetRequiredService<ApplicationDbContext>();
         jempSoftContext.Database.EnsureCreated();
         
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();

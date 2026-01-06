@@ -1,5 +1,5 @@
-﻿using JempSoft.Applications;
-using JempSoft.Applications.Administration.Page;
+﻿using netcore.Services;
+using netcore.Services.Administration.Page;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;

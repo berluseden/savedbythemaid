@@ -1,8 +1,7 @@
-﻿using Microsoft.AspNetCore.Hosting;
+using netcore.Models;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
-using netcore.Models;
-using JempSoft.Core.Models.Invent;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -33,11 +32,5 @@ namespace netcore.Services
         Task UpdateRoles(ApplicationUser appUser, ApplicationUser currentUserLogin);
 
         Task CreateDefaultSuperAdmin();
-
-        VMStock GetStockByProductAndWarehouse(string productId, string warehouseId);
-
-        List<VMStock> GetStockPerWarehouse();
-
-        Task InitDemo();
     }
 }

@@ -4,10 +4,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using JempSoft.Core.Models.Services;
-using JempSoft.Applications;
-using JempSoft.Applications.Administration.Page;
-using JempSoft.Applications.Services;
+using netcore.Services;
+using netcore.Services.Administration.Page;
+using netcore.Services.Services;
 
 namespace netcore.Controllers.Booking
 {

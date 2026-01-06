@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using netcore.Models.ManageViewModels;
-using JempSoft.Core.Models;
+using netcore.Models;
 using netcore.Services;
 
 namespace netcore.Areas.Client.Controllers

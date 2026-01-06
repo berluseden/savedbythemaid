@@ -4,9 +4,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using JempSoft.Core.Models;
-using JempSoft.Applications;
-using JempSoft.Applications.Services;
+using netcore.Models;
+using netcore.Services;
+using netcore.Services.Services;
 using netcore.Data;
 using netcore.VMs;
 

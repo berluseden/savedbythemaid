@@ -1,4 +1,4 @@
-using JempSoft.Core.Models;
+using netcore.Models;
 using System.Collections.Generic;
 
 namespace netcore.VMs

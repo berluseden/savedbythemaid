@@ -26,9 +26,6 @@ namespace netcore.Data
 
             //init app with super admin user
             await netcoreService.CreateDefaultSuperAdmin();
-
-            //init demo
-            await netcoreService.InitDemo();
             
         }
     }

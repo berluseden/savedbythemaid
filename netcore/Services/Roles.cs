@@ -1,3 +1,4 @@
+using netcore.Models;
 ﻿using Microsoft.AspNetCore.Identity;
 using netcore.Models;
 using System;

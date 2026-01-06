@@ -5,10 +5,10 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using JempSoft.Core.Models;
-using JempSoft.Applications;
-using JempSoft.Applications.Services;
-using JempSoft.Applications.Administration.Page;
+using netcore.Models;
+using netcore.Services;
+using netcore.Services.Services;
+using netcore.Services.Administration.Page;
 
 namespace netcore.Controllers
 {

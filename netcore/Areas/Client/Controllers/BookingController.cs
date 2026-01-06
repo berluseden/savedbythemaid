@@ -1,7 +1,8 @@
-using JempSoft.Applications;
-using JempSoft.Applications.Administration.Page;
-using JempSoft.Applications.Book.Dto;
-using JempSoft.Applications.Services;
+using netcore.Models;
+using netcore.Services;
+using netcore.Services.Administration.Page;
+using netcore.Services.Book.Dto;
+using netcore.Services.Services;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;

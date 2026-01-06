@@ -104,8 +104,6 @@ namespace netcore.Controllers
                         ApplicationUserRole = model.ApplicationUserRole,
                         CleaningRole = model.CleaningRole,
                         BookingRole = model.BookingRole,
-                        InventoryCatalogRole = model.InventoryCatalogRole,
-                        InventoryTransactionRole = model.InventoryTransactionRole,
                         ReportsRole = model.ReportsRole
                     };
 

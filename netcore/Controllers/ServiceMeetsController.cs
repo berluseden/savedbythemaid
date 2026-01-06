@@ -5,9 +5,9 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using JempSoft.Core.Models;
-using JempSoft.Applications.ServiceMeet;
-using JempSoft.Applications.ServiceMeet.Dto;
+using netcore.Models;
+using netcore.Services.ServiceMeet;
+using netcore.Services.ServiceMeet.Dto;
 
 namespace netcore.Controllers
 {
@@ -52,8 +52,7 @@ namespace netcore.Controllers
         public async Task<IActionResult> Create()
         {
             var cartItemsResult = await _serviceMeetServices.GetCartItemsComboBoxAsync();
-            var cartItems = cartItemsResult.IsSuccess ? cartItemsResult.Value : new List<JempSoft.Applications.ComboBoxOutPutDto>();
-            ViewData["CartItemId"] = new SelectList(cartItems, "Id", "Name");
+            ViewData["CartItemId"] = new SelectList(cartItemsResult.IsSuccess ? cartItemsResult.Value : new List<netcore.Models.ComboBoxOutPutDto>(), "Id", "Name");
             return View();
         }
 
@@ -73,8 +72,7 @@ namespace netcore.Controllers
             }
             
             var cartItemsResult = await _serviceMeetServices.GetCartItemsComboBoxAsync();
-            var cartItems = cartItemsResult.IsSuccess ? cartItemsResult.Value : new List<JempSoft.Applications.ComboBoxOutPutDto>();
-            ViewData["CartItemId"] = new SelectList(cartItems, "Id", "Name", input.CartItemId);
+            ViewData["CartItemId"] = new SelectList(cartItemsResult.IsSuccess ? cartItemsResult.Value : new List<netcore.Models.ComboBoxOutPutDto>(), "Id", "Name", input.CartItemId);
             return View(input);
         }
 
@@ -107,8 +105,7 @@ namespace netcore.Controllers
             };
             
             var cartItemsResult = await _serviceMeetServices.GetCartItemsComboBoxAsync();
-            var cartItems = cartItemsResult.IsSuccess ? cartItemsResult.Value : new List<JempSoft.Applications.ComboBoxOutPutDto>();
-            ViewData["CartItemId"] = new SelectList(cartItems, "Id", "Name", serviceMeet.CartItemId);
+            ViewData["CartItemId"] = new SelectList(cartItemsResult.IsSuccess ? cartItemsResult.Value : new List<netcore.Models.ComboBoxOutPutDto>(), "Id", "Name", serviceMeet.CartItemId);
             ViewData["ServiceMeetId"] = id.Value;
             return View(input);
         }
@@ -134,8 +131,7 @@ namespace netcore.Controllers
             }
             
             var cartItemsResult = await _serviceMeetServices.GetCartItemsComboBoxAsync();
-            var cartItems = cartItemsResult.IsSuccess ? cartItemsResult.Value : new List<JempSoft.Applications.ComboBoxOutPutDto>();
-            ViewData["CartItemId"] = new SelectList(cartItems, "Id", "Name", input.CartItemId);
+            ViewData["CartItemId"] = new SelectList(cartItemsResult.IsSuccess ? cartItemsResult.Value : new List<netcore.Models.ComboBoxOutPutDto>(), "Id", "Name", input.CartItemId);
             ViewData["ServiceMeetId"] = id;
             return View(input);
         }

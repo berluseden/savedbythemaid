@@ -5,10 +5,9 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using JempSoft.Core.Models;
-using JempSoft.Core.Models.Administration;
-using JempSoft.Applications;
-using JempSoft.Applications.Services;
+using netcore.Models;
+using netcore.Services;
+using netcore.Services.Services;
 using netcore.Data;
 using netcore.VMs;
 

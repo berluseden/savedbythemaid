@@ -2,15 +2,15 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using JempSoft.Core.Models;
+using netcore.Models;
 using netcore.Data;
 using netcore.VMs;
 using netcore.Dto;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using System;
-using JempSoft.Applications.Administration.Page;
-using JempSoft.Applications.Services;
+using netcore.Services.Administration.Page;
+using netcore.Services.Services;
 
 namespace netcore.Controllers.Booking
 {

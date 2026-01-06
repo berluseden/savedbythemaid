@@ -7,9 +7,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using netcore.Models.AccountViewModels;
-using JempSoft.Core.Models;
+using netcore.Models;
 using netcore.Services;
-using JempSoft.Applications.Administration.Page;
+using netcore.Services.Administration.Page;
 
 namespace netcore.Areas.Client.Controllers
 {

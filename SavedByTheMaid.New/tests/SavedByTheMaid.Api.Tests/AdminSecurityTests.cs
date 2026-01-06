@@ -1,0 +1,67 @@
+using System.Net;
+using System.Net.Http.Json;
+using FluentAssertions;
+
+namespace SavedByTheMaid.Api.Tests;
+
+/// <summary>
+/// Tests de seguridad para verificar que los endpoints admin requieren autenticación
+/// 
+/// BUENA PRÁCTICA:
+/// - Reutiliza CustomWebApplicationFactory (no duplicar configuración)
+/// - Tests parametrizados con [Theory] + [InlineData] para múltiples endpoints
+/// </summary>
+public class AdminSecurityTests : IClassFixture<CustomWebApplicationFactory>
+{
+    private readonly HttpClient _client;
+
+    public AdminSecurityTests(CustomWebApplicationFactory factory)
+    {
+        _client = factory.CreateClient();
+    }
+
+    [Theory]
+    [InlineData("/api/admin/orders")]
+    [InlineData("/api/admin/employees")]
+    [InlineData("/api/admin/cleaningplaces")]
+    [InlineData("/api/admin/servicetypes")]
+    [InlineData("/api/admin/additionalservices")]
+    [InlineData("/api/admin/equipment")]
+    [InlineData("/api/admin/pricemultipliers")]
+    public async Task AdminEndpoints_WithoutAuth_ReturnsUnauthorized(string endpoint)
+    {
+        // Act
+        var response = await _client.GetAsync(endpoint);
+        
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Theory]
+    [InlineData("/api/admin/employees", "POST")]
+    [InlineData("/api/admin/cleaningplaces", "POST")]
+    public async Task AdminPostEndpoints_WithoutAuth_ReturnsUnauthorized(string endpoint, string method)
+    {
+        // Act
+        var response = method == "POST" 
+            ? await _client.PostAsJsonAsync(endpoint, new { })
+            : await _client.GetAsync(endpoint);
+        
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task BookingEndpoints_ArePublic()
+    {
+        // Act - estos endpoints deben ser públicos
+        var coverageResponse = await _client.GetAsync("/api/booking/coverage/10001");
+        var placesResponse = await _client.GetAsync("/api/booking/cleaning-places");
+        var typesResponse = await _client.GetAsync("/api/booking/service-types");
+        
+        // Assert - no deben retornar 401
+        coverageResponse.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
+        placesResponse.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
+        typesResponse.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
+    }
+}

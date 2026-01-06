@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using netcore.Models;
-using JempSoft.Applications.Services;
+using netcore.Services.Services;
 
 namespace netcore.Areas.Client.Controllers
 {

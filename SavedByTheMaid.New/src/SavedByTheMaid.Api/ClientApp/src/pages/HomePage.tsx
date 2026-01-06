@@ -1,0 +1,234 @@
+import { Link } from 'react-router-dom';
+import { CheckCircle, Star, Clock, Shield, Sparkles, ArrowRight } from 'lucide-react';
+import { Button, Card } from '@/components/ui';
+
+export default function HomePage() {
+  const features = [
+    {
+      icon: Clock,
+      title: 'Book in 60 Seconds',
+      description: 'Quick and easy online booking. Choose your date, time, and services.',
+    },
+    {
+      icon: Shield,
+      title: 'Trusted Professionals',
+      description: 'Background-checked and trained cleaning experts you can trust.',
+    },
+    {
+      icon: Star,
+      title: '5-Star Service',
+      description: '100% satisfaction guaranteed. We\'re not happy until you are.',
+    },
+    {
+      icon: CheckCircle,
+      title: 'Eco-Friendly',
+      description: 'We use green cleaning products that are safe for your family.',
+    },
+  ];
+
+  const testimonials = [
+    {
+      name: 'Sarah M.',
+      location: 'Manhattan, NY',
+      rating: 5,
+      text: 'Amazing service! My apartment has never looked this clean. Will definitely book again.',
+    },
+    {
+      name: 'John D.',
+      location: 'Brooklyn, NY',
+      rating: 5,
+      text: 'Professional, punctual, and thorough. SavedByTheMaid truly saved my weekend!',
+    },
+    {
+      name: 'Emily R.',
+      location: 'Queens, NY',
+      rating: 5,
+      text: 'The booking process was so easy and the cleaners were fantastic. Highly recommend!',
+    },
+  ];
+
+  return (
+    <div>
+      {/* Hero Section */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-sky-50 to-white">
+        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
+          <div className="grid gap-12 lg:grid-cols-2 lg:gap-8 items-center">
+            <div className="space-y-8">
+              <div className="inline-flex items-center rounded-full bg-sky-100 px-4 py-1.5 text-sm font-medium text-sky-700">
+                <Sparkles className="mr-2 h-4 w-4" />
+                Professional Cleaning Services
+              </div>
+              
+              <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+                A Clean Home,{' '}
+                <span className="text-sky-500">Without the Work</span>
+              </h1>
+              
+              <p className="text-lg text-gray-600 max-w-lg">
+                Book professional house cleaning in 60 seconds. Trusted cleaners, 
+                transparent pricing, and 100% satisfaction guaranteed.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link to="/book">
+                  <Button size="lg" className="w-full sm:w-auto">
+                    Book Your Cleaning
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+                <Link to="/services">
+                  <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                    View Services
+                  </Button>
+                </Link>
+              </div>
+
+              {/* Trust badges */}
+              <div className="flex items-center gap-6 pt-4">
+                <div className="flex items-center gap-1">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                  ))}
+                  <span className="ml-2 text-sm font-medium text-gray-600">4.9/5 (2,000+ reviews)</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Hero Image Placeholder */}
+            <div className="relative">
+              <div className="aspect-square rounded-2xl bg-gradient-to-br from-sky-100 to-sky-200 flex items-center justify-center">
+                <Sparkles className="h-32 w-32 text-sky-500 opacity-50" />
+              </div>
+              
+              {/* Floating card */}
+              <Card className="absolute -bottom-6 -left-6 p-4 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+                    <CheckCircle className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">Booking Confirmed!</p>
+                    <p className="text-sm text-gray-500">Tomorrow at 9:00 AM</p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-20 bg-white">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
+              Why Choose SavedByTheMaid?
+            </h2>
+            <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
+              We make professional cleaning easy, affordable, and stress-free.
+            </p>
+          </div>
+
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+            {features.map((feature) => (
+              <Card key={feature.title} className="p-6 text-center">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-sky-100">
+                  <feature.icon className="h-7 w-7 text-sky-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">{feature.title}</h3>
+                <p className="mt-2 text-sm text-gray-600">{feature.description}</p>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section className="py-20 bg-gray-50">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
+              How It Works
+            </h2>
+            <p className="mt-4 text-lg text-gray-600">
+              Getting your home cleaned is as easy as 1-2-3
+            </p>
+          </div>
+
+          <div className="grid gap-8 md:grid-cols-3">
+            {[
+              { step: '1', title: 'Book Online', description: 'Choose your service, date, and time in our easy booking system.' },
+              { step: '2', title: 'We Clean', description: 'Our professional cleaners arrive on time and work their magic.' },
+              { step: '3', title: 'Relax & Enjoy', description: 'Come home to a sparkling clean space. It\'s that simple!' },
+            ].map((item) => (
+              <div key={item.step} className="relative text-center">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-sky-500 text-2xl font-bold text-white">
+                  {item.step}
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900">{item.title}</h3>
+                <p className="mt-2 text-gray-600">{item.description}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-12 text-center">
+            <Link to="/book">
+              <Button size="lg">
+                Get Started Now
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="py-20 bg-white">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
+              What Our Customers Say
+            </h2>
+          </div>
+
+          <div className="grid gap-8 md:grid-cols-3">
+            {testimonials.map((testimonial) => (
+              <Card key={testimonial.name} className="p-6">
+                <div className="flex gap-1 mb-4">
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <Star key={i} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                  ))}
+                </div>
+                <p className="text-gray-600 mb-4">"{testimonial.text}"</p>
+                <div>
+                  <p className="font-semibold text-gray-900">{testimonial.name}</p>
+                  <p className="text-sm text-gray-500">{testimonial.location}</p>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 bg-sky-500">
+        <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-bold text-white sm:text-4xl">
+            Ready for a Cleaner Home?
+          </h2>
+          <p className="mt-4 text-lg text-sky-100">
+            Book your professional cleaning today and enjoy a spotless space tomorrow.
+          </p>
+          <div className="mt-8">
+            <Link to="/book">
+              <Button size="lg" variant="secondary" className="bg-white text-sky-600 hover:bg-sky-50">
+                Book Now - It's Free to Schedule
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}

@@ -1,0 +1,149 @@
+using System.Net;
+using System.Text.Json;
+
+namespace SavedByTheMaid.Api.Middleware;
+
+/// <summary>
+/// Middleware global para manejo de excepciones
+/// Captura todas las excepciones no manejadas y retorna respuestas JSON consistentes
+/// </summary>
+public class GlobalExceptionMiddleware
+{
+    private readonly RequestDelegate _next;
+    private readonly ILogger<GlobalExceptionMiddleware> _logger;
+    private readonly IHostEnvironment _environment;
+
+    public GlobalExceptionMiddleware(
+        RequestDelegate next,
+        ILogger<GlobalExceptionMiddleware> logger,
+        IHostEnvironment environment)
+    {
+        _next = next;
+        _logger = logger;
+        _environment = environment;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        try
+        {
+            await _next(context);
+        }
+        catch (Exception ex)
+        {
+            await HandleExceptionAsync(context, ex);
+        }
+    }
+
+    private async Task HandleExceptionAsync(HttpContext context, Exception exception)
+    {
+        var correlationId = Guid.NewGuid().ToString();
+        
+        _logger.LogError(
+            exception,
+            "Error no manejado. CorrelationId: {CorrelationId}, Path: {Path}, Method: {Method}",
+            correlationId,
+            context.Request.Path,
+            context.Request.Method);
+
+        context.Response.ContentType = "application/json";
+
+        var response = exception switch
+        {
+            ValidationException validationEx => new ErrorResponse
+            {
+                StatusCode = (int)HttpStatusCode.BadRequest,
+                Message = "Error de validación",
+                Errors = validationEx.Errors,
+                CorrelationId = correlationId
+            },
+            
+            UnauthorizedAccessException => new ErrorResponse
+            {
+                StatusCode = (int)HttpStatusCode.Unauthorized,
+                Message = "No autorizado",
+                CorrelationId = correlationId
+            },
+            
+            KeyNotFoundException => new ErrorResponse
+            {
+                StatusCode = (int)HttpStatusCode.NotFound,
+                Message = "Recurso no encontrado",
+                CorrelationId = correlationId
+            },
+            
+            InvalidOperationException invalidOpEx => new ErrorResponse
+            {
+                StatusCode = (int)HttpStatusCode.BadRequest,
+                Message = invalidOpEx.Message,
+                CorrelationId = correlationId
+            },
+            
+            _ => new ErrorResponse
+            {
+                StatusCode = (int)HttpStatusCode.InternalServerError,
+                Message = "Ha ocurrido un error interno. Por favor contacte al soporte.",
+                CorrelationId = correlationId
+            }
+        };
+
+        // En desarrollo, incluir detalles del error
+        if (_environment.IsDevelopment())
+        {
+            response.Details = exception.Message;
+            response.StackTrace = exception.StackTrace;
+        }
+
+        context.Response.StatusCode = response.StatusCode;
+
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+        };
+
+        await context.Response.WriteAsync(JsonSerializer.Serialize(response, jsonOptions));
+    }
+}
+
+/// <summary>
+/// Respuesta de error estandarizada
+/// </summary>
+public class ErrorResponse
+{
+    public int StatusCode { get; set; }
+    public string Message { get; set; } = "";
+    public string CorrelationId { get; set; } = "";
+    public string[]? Errors { get; set; }
+    public string? Details { get; set; }
+    public string? StackTrace { get; set; }
+}
+
+/// <summary>
+/// Excepción personalizada para errores de validación
+/// </summary>
+public class ValidationException : Exception
+{
+    public string[] Errors { get; }
+
+    public ValidationException(string[] errors) : base("Error de validación")
+    {
+        Errors = errors;
+    }
+
+    public ValidationException(string error) : base(error)
+    {
+        Errors = new[] { error };
+    }
+}
+
+/// <summary>
+/// Extension method para agregar el middleware
+/// </summary>
+public static class GlobalExceptionMiddlewareExtensions
+{
+    public static IApplicationBuilder UseGlobalExceptionHandler(this IApplicationBuilder app)
+    {
+        return app.UseMiddleware<GlobalExceptionMiddleware>();
+    }
+}

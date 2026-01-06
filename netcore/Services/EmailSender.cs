@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Options;
+using netcore.Models;
+using netcore.POCOs;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
