@@ -182,12 +182,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         // ========== PRECISIÓN DECIMAL ==========
 
         builder.Entity<ServiceType>()
-            .Property(s => s.Cost).HasPrecision(18, 2);
-        builder.Entity<ServiceType>()
             .Property(s => s.Price).HasPrecision(18, 2);
+        builder.Entity<ServiceType>()
+            .Property(s => s.PricePerBedroom).HasPrecision(18, 2);
+        builder.Entity<ServiceType>()
+            .Property(s => s.PricePerBathroom).HasPrecision(18, 2);
 
-        builder.Entity<AdditionalServiceType>()
-            .Property(s => s.Cost).HasPrecision(18, 2);
         builder.Entity<AdditionalServiceType>()
             .Property(s => s.Price).HasPrecision(18, 2);
 
