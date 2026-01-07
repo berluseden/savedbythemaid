@@ -132,16 +132,6 @@ builder.Services.AddRateLimiter(options =>
 // Background Services
 builder.Services.AddHostedService<SavedByTheMaid.Api.BackgroundServices.SoftReserveCleanupService>();
 
-// Application Insights
-if (!string.IsNullOrEmpty(builder.Configuration["ApplicationInsights:ConnectionString"]))
-{
-    builder.Services.AddApplicationInsightsTelemetry(options =>
-    {
-        options.ConnectionString = builder.Configuration["ApplicationInsights:ConnectionString"];
-        options.EnableAdaptiveSampling = builder.Configuration.GetValue<bool>("ApplicationInsights:EnableAdaptiveSampling", true);
-    });
-}
-
 // CORS
 builder.Services.AddCors(options =>
 {
