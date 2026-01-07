@@ -67,7 +67,6 @@ public class AdminOrdersController : ControllerBase
                 ServiceAreaName = o.ServiceArea != null ? o.ServiceArea.Name : null,
                 ServiceTypeName = o.ServiceType != null ? o.ServiceType.Name : null,
                 Total = o.Total,
-                PaymentStatus = o.PaymentStatus,
                 OrderStatus = o.OrderStatus,
                 RecurrenceType = o.RecurrenceType,
                 CreatedAt = o.CreatedAt
@@ -97,11 +96,32 @@ public class AdminOrdersController : ControllerBase
         var order = await _context.ServiceOrders.FindAsync(id);
         if (order == null || order.IsDeleted) return NotFound();
 
-        order.OrderStatus = request.OrderStatus;
-        if (request.PaymentStatus.HasValue)
-            order.PaymentStatus = request.PaymentStatus.Value;
+        // Validar transiciones permitidas de OrderStatus
+        var currentStatus = order.OrderStatus;
+        var newStatus = request.OrderStatus;
 
+        // Definir transiciones válidas
+        var validTransitions = new Dictionary<OrderStatus, OrderStatus[]>
+        {
+            [OrderStatus.Draft] = new[] { OrderStatus.Confirmed, OrderStatus.Cancelled },
+            [OrderStatus.Confirmed] = new[] { OrderStatus.InProgress, OrderStatus.Cancelled, OrderStatus.NoShow },
+            [OrderStatus.InProgress] = new[] { OrderStatus.Completed, OrderStatus.Cancelled },
+            [OrderStatus.Completed] = Array.Empty<OrderStatus>(), // Estado final
+            [OrderStatus.Cancelled] = Array.Empty<OrderStatus>(), // Estado final
+            [OrderStatus.NoShow] = Array.Empty<OrderStatus>() // Estado final
+        };
+
+        if (!validTransitions[currentStatus].Contains(newStatus))
+        {
+            return BadRequest($"Transición inválida: {currentStatus} -> {newStatus}");
+        }
+
+        _logger.LogInformation("Order {OrderId} status transition: {From} -> {To}", 
+            id, currentStatus, newStatus);
+
+        order.OrderStatus = newStatus;
         await _context.SaveChangesAsync();
+        
         return NoContent();
     }
 
@@ -344,7 +364,6 @@ public record OrderSummaryDto
     public string? ServiceAreaName { get; init; }
     public string? ServiceTypeName { get; init; }
     public decimal Total { get; init; }
-    public PaymentStatus PaymentStatus { get; init; }
     public OrderStatus OrderStatus { get; init; }
     public RecurrenceType RecurrenceType { get; init; }
     public DateTime CreatedAt { get; init; }
@@ -388,7 +407,7 @@ public record CalendarMeetingDto
     public MeetStatus Status { get; init; }
 }
 
-public record UpdateOrderStatusRequest(OrderStatus OrderStatus, PaymentStatus? PaymentStatus = null);
+public record UpdateOrderStatusRequest(OrderStatus OrderStatus);
 public record CancelOrderRequest(string? Reason);
 public record UpdateMeetingStatusRequest(MeetStatus Status, string? Notes = null);
 public record AssignEmployeeRequest(int EmployeeId);

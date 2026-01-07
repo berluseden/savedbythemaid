@@ -85,58 +85,91 @@ export interface PriceBreakdownItem {
   amount: number;
 }
 
-export interface TimeSlot {
-  startTime: string;
-  endTime: string;
-  isAvailable: boolean;
-}
-
 export interface AvailabilityResponse {
   date: string;
-  timeSlots: TimeSlot[];
+  zipCode: string;
+  serviceAreaId: number;
+  slots: TimeSlotDto[];
+  totalSlotsAvailable: number;
+}
+
+export interface TimeSlotDto {
+  date: string;
+  startTime: string;
+  endTime: string;
+  formattedTime: string;
+  availableEmployeeIds: number[];
 }
 
 export interface SoftReserveRequest {
-  date: string;
-  timeSlot: string;
-  serviceTypeId: number;
-  cleaningPlaceId: number;
+  date: Date;
+  startTime: string;
   estimatedMinutes: number;
   zipCode: string;
+  employeeId: number;
+  customerId?: string;
+  sessionId?: string;
 }
 
 export interface SoftReserveResponse {
-  reservationToken: string;
+  softReserveId: number;
+  sessionId: string;
+  scheduledStart: string;
+  scheduledEnd: string;
   expiresAt: string;
-  holdMinutes: number;
+  ttlSeconds: number;
+  message: string;
 }
 
 export interface ConfirmBookingRequest {
-  reservationToken: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  address: string;
-  city: string;
-  state: string;
+  softReserveId: number;
+  sessionId: string;
+  customerId?: string;
+  
+  // Address
   zipCode: string;
-  specialInstructions?: string;
+  address: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  
+  // Service
   serviceTypeId: number;
-  cleaningPlaceId: number;
-  numberOfRooms: number;
-  numberOfBathrooms: number;
-  squareFeet: number;
+  cleaningPlaceId?: number;
+  bedrooms: number;
+  bathrooms: number;
+  squareFootage?: number;
+  dirtLevel?: string;
+  hasPets?: boolean;
+  floorLevel?: number;
+  hasElevator?: boolean;
   additionalServiceIds?: number[];
+  
+  // Pricing
+  subtotal: number;
+  tax: number;
+  discount: number;
+  total: number;
+  
+  // Recurrence
+  recurrenceType?: string;
+  recurrenceEndDate?: string;
+  
+  // Contact
+  contactName?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  specialInstructions?: string;
 }
 
 export interface BookingConfirmation {
   orderId: number;
+  meetId: number;
   confirmationNumber: string;
-  status: string;
-  scheduledDate: string;
-  scheduledTime: string;
-  totalAmount: number;
+  scheduledStart: string;
+  scheduledEnd: string;
+  total: number;
+  orderStatus: string;
   message: string;
 }
 
@@ -157,8 +190,10 @@ export const bookingApi = {
 
   // Get availability
   getAvailability: (zipCode: string, date: string, estimatedMinutes: number) =>
-    api.get<AvailabilityResponse>(`/booking/availability`, {
-      params: { zipCode, date, estimatedMinutes },
+    api.post<AvailabilityResponse>('/booking/availability', {
+      zipCode,
+      date,
+      estimatedMinutes,
     }),
 
   // Create soft reservation

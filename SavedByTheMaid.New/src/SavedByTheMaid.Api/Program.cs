@@ -100,6 +100,9 @@ builder.Services.AddRateLimiter(options =>
     };
 });
 
+// Background Services
+builder.Services.AddHostedService<SavedByTheMaid.Api.BackgroundServices.SoftReserveCleanupService>();
+
 // CORS
 builder.Services.AddCors(options =>
 {

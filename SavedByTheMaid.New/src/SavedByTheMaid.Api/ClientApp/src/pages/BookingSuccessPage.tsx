@@ -5,11 +5,12 @@ import { useState } from 'react';
 
 interface BookingConfirmation {
   orderId: number;
+  meetId: number;
   confirmationNumber: string;
-  status: string;
-  scheduledDate: string;
-  scheduledTime: string;
-  totalAmount: number;
+  scheduledStart: string;
+  scheduledEnd: string;
+  total: number;
+  orderStatus: string;
   message: string;
 }
 
@@ -56,13 +57,14 @@ export default function BookingSuccessPage() {
     });
   };
 
-  const formatTime = (timeStr?: string) => {
-    if (!timeStr) return '';
-    const [hours, minutes] = timeStr.split(':');
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const hour12 = hour % 12 || 12;
-    return `${hour12}:${minutes} ${ampm}`;
+  const formatTime = (dateStr?: string) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
   };
 
   const formatCurrency = (amount?: number) => {
@@ -111,9 +113,18 @@ export default function BookingSuccessPage() {
                 <div>
                   <p className="text-sm text-gray-500">Date & Time</p>
                   <p className="font-medium text-gray-900">
-                    {formatDate(confirmation?.scheduledDate || bookingData?.date)}
-                    {(confirmation?.scheduledTime || bookingData?.timeSlot) && (
-                      <> at {formatTime(confirmation?.scheduledTime || bookingData?.timeSlot)}</>
+                    {confirmation?.scheduledStart ? (
+                      new Date(confirmation.scheduledStart).toLocaleString('en-US', {
+                        weekday: 'long',
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true,
+                      })
+                    ) : (
+                      <>{formatDate(bookingData?.date)} at {formatTime(bookingData?.timeSlot)}</>
                     )}
                   </p>
                 </div>
@@ -143,13 +154,13 @@ export default function BookingSuccessPage() {
                 </div>
               )}
 
-              {(confirmation?.totalAmount || estimate?.total) && (
+              {(confirmation?.total || estimate?.total) && (
                 <div className="flex items-center gap-3">
                   <DollarSign className="h-5 w-5 text-gray-400" />
                   <div>
                     <p className="text-sm text-gray-500">Total</p>
                     <p className="font-medium text-gray-900">
-                      {formatCurrency(confirmation?.totalAmount || estimate?.total)}
+                      {formatCurrency(confirmation?.total || estimate?.total)}
                     </p>
                   </div>
                 </div>

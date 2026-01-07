@@ -76,7 +76,6 @@ public class CustomerController : ControllerBase
                 EstimatedDuration = o.EstimatedDurationMinutes,
                 TotalAmount = o.Total,
                 Status = o.OrderStatus.ToString(),
-                PaymentStatus = o.PaymentStatus.ToString(),
                 RecurrenceType = o.RecurrenceType.ToString(),
                 CreatedAt = o.CreatedAt,
                 SpecialInstructions = o.SpecialInstructions
@@ -137,7 +136,6 @@ public class CustomerController : ControllerBase
             Tax = order.Tax,
             TotalAmount = order.Total,
             Status = order.OrderStatus.ToString(),
-            PaymentStatus = order.PaymentStatus.ToString(),
             RecurrenceType = order.RecurrenceType.ToString(),
             SpecialInstructions = order.SpecialInstructions,
             CreatedAt = order.CreatedAt,
@@ -254,7 +252,6 @@ public class CustomerOrderDto
     public int EstimatedDuration { get; set; }
     public decimal TotalAmount { get; set; }
     public string Status { get; set; } = string.Empty;
-    public string PaymentStatus { get; set; } = string.Empty;
     public string RecurrenceType { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public string? SpecialInstructions { get; set; }

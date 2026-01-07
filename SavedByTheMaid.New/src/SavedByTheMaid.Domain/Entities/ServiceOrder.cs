@@ -43,7 +43,6 @@ public class ServiceOrder : BaseAuditableEntity
     public decimal Total { get; set; }
 
     // Estados
-    public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Pending;
     public OrderStatus OrderStatus { get; set; } = OrderStatus.Draft;
     public OrderSource Source { get; set; } = OrderSource.Website;
 

@@ -50,6 +50,27 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
         base.OnModelCreating(builder);
 
+        // ========== GLOBAL QUERY FILTERS ==========
+        
+        // Soft delete global filter - excluye automáticamente entidades eliminadas
+        builder.Entity<ServiceType>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<AdditionalServiceType>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<CleaningPlace>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<CleaningPlaceRoom>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<Equipment>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<PriceMultiplier>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<RecurrenceDiscount>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<Employee>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<EmployeeSchedule>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<EmployeeTimeOff>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<ServiceArea>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<ServiceAreaZip>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<EmployeeServiceArea>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<ServiceOrder>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<ServiceOrderItem>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<ServiceOrderRoom>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<ServiceMeet>().HasQueryFilter(e => !e.IsDeleted);
+
         // ========== ÍNDICES ==========
 
         // ServiceAreaZip - ZipCode único
@@ -104,6 +125,15 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         builder.Entity<ServiceMeet>()
             .HasIndex(sm => new { sm.ServiceAreaId, sm.ScheduledStart });
+
+        // ServiceOrder - índice para listados admin ordenados por fecha
+        builder.Entity<ServiceOrder>()
+            .HasIndex(so => so.CreatedAt)
+            .IsDescending();
+
+        builder.Entity<ServiceOrder>()
+            .HasIndex(so => new { so.OrderStatus, so.CreatedAt })
+            .IsDescending();
 
         // ========== RELACIONES ==========
 

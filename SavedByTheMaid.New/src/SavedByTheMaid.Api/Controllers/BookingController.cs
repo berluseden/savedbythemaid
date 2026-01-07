@@ -426,7 +426,42 @@ public class BookingController : ControllerBase
             var startDateTime = request.Date.Date.Add(request.StartTime);
             var endDateTime = startDateTime.AddMinutes(request.EstimatedMinutes);
 
-            // Verificar conflictos con meetings existentes
+            // 1. Verificar que la empleada tenga horario laboral ese día
+            var dayOfWeek = request.Date.DayOfWeek;
+            var schedule = await _context.EmployeeSchedules
+                .FirstOrDefaultAsync(s => 
+                    s.EmployeeId == request.EmployeeId &&
+                    s.DayOfWeek == dayOfWeek &&
+                    s.IsAvailable);
+
+            if (schedule == null)
+            {
+                await ReleaseLock(lockName);
+                return BadRequest(new { message = "Empleada no trabaja en ese día de la semana." });
+            }
+
+            // Verificar que el horario esté dentro del turno laboral
+            if (request.StartTime < schedule.StartTime || request.StartTime >= schedule.EndTime)
+            {
+                await ReleaseLock(lockName);
+                return BadRequest(new { message = "Horario fuera del turno laboral de la empleada." });
+            }
+
+            // 2. Verificar que la empleada no tenga días libres (TimeOff)
+            var hasTimeOff = await _context.EmployeeTimeOffs
+                .AnyAsync(t => 
+                    t.EmployeeId == request.EmployeeId &&
+                    t.Status == TimeOffStatus.Approved &&
+                    t.StartDateTime <= endDateTime &&
+                    t.EndDateTime >= startDateTime);
+
+            if (hasTimeOff)
+            {
+                await ReleaseLock(lockName);
+                return BadRequest(new { message = "Empleada no disponible en esas fechas." });
+            }
+
+            // 3. Verificar conflictos con meetings existentes
             var meetingConflict = await _context.ServiceMeets
                 .AnyAsync(m =>
                     m.AssignedEmployeeId == request.EmployeeId &&
@@ -439,7 +474,7 @@ public class BookingController : ControllerBase
                 return Conflict(new { message = "Este horario ya no está disponible." });
             }
 
-            // Verificar conflictos con soft reserves activas
+            // 4. Verificar conflictos con soft reserves activas
             var softReserveConflict = await _context.SoftReserves
                 .AnyAsync(s =>
                     s.EmployeeId == request.EmployeeId &&
@@ -575,7 +610,73 @@ public class BookingController : ControllerBase
                 return BadRequest("La reserva expiró. Por favor selecciona otro horario.");
             }
 
-            // Crear orden
+            // CRÍTICO: Re-calcular pricing en backend para prevenir fraude
+            _logger.LogInformation("Re-calculating pricing for confirmation - SoftReserve {SoftReserveId}", request.SoftReserveId);
+            
+            var serviceType = await _context.ServiceTypes.FindAsync(request.ServiceTypeId);
+            if (serviceType == null)
+                return BadRequest("Tipo de servicio no válido");
+
+            decimal calculatedSubtotal = serviceType.Price;
+            int calculatedMinutes = serviceType.EstimatedMinutes;
+
+            // Agregar servicios adicionales
+            if (request.AdditionalServiceIds?.Any() == true)
+            {
+                var additionals = await _context.AdditionalServiceTypes
+                    .Where(a => request.AdditionalServiceIds.Contains(a.Id))
+                    .ToListAsync();
+                
+                calculatedSubtotal += additionals.Sum(a => a.Price);
+                calculatedMinutes += additionals.Sum(a => a.AdditionalMinutes);
+            }
+
+            // Aplicar multiplicadores (pets, dirt level, etc.)
+            var multipliers = await _context.PriceMultipliers
+                .Where(m => m.IsActive)
+                .Where(m => m.ServiceTypeId == null || m.ServiceTypeId == request.ServiceTypeId)
+                .ToListAsync();
+
+            decimal priceFactor = 1.0m;
+            foreach (var mult in multipliers)
+            {
+                bool applies = mult.ConditionType switch
+                {
+                    MultiplierConditionType.HasPets => request.HasPets,
+                    MultiplierConditionType.DirtLevel => (int)request.DirtLevel == (int)(mult.MinValue ?? 1),
+                    MultiplierConditionType.NoElevator => !request.HasElevator,
+                    _ => false
+                };
+
+                if (applies && mult.AppliesToPrice)
+                    priceFactor *= mult.Factor;
+            }
+
+            calculatedSubtotal *= priceFactor;
+
+            // Aplicar descuento por recurrencia
+            decimal calculatedDiscount = 0;
+            if (request.RecurrenceType != RecurrenceType.None)
+            {
+                var discount = await _context.RecurrenceDiscounts
+                    .FirstOrDefaultAsync(d => d.RecurrenceType == request.RecurrenceType && d.IsActive);
+                if (discount != null)
+                {
+                    calculatedDiscount = calculatedSubtotal * discount.DiscountPercent;
+                }
+            }
+
+            decimal calculatedTotal = calculatedSubtotal - calculatedDiscount;
+
+            // Validar que el total enviado por el cliente coincida (con margen de error de $0.01)
+            if (Math.Abs(request.Total - calculatedTotal) > 0.01m)
+            {
+                _logger.LogWarning("Price mismatch detected - Expected: {Expected}, Received: {Received}", 
+                    calculatedTotal, request.Total);
+                return BadRequest($"El total no coincide. Esperado: ${calculatedTotal:F2}, Recibido: ${request.Total:F2}");
+            }
+
+            // Crear orden con pricing validado
             var order = new ServiceOrder
             {
                 CustomerId = request.CustomerId,
@@ -594,12 +695,11 @@ public class BookingController : ControllerBase
                 HasPets = request.HasPets,
                 FloorLevel = request.FloorLevel,
                 HasElevator = request.HasElevator,
-                Subtotal = request.Subtotal,
-                Tax = request.Tax,
-                Discount = request.Discount,
-                Total = request.Total,
-                PaymentStatus = request.PaymentConfirmed ? PaymentStatus.Paid : PaymentStatus.Pending,
-                OrderStatus = request.PaymentConfirmed ? OrderStatus.Confirmed : OrderStatus.Draft,
+                Subtotal = calculatedSubtotal,
+                Tax = 0, // No tax in MVP
+                Discount = calculatedDiscount,
+                Total = calculatedTotal,
+                OrderStatus = OrderStatus.Draft, // MVP: Admin confirms manually
                 RecurrenceType = request.RecurrenceType,
                 RecurrenceEndDate = request.RecurrenceEndDate,
                 Source = OrderSource.Website,
@@ -644,7 +744,7 @@ public class BookingController : ControllerBase
                 ScheduledStart = softReserve.ScheduledStart,
                 ScheduledEnd = softReserve.ScheduledEnd,
                 EstimatedDurationMinutes = (int)(softReserve.ScheduledEnd - softReserve.ScheduledStart).TotalMinutes,
-                Status = request.PaymentConfirmed ? MeetStatus.Assigned : MeetStatus.Scheduled
+                Status = MeetStatus.Scheduled // MVP: Admin confirms and assigns
             };
 
             _context.ServiceMeets.Add(meet);
@@ -656,13 +756,16 @@ public class BookingController : ControllerBase
 
             await _context.SaveChangesAsync();
 
-            // Si es recurrente, crear citas futuras
-            if (request.RecurrenceType != RecurrenceType.None && request.PaymentConfirmed)
+            // Si es recurrente, crear citas futuras (se crean en estado Scheduled)
+            if (request.RecurrenceType != RecurrenceType.None)
             {
                 await CreateRecurringMeetings(order, meet, request.RecurrenceType, request.RecurrenceEndDate);
             }
 
             await transaction.CommitAsync();
+
+            _logger.LogInformation("Order confirmed - OrderId: {OrderId}, MeetId: {MeetId}, SessionId: {SessionId}, Total: {Total}", 
+                order.Id, meet.Id, request.SessionId, order.Total);
 
             return Ok(new BookingConfirmationResponse
             {
@@ -672,11 +775,8 @@ public class BookingController : ControllerBase
                 ScheduledStart = meet.ScheduledStart,
                 ScheduledEnd = meet.ScheduledEnd,
                 Total = order.Total,
-                PaymentStatus = order.PaymentStatus.ToString(),
                 OrderStatus = order.OrderStatus.ToString(),
-                Message = request.PaymentConfirmed 
-                    ? "¡Tu reserva está confirmada!" 
-                    : "Tu reserva está pendiente de pago."
+                Message = "Your booking request has been received! We'll confirm your appointment shortly."
             });
         }
         catch (Exception ex)
@@ -714,25 +814,55 @@ public class BookingController : ControllerBase
         var currentStart = firstMeet.ScheduledStart.AddDays(interval);
         var horizon = endDate ?? DateTime.UtcNow.AddDays(maxOccurrences * interval);
         var count = 0;
+        var duration = firstMeet.EstimatedDurationMinutes;
+
+        _logger.LogInformation("Creating recurring meetings for Order {OrderId}, type {RecurrenceType}", 
+            order.Id, recurrenceType);
 
         while (currentStart <= horizon && count < maxOccurrences)
         {
-            _context.ServiceMeets.Add(new ServiceMeet
+            var currentEnd = currentStart.AddMinutes(duration);
+
+            // Validar que la empleada no tenga conflictos en esta fecha futura
+            var hasConflict = await _context.ServiceMeets
+                .AnyAsync(m =>
+                    m.AssignedEmployeeId == firstMeet.AssignedEmployeeId &&
+                    m.Status != MeetStatus.Cancelled && m.Status != MeetStatus.NoShow &&
+                    m.ScheduledStart < currentEnd && m.ScheduledEnd > currentStart);
+
+            // Validar TimeOff
+            var hasTimeOff = await _context.EmployeeTimeOffs
+                .AnyAsync(t =>
+                    t.EmployeeId == firstMeet.AssignedEmployeeId &&
+                    t.Status == TimeOffStatus.Approved &&
+                    t.StartDateTime <= currentEnd &&
+                    t.EndDateTime >= currentStart);
+
+            // Solo crear la cita si no hay conflicto
+            if (!hasConflict && !hasTimeOff)
             {
-                ServiceOrderId = order.Id,
-                AssignedEmployeeId = firstMeet.AssignedEmployeeId,
-                ServiceAreaId = firstMeet.ServiceAreaId,
-                ScheduledStart = currentStart,
-                ScheduledEnd = currentStart.AddMinutes(firstMeet.EstimatedDurationMinutes),
-                EstimatedDurationMinutes = firstMeet.EstimatedDurationMinutes,
-                Status = MeetStatus.Scheduled
-            });
+                _context.ServiceMeets.Add(new ServiceMeet
+                {
+                    ServiceOrderId = order.Id,
+                    AssignedEmployeeId = firstMeet.AssignedEmployeeId,
+                    ServiceAreaId = firstMeet.ServiceAreaId,
+                    ScheduledStart = currentStart,
+                    ScheduledEnd = currentEnd,
+                    EstimatedDurationMinutes = firstMeet.EstimatedDurationMinutes,
+                    Status = MeetStatus.Scheduled
+                });
+                count++;
+            }
+            else
+            {
+                _logger.LogWarning("Skipping recurring meeting at {Date} due to conflict or TimeOff", currentStart);
+            }
 
             currentStart = currentStart.AddDays(interval);
-            count++;
         }
 
         await _context.SaveChangesAsync();
+        _logger.LogInformation("Created {Count} recurring meetings for Order {OrderId}", count, order.Id);
     }
 
     private static string FormatDuration(int minutes)
@@ -1008,7 +1138,6 @@ public record BookingConfirmationResponse
     public DateTime ScheduledStart { get; init; }
     public DateTime ScheduledEnd { get; init; }
     public decimal Total { get; init; }
-    public string PaymentStatus { get; init; } = "";
     public string OrderStatus { get; init; } = "";
     public string Message { get; init; } = "";
 }

@@ -3,7 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Home, Sparkles, Calendar, User, CreditCard, CheckCircle } from 'lucide-react';
 import { Button, Input, Card, CardContent, Spinner } from '@/components/ui';
-import { bookingApi, type ServiceType, type CleaningPlace, type EstimateResponse, type TimeSlot, type BookingConfirmation } from '@/lib/api';
+import { bookingApi, type ServiceType, type CleaningPlace, type EstimateResponse, type BookingConfirmation } from '@/lib/api';
 import { cn, formatCurrency } from '@/lib/utils';
 
 type BookingStep = 'zipcode' | 'service' | 'details' | 'schedule' | 'contact' | 'confirm';
@@ -18,6 +18,7 @@ interface BookingData {
   additionalServiceIds: number[];
   date: string;
   timeSlot: string;
+  employeeId: number;
   firstName: string;
   lastName: string;
   email: string;
@@ -26,7 +27,8 @@ interface BookingData {
   city: string;
   state: string;
   specialInstructions: string;
-  reservationToken?: string;
+  softReserveId?: number;
+  sessionId?: string;
 }
 
 const initialBookingData: BookingData = {
@@ -39,6 +41,7 @@ const initialBookingData: BookingData = {
   additionalServiceIds: [],
   date: '',
   timeSlot: '',
+  employeeId: 0,
   firstName: '',
   lastName: '',
   email: '',
@@ -505,15 +508,17 @@ function ScheduleStep({
   const createReservation = useMutation({
     mutationFn: () =>
       bookingApi.createSoftReserve({
-        date: data.date,
-        timeSlot: data.timeSlot,
-        serviceTypeId: data.serviceTypeId,
-        cleaningPlaceId: data.cleaningPlaceId,
+        date: new Date(data.date),
+        startTime: data.timeSlot,
         estimatedMinutes: estimate?.estimatedMinutes || 120,
         zipCode: data.zipCode,
+        employeeId: data.employeeId,
       }),
     onSuccess: (response) => {
-      onChange({ reservationToken: response.data.reservationToken });
+      onChange({ 
+        softReserveId: response.data.softReserveId,
+        sessionId: response.data.sessionId 
+      });
       onNext();
     },
   });
@@ -569,26 +574,33 @@ function ScheduleStep({
             </div>
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-              {availability?.data.timeSlots.map((slot: TimeSlot) => (
-                <button
-                  key={slot.startTime}
-                  onClick={() => slot.isAvailable && handleTimeSelect(slot.startTime)}
-                  disabled={!slot.isAvailable}
-                  className={cn(
-                    'p-3 rounded-lg border-2 text-sm font-medium transition-all',
-                    !slot.isAvailable && 'opacity-50 cursor-not-allowed bg-gray-100',
-                    data.timeSlot === slot.startTime
-                      ? 'border-sky-500 bg-sky-50 text-sky-700'
-                      : 'border-gray-200 hover:border-gray-300'
-                  )}
-                >
-                  {new Date(`2000-01-01T${slot.startTime}`).toLocaleTimeString('en-US', {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    hour12: true,
-                  })}
-                </button>
-              ))}
+              {availability?.data.slots?.map((slot) => {
+                const isAvailable = slot.availableEmployeeIds.length > 0;
+                const isSelected = data.timeSlot === slot.startTime;
+                
+                return (
+                  <button
+                    key={slot.startTime}
+                    onClick={() => {
+                      if (isAvailable) {
+                        handleTimeSelect(slot.startTime);
+                        // Seleccionar primer empleado disponible
+                        onChange({ employeeId: slot.availableEmployeeIds[0] });
+                      }
+                    }}
+                    disabled={!isAvailable}
+                    className={cn(
+                      'p-3 rounded-lg border-2 text-sm font-medium transition-all',
+                      !isAvailable && 'opacity-50 cursor-not-allowed bg-gray-100',
+                      isSelected
+                        ? 'border-sky-500 bg-sky-50 text-sky-700'
+                        : 'border-gray-200 hover:border-gray-300'
+                    )}
+                  >
+                    {slot.formattedTime}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -730,22 +742,26 @@ function ConfirmStep({
   const confirmBooking = useMutation({
     mutationFn: () =>
       bookingApi.confirmBooking({
-        reservationToken: data.reservationToken || '',
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        phone: data.phone,
+        softReserveId: data.softReserveId || 0,
+        sessionId: data.sessionId || '',
+        zipCode: data.zipCode,
         address: data.address,
         city: data.city,
         state: data.state,
-        zipCode: data.zipCode,
-        specialInstructions: data.specialInstructions,
         serviceTypeId: data.serviceTypeId,
         cleaningPlaceId: data.cleaningPlaceId,
-        numberOfRooms: data.numberOfRooms,
-        numberOfBathrooms: data.numberOfBathrooms,
-        squareFeet: data.squareFeet,
+        bedrooms: data.numberOfRooms,
+        bathrooms: data.numberOfBathrooms,
+        squareFootage: data.squareFeet,
         additionalServiceIds: data.additionalServiceIds,
+        subtotal: estimate?.subtotal || 0,
+        tax: estimate?.tax || 0,
+        discount: 0,
+        total: estimate?.total || 0,
+        contactName: `${data.firstName} ${data.lastName}`,
+        contactPhone: data.phone,
+        contactEmail: data.email,
+        specialInstructions: data.specialInstructions,
       }),
     onSuccess: (response) => {
       onSuccess(response.data);
