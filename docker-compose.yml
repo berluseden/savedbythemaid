@@ -1,13 +1,14 @@
 version: '3.8'
 
 services:
+  # Base de datos MySQL
   mysql:
     image: mysql:8.0
     container_name: savedbythemaid-mysql
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: Root@123456
-      MYSQL_DATABASE: SavedByTheMaid
+      MYSQL_DATABASE: SavedByTheMaidNew
       MYSQL_USER: appuser
       MYSQL_PASSWORD: App@123456
     ports:
@@ -16,25 +17,59 @@ services:
       - mysql_data:/var/lib/mysql
       - ./init-db:/docker-entrypoint-initdb.d
     command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - savedbythemaid-network
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pRoot@123456"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  phpmyadmin:
-    image: phpmyadmin:latest
-    container_name: savedbythemaid-phpmyadmin
+  # API Backend .NET
+  api:
+    build:
+      context: ./SavedByTheMaid.New
+      dockerfile: Dockerfile.api
+    container_name: savedbythemaid-api
     restart: unless-stopped
     environment:
-      PMA_HOST: mysql
-      PMA_PORT: 3306
-      MYSQL_ROOT_PASSWORD: Root@123456
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+      - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=SavedByTheMaidNew;User=appuser;Password=App@123456;
+      - Jwt__SecretKey=YourSuperSecretKeyForJWTTokenGenerationAtLeast32CharactersLong
+      - Jwt__Issuer=SavedByTheMaid
+      - Jwt__Audience=SavedByTheMaidUsers
+      - Jwt__ExpiryMinutes=60
     ports:
-      - "8080:80"
+      - "5000:5000"
     depends_on:
       mysql:
         condition: service_healthy
+    networks:
+      - savedbythemaid-network
+    volumes:
+      - api_logs:/app/logs
+
+  # Frontend React
+  frontend:
+    build:
+      context: ./SavedByTheMaid.New
+      dockerfile: Dockerfile.frontend
+    container_name: savedbythemaid-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    networks:
+      - savedbythemaid-network
+    environment:
+      - VITE_API_URL=http://localhost:5000
 
 volumes:
   mysql_data:
+  api_logs:
+
+networks:
+  savedbythemaid-network:
+    driver: bridge
