@@ -41,10 +41,7 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
         path: "logs/savedbythemaid-.log",
         rollingInterval: RollingInterval.Day,
         retainedFileCountLimit: 30,
-        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
-    .WriteTo.ApplicationInsights(
-        context.Configuration["ApplicationInsights:ConnectionString"] ?? "",
-        TelemetryConverter.Traces));
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}"));
 
 // ============================================
 // 1. Configuración de servicios
