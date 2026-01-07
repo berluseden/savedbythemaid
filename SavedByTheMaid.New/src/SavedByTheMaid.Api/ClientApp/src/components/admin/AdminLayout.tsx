@@ -14,6 +14,8 @@ import {
   X,
   MapPin,
   Shield,
+  Home,
+  PlusCircle,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -26,6 +28,8 @@ const navigation = [
   { name: 'Reservas', href: '/admin/bookings', icon: Calendar },
   { name: 'Empleados', href: '/admin/employees', icon: Users },
   { name: 'Servicios', href: '/admin/services', icon: Briefcase },
+  { name: 'Tipos de Inmueble', href: '/admin/cleaning-places', icon: Home },
+  { name: 'Servicios Adicionales', href: '/admin/additional-services', icon: PlusCircle },
   { name: 'Zonas de Servicio', href: '/admin/service-areas', icon: MapPin },
   { name: 'Usuarios', href: '/admin/users', icon: Shield },
   { name: 'Configuración', href: '/admin/settings', icon: Settings },

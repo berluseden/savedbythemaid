@@ -1,8 +1,75 @@
-import { Link } from 'react-router-dom';
-import { CheckCircle, Calendar, MapPin, ArrowRight } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { CheckCircle, Calendar, MapPin, ArrowRight, Clock, DollarSign, Copy, Check } from 'lucide-react';
 import { Button, Card } from '@/components/ui';
+import { useState } from 'react';
+
+interface BookingConfirmation {
+  orderId: number;
+  confirmationNumber: string;
+  status: string;
+  scheduledDate: string;
+  scheduledTime: string;
+  totalAmount: number;
+  message: string;
+}
+
+interface BookingData {
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  date: string;
+  timeSlot: string;
+}
+
+interface EstimateResponse {
+  estimatedMinutes: number;
+  total: number;
+}
 
 export default function BookingSuccessPage() {
+  const location = useLocation();
+  const { confirmation, bookingData, estimate } = (location.state || {}) as {
+    confirmation?: BookingConfirmation;
+    bookingData?: BookingData;
+    estimate?: EstimateResponse;
+  };
+
+  const [copied, setCopied] = useState(false);
+
+  const copyConfirmation = () => {
+    if (confirmation?.confirmationNumber) {
+      navigator.clipboard.writeText(confirmation.confirmationNumber);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return 'Your scheduled date';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  const formatTime = (timeStr?: string) => {
+    if (!timeStr) return '';
+    const [hours, minutes] = timeStr.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${hour12}:${minutes} ${ampm}`;
+  };
+
+  const formatCurrency = (amount?: number) => {
+    if (amount === undefined) return '';
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="mx-auto max-w-lg px-4">
@@ -13,9 +80,28 @@ export default function BookingSuccessPage() {
           </div>
 
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Booking Confirmed!</h1>
-          <p className="text-gray-600 mb-8">
-            Your cleaning has been scheduled. We've sent a confirmation email with all the details.
+          <p className="text-gray-600 mb-6">
+            {confirmation?.message || "Your cleaning has been scheduled. We've sent a confirmation email with all the details."}
           </p>
+
+          {/* Confirmation Number */}
+          {confirmation?.confirmationNumber && (
+            <div className="bg-sky-50 rounded-xl p-4 mb-6">
+              <p className="text-sm text-sky-600 mb-1">Confirmation Number</p>
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-xl font-bold text-sky-700 font-mono">
+                  {confirmation.confirmationNumber}
+                </span>
+                <button
+                  onClick={copyConfirmation}
+                  className="p-1.5 text-sky-600 hover:bg-sky-100 rounded transition-colors"
+                  title="Copy to clipboard"
+                >
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Booking Details */}
           <div className="bg-gray-50 rounded-xl p-6 mb-8 text-left">
@@ -24,16 +110,50 @@ export default function BookingSuccessPage() {
                 <Calendar className="h-5 w-5 text-gray-400" />
                 <div>
                   <p className="text-sm text-gray-500">Date & Time</p>
-                  <p className="font-medium text-gray-900">Tomorrow at 9:00 AM</p>
+                  <p className="font-medium text-gray-900">
+                    {formatDate(confirmation?.scheduledDate || bookingData?.date)}
+                    {(confirmation?.scheduledTime || bookingData?.timeSlot) && (
+                      <> at {formatTime(confirmation?.scheduledTime || bookingData?.timeSlot)}</>
+                    )}
+                  </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <MapPin className="h-5 w-5 text-gray-400" />
-                <div>
-                  <p className="text-sm text-gray-500">Location</p>
-                  <p className="font-medium text-gray-900">Your scheduled address</p>
+
+              {bookingData?.address && (
+                <div className="flex items-center gap-3">
+                  <MapPin className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="text-sm text-gray-500">Location</p>
+                    <p className="font-medium text-gray-900">
+                      {bookingData.address}, {bookingData.city}, {bookingData.state} {bookingData.zipCode}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {estimate?.estimatedMinutes && (
+                <div className="flex items-center gap-3">
+                  <Clock className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="text-sm text-gray-500">Duration</p>
+                    <p className="font-medium text-gray-900">
+                      ~{Math.round(estimate.estimatedMinutes / 60)} hours
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {(confirmation?.totalAmount || estimate?.total) && (
+                <div className="flex items-center gap-3">
+                  <DollarSign className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="text-sm text-gray-500">Total</p>
+                    <p className="font-medium text-gray-900">
+                      {formatCurrency(confirmation?.totalAmount || estimate?.total)}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -58,9 +178,9 @@ export default function BookingSuccessPage() {
 
           {/* Actions */}
           <div className="space-y-3">
-            <Link to="/" className="block">
+            <Link to="/dashboard" className="block">
               <Button className="w-full">
-                Back to Home
+                Go to Dashboard
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>

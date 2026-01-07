@@ -212,9 +212,47 @@ public class AuthController : ControllerBase
 
         return Ok(new { message = "Contraseña actualizada exitosamente." });
     }
+
+    /// <summary>
+    /// Solicitar recuperación de contraseña
+    /// </summary>
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+        
+        // Siempre devolver OK por seguridad (no revelar si el email existe)
+        if (user == null)
+        {
+            _logger.LogInformation("Intento de recuperación para email inexistente: {Email}", request.Email);
+            return Ok(new { message = "Si el correo existe, recibirás un enlace de recuperación." });
+        }
+
+        // TODO: Generar token de reset y enviar email
+        // Por ahora solo logueamos la solicitud
+        _logger.LogInformation("Solicitud de recuperación de contraseña para: {Email}", request.Email);
+
+        // Aquí iría:
+        // 1. Generar token de reset con UserManager.GeneratePasswordResetTokenAsync
+        // 2. Guardar token en BD con expiración
+        // 3. Enviar email con enlace de reset
+
+        return Ok(new { message = "Si el correo existe, recibirás un enlace de recuperación." });
+    }
 }
 
 #region DTOs
+
+public record ForgotPasswordRequest
+{
+    [Required(ErrorMessage = "El email es requerido")]
+    [EmailAddress(ErrorMessage = "Formato de email inválido")]
+    public string Email { get; init; } = "";
+}
 
 public record RegisterRequest
 {

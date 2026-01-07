@@ -6,53 +6,41 @@ import {
   Trash2,
   Mail,
   Phone,
-  Star,
   X,
   User,
 } from 'lucide-react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
+import api from '../../lib/api';
 
-interface Employee {
-  id: string;
+interface EmployeeDto {
+  id: number;
   firstName: string;
   lastName: string;
-  email: string;
-  phone: string;
-  address: string;
-  hireDate: string;
-  status: 'active' | 'inactive' | 'on-leave';
-  rating: number;
-  completedJobs: number;
-  specialties: string[];
-  availability: {
-    monday: boolean;
-    tuesday: boolean;
-    wednesday: boolean;
-    thursday: boolean;
-    friday: boolean;
-    saturday: boolean;
-    sunday: boolean;
-  };
+  email: string | null;
+  phone: string | null;
+  isActive: boolean;
+  primaryServiceAreaName: string | null;
+  serviceAreaCount: number;
+  maxDailyHours: number | null;
+  maxDailyServices: number | null;
 }
 
-const dayLabels: Record<string, string> = {
-  monday: 'L',
-  tuesday: 'M',
-  wednesday: 'X',
-  thursday: 'J',
-  friday: 'V',
-  saturday: 'S',
-  sunday: 'D',
-};
+interface ServiceArea {
+  id: number;
+  name: string;
+}
 
 export function AdminEmployeesPage() {
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [employees, setEmployees] = useState<EmployeeDto[]>([]);
+  const [serviceAreas, setServiceAreas] = useState<ServiceArea[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [editingEmployee, setEditingEmployee] = useState<EmployeeDto | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -60,145 +48,85 @@ export function AdminEmployeesPage() {
     email: '',
     phone: '',
     address: '',
-    status: 'active' as Employee['status'],
-    specialties: '',
-    availability: {
-      monday: true,
-      tuesday: true,
-      wednesday: true,
-      thursday: true,
-      friday: true,
-      saturday: false,
-      sunday: false,
-    },
+    primaryServiceAreaId: null as number | null,
+    maxDailyHours: 8,
+    maxDailyServices: 4,
+    isActive: true,
   });
 
   useEffect(() => {
     fetchEmployees();
+    fetchServiceAreas();
   }, []);
+
+  const fetchServiceAreas = async () => {
+    try {
+      const response = await api.get<ServiceArea[]>('/admin/service-areas');
+      setServiceAreas(response.data);
+    } catch (err) {
+      console.error('Error loading service areas', err);
+    }
+  };
 
   const fetchEmployees = async () => {
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    setEmployees([
-      {
-        id: '1',
-        firstName: 'María',
-        lastName: 'González',
-        email: 'maria.gonzalez@email.com',
-        phone: '(555) 123-4567',
-        address: '123 Main St, Miami, FL',
-        hireDate: '2024-03-15',
-        status: 'active',
-        rating: 4.9,
-        completedJobs: 245,
-        specialties: ['Limpieza Profunda', 'Post-Obra'],
-        availability: {
-          monday: true, tuesday: true, wednesday: true,
-          thursday: true, friday: true, saturday: true, sunday: false,
-        },
-      },
-      {
-        id: '2',
-        firstName: 'Carlos',
-        lastName: 'Rodríguez',
-        email: 'carlos.rodriguez@email.com',
-        phone: '(555) 234-5678',
-        address: '456 Oak Ave, Miami, FL',
-        hireDate: '2024-06-20',
-        status: 'active',
-        rating: 4.7,
-        completedJobs: 132,
-        specialties: ['Limpieza Regular', 'Mudanza'],
-        availability: {
-          monday: true, tuesday: true, wednesday: true,
-          thursday: true, friday: true, saturday: false, sunday: false,
-        },
-      },
-      {
-        id: '3',
-        firstName: 'Ana',
-        lastName: 'Martínez',
-        email: 'ana.martinez@email.com',
-        phone: '(555) 345-6789',
-        address: '789 Pine Rd, Miami, FL',
-        hireDate: '2024-01-10',
-        status: 'on-leave',
-        rating: 4.8,
-        completedJobs: 298,
-        specialties: ['Limpieza Profunda', 'Limpieza Regular'],
-        availability: {
-          monday: false, tuesday: false, wednesday: false,
-          thursday: false, friday: false, saturday: false, sunday: false,
-        },
-      },
-      {
-        id: '4',
-        firstName: 'José',
-        lastName: 'López',
-        email: 'jose.lopez@email.com',
-        phone: '(555) 456-7890',
-        address: '321 Elm St, Miami, FL',
-        hireDate: '2025-01-05',
-        status: 'active',
-        rating: 4.5,
-        completedJobs: 15,
-        specialties: ['Limpieza Regular'],
-        availability: {
-          monday: true, tuesday: true, wednesday: false,
-          thursday: true, friday: true, saturday: true, sunday: true,
-        },
-      },
-    ]);
-    setIsLoading(false);
+    try {
+      const response = await api.get<EmployeeDto[]>('/admin/employees');
+      setEmployees(response.data);
+    } catch (err) {
+      setError('Error al cargar empleados');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const employeeData: Employee = {
-      id: editingEmployee?.id || Date.now().toString(),
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      email: formData.email,
-      phone: formData.phone,
-      address: formData.address,
-      hireDate: editingEmployee?.hireDate || new Date().toISOString().split('T')[0],
-      status: formData.status,
-      rating: editingEmployee?.rating || 0,
-      completedJobs: editingEmployee?.completedJobs || 0,
-      specialties: formData.specialties.split(',').map(s => s.trim()).filter(Boolean),
-      availability: formData.availability,
-    };
+    setSaving(true);
+    setError('');
 
-    if (editingEmployee) {
-      setEmployees(prev => prev.map(e => e.id === editingEmployee.id ? employeeData : e));
-    } else {
-      setEmployees(prev => [...prev, employeeData]);
+    try {
+      if (editingEmployee) {
+        await api.put(`/admin/employees/${editingEmployee.id}`, formData);
+      } else {
+        await api.post('/admin/employees', formData);
+      }
+      await fetchEmployees();
+      closeModal();
+    } catch (err) {
+      setError('Error al guardar empleado');
+      console.error(err);
+    } finally {
+      setSaving(false);
     }
-
-    closeModal();
   };
 
-  const handleEdit = (employee: Employee) => {
+  const handleEdit = (employee: EmployeeDto) => {
     setEditingEmployee(employee);
     setFormData({
       firstName: employee.firstName,
       lastName: employee.lastName,
-      email: employee.email,
-      phone: employee.phone,
-      address: employee.address,
-      status: employee.status,
-      specialties: employee.specialties.join(', '),
-      availability: employee.availability,
+      email: employee.email || '',
+      phone: employee.phone || '',
+      address: '',
+      primaryServiceAreaId: null,
+      maxDailyHours: employee.maxDailyHours || 8,
+      maxDailyServices: employee.maxDailyServices || 4,
+      isActive: employee.isActive,
     });
     setShowModal(true);
   };
 
-  const handleDelete = async (id: string) => {
-    setEmployees(prev => prev.filter(e => e.id !== id));
-    setDeleteConfirm(null);
+  const handleDelete = async (id: number) => {
+    try {
+      await api.delete(`/admin/employees/${id}`);
+      await fetchEmployees();
+      setDeleteConfirm(null);
+    } catch (err) {
+      setError('Error al eliminar empleado');
+      console.error(err);
+    }
   };
 
   const closeModal = () => {
@@ -210,12 +138,10 @@ export function AdminEmployeesPage() {
       email: '',
       phone: '',
       address: '',
-      status: 'active',
-      specialties: '',
-      availability: {
-        monday: true, tuesday: true, wednesday: true,
-        thursday: true, friday: true, saturday: false, sunday: false,
-      },
+      primaryServiceAreaId: null,
+      maxDailyHours: 8,
+      maxDailyServices: 4,
+      isActive: true,
     });
   };
 
@@ -223,25 +149,21 @@ export function AdminEmployeesPage() {
     const matchesSearch =
       employee.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       employee.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || employee.status === filterStatus;
+      (employee.email?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
+    const matchesStatus = filterStatus === 'all' || 
+      (filterStatus === 'active' && employee.isActive) || 
+      (filterStatus === 'inactive' && !employee.isActive);
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusBadge = (status: Employee['status']) => {
-    const styles = {
-      active: 'bg-green-100 text-green-700',
-      inactive: 'bg-gray-100 text-gray-700',
-      'on-leave': 'bg-yellow-100 text-yellow-700',
-    };
-    const labels = {
-      active: 'Activo',
-      inactive: 'Inactivo',
-      'on-leave': 'Permiso',
-    };
-    return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[status]}`}>
-        {labels[status]}
+  const getStatusBadge = (isActive: boolean) => {
+    return isActive ? (
+      <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+        Activo
+      </span>
+    ) : (
+      <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+        Inactivo
       </span>
     );
   };
@@ -307,19 +229,19 @@ export function AdminEmployeesPage() {
           <div className="bg-white rounded-lg p-4 border">
             <p className="text-sm text-gray-500">Activos</p>
             <p className="text-2xl font-bold text-green-600">
-              {employees.filter(e => e.status === 'active').length}
+              {employees.filter(e => e.isActive).length}
             </p>
           </div>
           <div className="bg-white rounded-lg p-4 border">
-            <p className="text-sm text-gray-500">En permiso</p>
-            <p className="text-2xl font-bold text-yellow-600">
-              {employees.filter(e => e.status === 'on-leave').length}
+            <p className="text-sm text-gray-500">Inactivos</p>
+            <p className="text-2xl font-bold text-gray-600">
+              {employees.filter(e => !e.isActive).length}
             </p>
           </div>
           <div className="bg-white rounded-lg p-4 border">
-            <p className="text-sm text-gray-500">Rating promedio</p>
+            <p className="text-sm text-gray-500">Zonas cubiertas</p>
             <p className="text-2xl font-bold text-sky-600">
-              {(employees.reduce((acc, e) => acc + e.rating, 0) / employees.length).toFixed(1)}
+              {employees.reduce((acc, e) => acc + e.serviceAreaCount, 0)}
             </p>
           </div>
         </div>
@@ -333,8 +255,7 @@ export function AdminEmployeesPage() {
                   <th className="px-6 py-3 font-medium">Empleado</th>
                   <th className="px-6 py-3 font-medium">Contacto</th>
                   <th className="px-6 py-3 font-medium">Estado</th>
-                  <th className="px-6 py-3 font-medium">Rating</th>
-                  <th className="px-6 py-3 font-medium">Disponibilidad</th>
+                  <th className="px-6 py-3 font-medium">Zona Principal</th>
                   <th className="px-6 py-3 font-medium text-right">Acciones</th>
                 </tr>
               </thead>
@@ -351,7 +272,7 @@ export function AdminEmployeesPage() {
                             {employee.firstName} {employee.lastName}
                           </p>
                           <p className="text-sm text-gray-500">
-                            {employee.completedJobs} trabajos
+                            {employee.serviceAreaCount} zonas | Max {employee.maxDailyServices || 4} servicios/día
                           </p>
                         </div>
                       </div>
@@ -360,38 +281,21 @@ export function AdminEmployeesPage() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <Mail className="h-4 w-4" />
-                          {employee.email}
+                          {employee.email || '-'}
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <Phone className="h-4 w-4" />
-                          {employee.phone}
+                          {employee.phone || '-'}
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      {getStatusBadge(employee.status)}
+                      {getStatusBadge(employee.isActive)}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-1">
-                        <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                        <span className="font-medium">{employee.rating}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex gap-1">
-                        {Object.entries(employee.availability).map(([day, available]) => (
-                          <span
-                            key={day}
-                            className={`w-6 h-6 rounded text-xs font-medium flex items-center justify-center ${
-                              available
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-gray-100 text-gray-400'
-                            }`}
-                          >
-                            {dayLabels[day]}
-                          </span>
-                        ))}
-                      </div>
+                      <span className="text-sm text-gray-600">
+                        {employee.primaryServiceAreaName || 'Sin asignar'}
+                      </span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
@@ -491,7 +395,6 @@ export function AdminEmployeesPage() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
-                  required
                 />
               </div>
 
@@ -502,7 +405,6 @@ export function AdminEmployeesPage() {
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
-                  required
                 />
               </div>
 
@@ -513,63 +415,61 @@ export function AdminEmployeesPage() {
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
-                  required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Zona Principal</label>
                 <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as Employee['status'] })}
+                  value={formData.primaryServiceAreaId || ''}
+                  onChange={(e) => setFormData({ ...formData, primaryServiceAreaId: e.target.value ? Number(e.target.value) : null })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                 >
-                  <option value="active">Activo</option>
-                  <option value="inactive">Inactivo</option>
-                  <option value="on-leave">En permiso</option>
+                  <option value="">Sin asignar</option>
+                  {serviceAreas.map(area => (
+                    <option key={area.id} value={area.id}>{area.name}</option>
+                  ))}
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Especialidades (separadas por coma)
-                </label>
-                <input
-                  type="text"
-                  value={formData.specialties}
-                  onChange={(e) => setFormData({ ...formData, specialties: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
-                  placeholder="Limpieza Profunda, Mudanza..."
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Disponibilidad</label>
-                <div className="flex gap-2">
-                  {Object.entries(dayLabels).map(([day, label]) => (
-                    <button
-                      key={day}
-                      type="button"
-                      onClick={() =>
-                        setFormData({
-                          ...formData,
-                          availability: {
-                            ...formData.availability,
-                            [day]: !formData.availability[day as keyof typeof formData.availability],
-                          },
-                        })
-                      }
-                      className={`w-10 h-10 rounded-lg font-medium transition-colors ${
-                        formData.availability[day as keyof typeof formData.availability]
-                          ? 'bg-sky-500 text-white'
-                          : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Max horas/día</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="24"
+                    value={formData.maxDailyHours}
+                    onChange={(e) => setFormData({ ...formData, maxDailyHours: parseInt(e.target.value) || 8 })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Max servicios/día</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={formData.maxDailyServices}
+                    onChange={(e) => setFormData({ ...formData, maxDailyServices: parseInt(e.target.value) || 4 })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  />
                 </div>
               </div>
+
+              {editingEmployee && (
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.isActive}
+                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                    className="w-4 h-4 text-sky-500 border-gray-300 rounded focus:ring-sky-500"
+                  />
+                  <span className="text-sm text-gray-700">Empleado activo</span>
+                </label>
+              )}
+
+              {error && <p className="text-red-600 text-sm">{error}</p>}
 
               <div className="flex gap-3 pt-4">
                 <button
@@ -581,9 +481,10 @@ export function AdminEmployeesPage() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors"
+                  disabled={saving}
+                  className="flex-1 px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors disabled:opacity-50"
                 >
-                  {editingEmployee ? 'Guardar Cambios' : 'Crear Empleado'}
+                  {saving ? 'Guardando...' : editingEmployee ? 'Guardar Cambios' : 'Crear Empleado'}
                 </button>
               </div>
             </form>

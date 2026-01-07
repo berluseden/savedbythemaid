@@ -3,7 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Home, Sparkles, Calendar, User, CreditCard, CheckCircle } from 'lucide-react';
 import { Button, Input, Card, CardContent, Spinner } from '@/components/ui';
-import { bookingApi, type ServiceType, type CleaningPlace, type EstimateResponse, type TimeSlot } from '@/lib/api';
+import { bookingApi, type ServiceType, type CleaningPlace, type EstimateResponse, type TimeSlot, type BookingConfirmation } from '@/lib/api';
 import { cn, formatCurrency } from '@/lib/utils';
 
 type BookingStep = 'zipcode' | 'service' | 'details' | 'schedule' | 'contact' | 'confirm';
@@ -183,7 +183,7 @@ export default function BookingPage() {
                 data={bookingData}
                 estimate={estimate}
                 onBack={goToPreviousStep}
-                onSuccess={() => navigate('/booking/success')}
+                onSuccess={(confirmation) => navigate('/booking/success', { state: { confirmation, bookingData, estimate } })}
               />
             )}
           </CardContent>
@@ -725,7 +725,7 @@ function ConfirmStep({
   data: BookingData;
   estimate: EstimateResponse | null;
   onBack: () => void;
-  onSuccess: () => void;
+  onSuccess: (confirmation: BookingConfirmation) => void;
 }) {
   const confirmBooking = useMutation({
     mutationFn: () =>
@@ -747,8 +747,8 @@ function ConfirmStep({
         squareFeet: data.squareFeet,
         additionalServiceIds: data.additionalServiceIds,
       }),
-    onSuccess: () => {
-      onSuccess();
+    onSuccess: (response) => {
+      onSuccess(response.data);
     },
   });
 

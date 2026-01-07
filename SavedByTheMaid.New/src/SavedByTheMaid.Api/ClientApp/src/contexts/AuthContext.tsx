@@ -1,12 +1,28 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { authApi, type User } from '../lib/api';
 
+const setToken = (token: string, rememberMe: boolean) => {
+  localStorage.setItem('rememberMe', rememberMe ? 'true' : 'false');
+  const storage = rememberMe ? localStorage : sessionStorage;
+  storage.setItem('token', token);
+};
+
+const getToken = () => {
+  return localStorage.getItem('token') || sessionStorage.getItem('token');
+};
+
+const clearToken = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('rememberMe');
+  sessionStorage.removeItem('token');
+};
+
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<string>;
+  register: (data: RegisterData) => Promise<string>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -27,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Check if user is authenticated on mount
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = getToken();
     if (token) {
       refreshUser().finally(() => setIsLoading(false));
     } else {
@@ -41,28 +57,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(response.data);
     } catch {
       // Token invalid or expired
-      localStorage.removeItem('token');
+      clearToken();
       setUser(null);
     }
   };
 
-  const login = async (email: string, password: string) => {
+  // Returns redirect path based on user role
+  const getRedirectPath = (roles: string[]): string => {
+    if (roles.includes('Admin')) return '/admin';
+    if (roles.includes('Employee')) return '/employee';
+    return '/dashboard';
+  };
+
+  const login = async (email: string, password: string, rememberMe: boolean = false): Promise<string> => {
     setIsLoading(true);
     try {
       const response = await authApi.login({ email, password });
-      localStorage.setItem('token', response.data.accessToken);
+      setToken(response.data.accessToken, rememberMe);
       setUser(response.data.user);
+      return getRedirectPath(response.data.user.roles);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const register = async (data: RegisterData) => {
+  const register = async (data: RegisterData): Promise<string> => {
     setIsLoading(true);
     try {
       const response = await authApi.register(data);
-      localStorage.setItem('token', response.data.accessToken);
+      setToken(response.data.accessToken, true); // Always remember on register
       setUser(response.data.user);
+      return getRedirectPath(response.data.user.roles);
     } finally {
       setIsLoading(false);
     }
@@ -75,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Ignore errors on logout
     } finally {
-      localStorage.removeItem('token');
+      clearToken();
       setUser(null);
       setIsLoading(false);
     }

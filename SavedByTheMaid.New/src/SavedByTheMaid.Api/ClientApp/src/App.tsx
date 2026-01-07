@@ -7,12 +7,19 @@ import BookingPage from '@/pages/BookingPage';
 import BookingSuccessPage from '@/pages/BookingSuccessPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { RegisterPage } from '@/pages/RegisterPage';
+import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage';
+import { UserDashboardPage } from '@/pages/UserDashboardPage';
 import { AdminDashboardPage } from '@/pages/admin/DashboardPage';
 import { AdminBookingsPage } from '@/pages/admin/BookingsPage';
 import { AdminEmployeesPage } from '@/pages/admin/EmployeesPage';
 import { AdminServicesPage } from '@/pages/admin/ServicesPage';
 import { AdminServiceAreasPage } from '@/pages/admin/ServiceAreasPage';
 import { AdminUsersPage } from '@/pages/admin/UsersPage';
+import { AdminCleaningPlacesPage } from '@/pages/admin/CleaningPlacesPage';
+import { AdminAdditionalServicesPage } from '@/pages/admin/AdditionalServicesPage';
+import ServicesPage from '@/pages/ServicesPage';
+import ContactPage from '@/pages/ContactPage';
+import AboutPage from '@/pages/AboutPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,13 +51,24 @@ function App() {
             <Route path="/" element={<PublicLayout><HomePage /></PublicLayout>} />
             <Route path="/book" element={<PublicLayout><BookingPage /></PublicLayout>} />
             <Route path="/booking/success" element={<PublicLayout><BookingSuccessPage /></PublicLayout>} />
-            <Route path="/services" element={<PublicLayout><PlaceholderPage title="Nuestros Servicios" /></PublicLayout>} />
-            <Route path="/contact" element={<PublicLayout><PlaceholderPage title="Contáctanos" /></PublicLayout>} />
-            <Route path="/about" element={<PublicLayout><PlaceholderPage title="Sobre Nosotros" /></PublicLayout>} />
+            <Route path="/services" element={<PublicLayout><ServicesPage /></PublicLayout>} />
+            <Route path="/contact" element={<PublicLayout><ContactPage /></PublicLayout>} />
+            <Route path="/about" element={<PublicLayout><AboutPage /></PublicLayout>} />
             
             {/* Auth routes (no header/footer) */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            
+            {/* User dashboard (protected) */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <PublicLayout><UserDashboardPage /></PublicLayout>
+                </ProtectedRoute>
+              }
+            />
             
             {/* Admin routes (protected) */}
             <Route
@@ -98,6 +116,22 @@ function App() {
               element={
                 <ProtectedRoute requiredRoles={['Admin']}>
                   <AdminUsersPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/cleaning-places"
+              element={
+                <ProtectedRoute requiredRoles={['Admin']}>
+                  <AdminCleaningPlacesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/additional-services"
+              element={
+                <ProtectedRoute requiredRoles={['Admin']}>
+                  <AdminAdditionalServicesPage />
                 </ProtectedRoute>
               }
             />

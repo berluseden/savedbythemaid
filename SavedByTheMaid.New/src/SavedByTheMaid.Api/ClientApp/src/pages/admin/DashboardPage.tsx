@@ -8,9 +8,9 @@ import {
   CheckCircle,
   AlertCircle,
   ArrowUpRight,
-  ArrowDownRight,
 } from 'lucide-react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
+import api from '../../lib/api';
 
 interface DashboardStats {
   totalBookings: number;
@@ -19,20 +19,23 @@ interface DashboardStats {
   totalRevenue: number;
   totalEmployees: number;
   activeEmployees: number;
-  bookingsThisWeek: number;
-  revenueThisWeek: number;
-  bookingsGrowth: number;
-  revenueGrowth: number;
 }
 
-interface RecentBooking {
-  id: string;
-  customerName: string;
-  serviceName: string;
-  date: string;
-  time: string;
-  status: 'pending' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled';
-  amount: number;
+interface OrderSummary {
+  id: number;
+  confirmationNumber: string;
+  contactName: string | null;
+  serviceTypeName: string | null;
+  total: number;
+  orderStatus: string;
+  createdAt: string;
+}
+
+interface EmployeeDto {
+  id: number;
+  firstName: string;
+  lastName: string;
+  isActive: boolean;
 }
 
 export function AdminDashboardPage() {
@@ -43,84 +46,47 @@ export function AdminDashboardPage() {
     totalRevenue: 0,
     totalEmployees: 0,
     activeEmployees: 0,
-    bookingsThisWeek: 0,
-    revenueThisWeek: 0,
-    bookingsGrowth: 0,
-    revenueGrowth: 0,
   });
 
-  const [recentBookings, setRecentBookings] = useState<RecentBooking[]>([]);
+  const [recentBookings, setRecentBookings] = useState<OrderSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    // Simulated data - replace with actual API call
     const fetchDashboardData = async () => {
       setIsLoading(true);
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      setStats({
-        totalBookings: 1247,
-        pendingBookings: 23,
-        completedBookings: 1189,
-        totalRevenue: 89450.00,
-        totalEmployees: 15,
-        activeEmployees: 12,
-        bookingsThisWeek: 47,
-        revenueThisWeek: 3520.00,
-        bookingsGrowth: 12.5,
-        revenueGrowth: 8.3,
-      });
+      try {
+        // Fetch orders and employees in parallel
+        const [ordersRes, employeesRes] = await Promise.all([
+          api.get<OrderSummary[]>('/admin/orders', { params: { pageSize: '100' } }),
+          api.get<EmployeeDto[]>('/admin/employees'),
+        ]);
 
-      setRecentBookings([
-        {
-          id: 'BK-001',
-          customerName: 'María García',
-          serviceName: 'Limpieza Profunda',
-          date: '2026-01-06',
-          time: '09:00',
-          status: 'confirmed',
-          amount: 150.00,
-        },
-        {
-          id: 'BK-002',
-          customerName: 'Carlos López',
-          serviceName: 'Limpieza Regular',
-          date: '2026-01-06',
-          time: '11:00',
-          status: 'in-progress',
-          amount: 85.00,
-        },
-        {
-          id: 'BK-003',
-          customerName: 'Ana Martínez',
-          serviceName: 'Mudanza',
-          date: '2026-01-06',
-          time: '14:00',
-          status: 'pending',
-          amount: 250.00,
-        },
-        {
-          id: 'BK-004',
-          customerName: 'José Rodríguez',
-          serviceName: 'Limpieza Regular',
-          date: '2026-01-05',
-          time: '10:00',
-          status: 'completed',
-          amount: 95.00,
-        },
-        {
-          id: 'BK-005',
-          customerName: 'Laura Sánchez',
-          serviceName: 'Limpieza Profunda',
-          date: '2026-01-05',
-          time: '13:00',
-          status: 'completed',
-          amount: 175.00,
-        },
-      ]);
+        const orders = ordersRes.data;
+        const employees = employeesRes.data;
 
-      setIsLoading(false);
+        // Calculate stats from orders
+        const totalRevenue = orders.reduce((acc, o) => acc + o.total, 0);
+        const pendingBookings = orders.filter(o => o.orderStatus === 'Pending').length;
+        const completedBookings = orders.filter(o => o.orderStatus === 'Completed').length;
+
+        setStats({
+          totalBookings: orders.length,
+          pendingBookings,
+          completedBookings,
+          totalRevenue,
+          totalEmployees: employees.length,
+          activeEmployees: employees.filter(e => e.isActive).length,
+        });
+
+        // Recent bookings (last 5)
+        setRecentBookings(orders.slice(0, 5));
+      } catch (err) {
+        setError('Error al cargar datos del dashboard');
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     fetchDashboardData();
@@ -133,20 +99,20 @@ export function AdminDashboardPage() {
     }).format(amount);
   };
 
-  const getStatusBadge = (status: RecentBooking['status']) => {
-    const styles = {
-      pending: 'bg-yellow-100 text-yellow-700',
-      confirmed: 'bg-blue-100 text-blue-700',
-      'in-progress': 'bg-purple-100 text-purple-700',
-      completed: 'bg-green-100 text-green-700',
-      cancelled: 'bg-red-100 text-red-700',
+  const getStatusBadge = (status: string) => {
+    const styles: Record<string, string> = {
+      Pending: 'bg-yellow-100 text-yellow-700',
+      Confirmed: 'bg-blue-100 text-blue-700',
+      InProgress: 'bg-purple-100 text-purple-700',
+      Completed: 'bg-green-100 text-green-700',
+      Cancelled: 'bg-red-100 text-red-700',
     };
-    const labels = {
-      pending: 'Pendiente',
-      confirmed: 'Confirmada',
-      'in-progress': 'En Progreso',
-      completed: 'Completada',
-      cancelled: 'Cancelada',
+    const labels: Record<string, string> = {
+      Pending: 'Pendiente',
+      Confirmed: 'Confirmada',
+      InProgress: 'En Progreso',
+      Completed: 'Completada',
+      Cancelled: 'Cancelada',
     };
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[status]}`}>
@@ -188,15 +154,10 @@ export function AdminDashboardPage() {
               </div>
             </div>
             <div className="mt-4 flex items-center gap-2">
-              <span className={`flex items-center text-sm ${stats.bookingsGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {stats.bookingsGrowth >= 0 ? (
-                  <ArrowUpRight className="h-4 w-4" />
-                ) : (
-                  <ArrowDownRight className="h-4 w-4" />
-                )}
-                {Math.abs(stats.bookingsGrowth)}%
+              <span className="flex items-center text-sm text-green-600">
+                <ArrowUpRight className="h-4 w-4" />
+                Datos reales
               </span>
-              <span className="text-sm text-gray-500">vs semana pasada</span>
             </div>
           </div>
 
@@ -212,15 +173,10 @@ export function AdminDashboardPage() {
               </div>
             </div>
             <div className="mt-4 flex items-center gap-2">
-              <span className={`flex items-center text-sm ${stats.revenueGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {stats.revenueGrowth >= 0 ? (
-                  <ArrowUpRight className="h-4 w-4" />
-                ) : (
-                  <ArrowDownRight className="h-4 w-4" />
-                )}
-                {Math.abs(stats.revenueGrowth)}%
+              <span className="flex items-center text-sm text-green-600">
+                <TrendingUp className="h-4 w-4" />
+                Desde inicio
               </span>
-              <span className="text-sm text-gray-500">vs semana pasada</span>
             </div>
           </div>
 
@@ -239,7 +195,7 @@ export function AdminDashboardPage() {
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
                   className="bg-purple-600 h-2 rounded-full"
-                  style={{ width: `${(stats.activeEmployees / stats.totalEmployees) * 100}%` }}
+                  style={{ width: stats.totalEmployees > 0 ? `${(stats.activeEmployees / stats.totalEmployees) * 100}%` : '0%' }}
                 />
               </div>
             </div>
@@ -264,6 +220,13 @@ export function AdminDashboardPage() {
             </div>
           </div>
         </div>
+
+        {error && (
+          <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg">
+            {error}
+            <button onClick={() => setError('')} className="ml-2 underline">Cerrar</button>
+          </div>
+        )}
 
         {/* Recent Bookings & Quick Actions */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -293,22 +256,22 @@ export function AdminDashboardPage() {
                   {recentBookings.map((booking) => (
                     <tr key={booking.id} className="border-b last:border-0 hover:bg-gray-50">
                       <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                        {booking.id}
+                        {booking.confirmationNumber}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
-                        {booking.customerName}
+                        {booking.contactName || '-'}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
-                        {booking.serviceName}
+                        {booking.serviceTypeName || '-'}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
-                        {new Date(booking.date).toLocaleDateString('es-ES')} {booking.time}
+                        {new Date(booking.createdAt).toLocaleDateString('es-ES')}
                       </td>
                       <td className="px-6 py-4">
-                        {getStatusBadge(booking.status)}
+                        {getStatusBadge(booking.orderStatus)}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900 text-right font-medium">
-                        {formatCurrency(booking.amount)}
+                        {formatCurrency(booking.total)}
                       </td>
                     </tr>
                   ))}
