@@ -318,7 +318,7 @@ function ServiceStep({
             <Sparkles className={cn('h-8 w-8 mb-3', selectedId === service.id ? 'text-sky-500' : 'text-gray-400')} />
             <h3 className="font-semibold text-gray-900">{service.name}</h3>
             <p className="text-sm text-gray-600 mt-1">{service.description}</p>
-            <p className="text-lg font-bold text-sky-600 mt-3">From {formatCurrency(service.basePrice)}</p>
+            <p className="text-lg font-bold text-sky-600 mt-3">From {formatCurrency(service.price)}</p>
           </button>
         ))}
       </div>
@@ -344,28 +344,79 @@ function DetailsStep({
   onNext: () => void;
   onBack: () => void;
 }) {
-  const { data: cleaningPlaces, isLoading } = useQuery({
+  const { data: cleaningPlaces, isLoading: loadingPlaces } = useQuery({
     queryKey: ['cleaningPlaces'],
     queryFn: () => bookingApi.getCleaningPlaces(),
   });
 
-  const getEstimate = useMutation({
-    mutationFn: () =>
-      bookingApi.getEstimate({
-        serviceTypeId: data.serviceTypeId,
-        cleaningPlaceId: data.cleaningPlaceId,
-        numberOfRooms: data.numberOfRooms,
-        numberOfBathrooms: data.numberOfBathrooms,
-        squareFeet: data.squareFeet,
-        additionalServiceIds: data.additionalServiceIds,
-      }),
-    onSuccess: (response) => {
-      onEstimate(response.data);
-      onNext();
-    },
+  const { data: serviceTypes } = useQuery({
+    queryKey: ['serviceTypes'],
+    queryFn: () => bookingApi.getServiceTypes(),
   });
 
-  if (isLoading) {
+  const { data: additionalServices } = useQuery({
+    queryKey: ['additionalServices'],
+    queryFn: () => bookingApi.getAdditionalServices(),
+  });
+
+  // Calcular precio en tiempo real
+  const selectedService = serviceTypes?.data.find((s: ServiceType) => s.id === data.serviceTypeId);
+  
+  const calculatePrice = () => {
+    if (!selectedService) return { total: 0, breakdown: [] };
+    
+    const basePrice = selectedService.price;
+    const bedroomExtra = Math.max(0, data.numberOfRooms - 1) * selectedService.pricePerBedroom;
+    const bathroomExtra = Math.max(0, data.numberOfBathrooms - 1) * selectedService.pricePerBathroom;
+    
+    const extrasTotal = data.additionalServiceIds.reduce((sum, id) => {
+      const extra = additionalServices?.data.find((s: { id: number; price: number }) => s.id === id);
+      return sum + (extra?.price || 0);
+    }, 0);
+
+    const subtotal = basePrice + bedroomExtra + bathroomExtra + extrasTotal;
+    
+    return {
+      basePrice,
+      bedroomExtra,
+      bathroomExtra,
+      extrasTotal,
+      total: subtotal,
+    };
+  };
+
+  const priceCalc = calculatePrice();
+
+  const handleContinue = () => {
+    // Crear estimate local
+    const estimatedMinutes = selectedService 
+      ? selectedService.estimatedMinutes + 
+        (data.numberOfRooms - 1) * selectedService.minutesPerBedroom + 
+        (data.numberOfBathrooms - 1) * selectedService.minutesPerBathroom
+      : 120;
+
+    onEstimate({
+      basePrice: priceCalc.basePrice,
+      additionalServicesPrice: priceCalc.extrasTotal,
+      subtotal: priceCalc.total,
+      tax: 0,
+      total: priceCalc.total,
+      estimatedMinutes,
+      breakdown: [],
+    });
+    onNext();
+  };
+
+  const toggleExtra = (id: number) => {
+    const current = data.additionalServiceIds;
+    if (current.includes(id)) {
+      onChange({ additionalServiceIds: current.filter(x => x !== id) });
+    } else {
+      onChange({ additionalServiceIds: [...current, id] });
+    }
+  };
+
+  if (loadingPlaces) {
     return (
       <div className="flex justify-center py-12">
         <Spinner size="lg" />
@@ -382,7 +433,7 @@ function DetailsStep({
         {/* Property Type */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-3">Property Type</label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {cleaningPlaces?.data.map((place: CleaningPlace) => (
               <button
                 key={place.id}
@@ -402,7 +453,7 @@ function DetailsStep({
         </div>
 
         {/* Bedrooms & Bathrooms */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Bedrooms</label>
             <div className="flex items-center gap-3">
@@ -417,11 +468,16 @@ function DetailsStep({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onChange({ numberOfRooms: data.numberOfRooms + 1 })}
+                onClick={() => onChange({ numberOfRooms: Math.min(10, data.numberOfRooms + 1) })}
               >
                 +
               </Button>
             </div>
+            {data.numberOfRooms > 1 && selectedService && (
+              <p className="text-xs text-gray-500 mt-1">
+                +{formatCurrency(selectedService.pricePerBedroom)} each extra
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Bathrooms</label>
@@ -437,39 +493,90 @@ function DetailsStep({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onChange({ numberOfBathrooms: data.numberOfBathrooms + 1 })}
+                onClick={() => onChange({ numberOfBathrooms: Math.min(10, data.numberOfBathrooms + 1) })}
               >
                 +
               </Button>
             </div>
+            {data.numberOfBathrooms > 1 && selectedService && (
+              <p className="text-xs text-gray-500 mt-1">
+                +{formatCurrency(selectedService.pricePerBathroom)} each extra
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Square Feet */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Approximate Square Feet: <span className="text-sky-600 font-semibold">{data.squareFeet.toLocaleString()} sq ft</span>
-          </label>
-          <input
-            type="range"
-            min="500"
-            max="5000"
-            step="100"
-            value={data.squareFeet}
-            onChange={(e) => onChange({ squareFeet: parseInt(e.target.value) })}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-sky-500"
-          />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>500 sq ft</span>
-            <span>5,000 sq ft</span>
+        {/* Additional Services */}
+        {additionalServices?.data && additionalServices.data.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Additional Services <span className="text-gray-400 font-normal">(Optional)</span>
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {additionalServices.data.map((extra: { id: number; title: string; description?: string; price: number }) => (
+                <button
+                  key={extra.id}
+                  onClick={() => toggleExtra(extra.id)}
+                  className={cn(
+                    'p-4 rounded-lg border-2 text-left transition-all',
+                    data.additionalServiceIds.includes(extra.id)
+                      ? 'border-sky-500 bg-sky-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  )}
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium text-gray-900">{extra.title}</p>
+                      {extra.description && (
+                        <p className="text-sm text-gray-500 mt-1">{extra.description}</p>
+                      )}
+                    </div>
+                    <span className="text-sky-600 font-semibold">+{formatCurrency(extra.price)}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Price Summary */}
+        <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+          <h3 className="font-semibold text-gray-900 mb-4">Your Estimate</h3>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-600">{selectedService?.name || 'Service'} (base)</span>
+              <span className="font-medium">{formatCurrency(priceCalc.basePrice)}</span>
+            </div>
+            {priceCalc.bedroomExtra > 0 && (
+              <div className="flex justify-between">
+                <span className="text-gray-600">{data.numberOfRooms - 1} extra bedroom(s)</span>
+                <span className="font-medium">+{formatCurrency(priceCalc.bedroomExtra)}</span>
+              </div>
+            )}
+            {priceCalc.bathroomExtra > 0 && (
+              <div className="flex justify-between">
+                <span className="text-gray-600">{data.numberOfBathrooms - 1} extra bathroom(s)</span>
+                <span className="font-medium">+{formatCurrency(priceCalc.bathroomExtra)}</span>
+              </div>
+            )}
+            {priceCalc.extrasTotal > 0 && (
+              <div className="flex justify-between">
+                <span className="text-gray-600">Additional services</span>
+                <span className="font-medium">+{formatCurrency(priceCalc.extrasTotal)}</span>
+              </div>
+            )}
+            <div className="border-t pt-2 mt-2 flex justify-between text-lg">
+              <span className="font-semibold text-gray-900">Total</span>
+              <span className="font-bold text-sky-600">{formatCurrency(priceCalc.total)}</span>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="flex justify-between mt-8">
         <Button variant="outline" onClick={onBack}>Back</Button>
-        <Button onClick={() => getEstimate.mutate()} loading={getEstimate.isPending} disabled={!data.cleaningPlaceId}>
-          Get Estimate
+        <Button onClick={handleContinue} disabled={!data.cleaningPlaceId}>
+          Continue
         </Button>
       </div>
     </div>

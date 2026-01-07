@@ -16,9 +16,12 @@ interface ServiceType {
   id: number;
   name: string;
   description: string;
-  cost: number;
   price: number;
+  pricePerBedroom: number;
+  pricePerBathroom: number;
   estimatedMinutes: number;
+  minutesPerBedroom: number;
+  minutesPerBathroom: number;
   displayOrder: number;
   isActive: boolean;
 }
@@ -36,9 +39,12 @@ export function AdminServicesPage() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    cost: 0,
     price: 0,
+    pricePerBedroom: 15,
+    pricePerBathroom: 20,
     estimatedMinutes: 60,
+    minutesPerBedroom: 20,
+    minutesPerBathroom: 15,
     displayOrder: 0,
     isActive: true,
   });
@@ -86,9 +92,12 @@ export function AdminServicesPage() {
     setFormData({
       name: service.name,
       description: service.description || '',
-      cost: service.cost,
       price: service.price,
+      pricePerBedroom: service.pricePerBedroom || 15,
+      pricePerBathroom: service.pricePerBathroom || 20,
       estimatedMinutes: service.estimatedMinutes,
+      minutesPerBedroom: service.minutesPerBedroom || 20,
+      minutesPerBathroom: service.minutesPerBathroom || 15,
       displayOrder: service.displayOrder,
       isActive: service.isActive,
     });
@@ -125,9 +134,12 @@ export function AdminServicesPage() {
     setFormData({
       name: '',
       description: '',
-      cost: 0,
       price: 0,
+      pricePerBedroom: 15,
+      pricePerBathroom: 20,
       estimatedMinutes: 60,
+      minutesPerBedroom: 20,
+      minutesPerBathroom: 15,
       displayOrder: 0,
       isActive: true,
     });
@@ -358,52 +370,103 @@ export function AdminServicesPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Costo ($)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.cost}
-                    onChange={(e) => setFormData({ ...formData, cost: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
-                  />
-                </div>
+              <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+                <h3 className="font-medium text-gray-900">Precios</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Precio Base ($) *
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.price}
+                      onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                      required
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Incluye 1 recámara + 1 baño</p>
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Precio ($) *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
-                    required
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Por Recámara Extra ($)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.pricePerBedroom}
+                      onChange={(e) => setFormData({ ...formData, pricePerBedroom: parseFloat(e.target.value) || 0 })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Por Baño Extra ($)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.pricePerBathroom}
+                      onChange={(e) => setFormData({ ...formData, pricePerBathroom: parseFloat(e.target.value) || 0 })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+                <h3 className="font-medium text-gray-900">Duración Estimada</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Base (minutos)
+                    </label>
+                    <input
+                      type="number"
+                      min="15"
+                      step="15"
+                      value={formData.estimatedMinutes}
+                      onChange={(e) => setFormData({ ...formData, estimatedMinutes: parseInt(e.target.value) || 60 })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Por Recámara (min)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="5"
+                      value={formData.minutesPerBedroom}
+                      onChange={(e) => setFormData({ ...formData, minutesPerBedroom: parseInt(e.target.value) || 0 })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Por Baño (min)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="5"
+                      value={formData.minutesPerBathroom}
+                      onChange={(e) => setFormData({ ...formData, minutesPerBathroom: parseInt(e.target.value) || 0 })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    />
+                  </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Duración (minutos)
-                  </label>
-                  <input
-                    type="number"
-                    min="15"
-                    step="15"
-                    value={formData.estimatedMinutes}
-                    onChange={(e) => setFormData({ ...formData, estimatedMinutes: parseInt(e.target.value) || 60 })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
-                  />
-                </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Orden de visualización
@@ -416,17 +479,18 @@ export function AdminServicesPage() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                   />
                 </div>
+                <div className="flex items-end">
+                  <label className="flex items-center gap-2 cursor-pointer pb-2">
+                    <input
+                      type="checkbox"
+                      checked={formData.isActive}
+                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                      className="w-4 h-4 text-sky-500 border-gray-300 rounded focus:ring-sky-500"
+                    />
+                    <span className="text-sm text-gray-700">Servicio activo</span>
+                  </label>
+                </div>
               </div>
-
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.isActive}
-                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                  className="w-4 h-4 text-sky-500 border-gray-300 rounded focus:ring-sky-500"
-                />
-                <span className="text-sm text-gray-700">Servicio activo</span>
-              </label>
 
               <div className="flex gap-3 pt-4">
                 <button

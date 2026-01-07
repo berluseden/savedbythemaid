@@ -156,7 +156,7 @@ export default function ServicesPage() {
                   </ul>
 
                   <Link
-                    to="/book"
+                    to="/booking"
                     className={`block w-full text-center py-3 rounded-lg font-medium transition-colors ${
                       service.popular
                         ? 'bg-sky-500 text-white hover:bg-sky-600'
@@ -202,7 +202,7 @@ export default function ServicesPage() {
             Book your first cleaning in under 60 seconds. No contracts, no hassle.
           </p>
           <Link
-            to="/book"
+            to="/booking"
             className="inline-flex items-center gap-2 bg-white text-sky-600 px-8 py-4 rounded-xl font-semibold hover:bg-gray-100 transition-colors"
           >
             <Sparkles className="w-5 h-5" />

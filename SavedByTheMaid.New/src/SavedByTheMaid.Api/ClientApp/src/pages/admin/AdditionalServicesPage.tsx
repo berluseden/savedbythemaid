@@ -18,7 +18,6 @@ interface AdditionalService {
   id: number;
   title: string;
   description: string | null;
-  cost: number;
   price: number;
   additionalMinutes: number;
   isActive: boolean;
@@ -37,7 +36,6 @@ export function AdminAdditionalServicesPage() {
   const [form, setForm] = useState({
     title: '',
     description: '',
-    cost: 0,
     price: 0,
     additionalMinutes: 30,
     isActive: true,
@@ -86,7 +84,6 @@ export function AdminAdditionalServicesPage() {
     setForm({
       title: service.title,
       description: service.description || '',
-      cost: service.cost,
       price: service.price,
       additionalMinutes: service.additionalMinutes,
       isActive: service.isActive,
@@ -110,7 +107,6 @@ export function AdminAdditionalServicesPage() {
       await api.put(`/admin/additionalservices/${service.id}`, {
         title: service.title,
         description: service.description,
-        cost: service.cost,
         price: service.price,
         additionalMinutes: service.additionalMinutes,
         isActive: !service.isActive,
@@ -125,7 +121,7 @@ export function AdminAdditionalServicesPage() {
   const closeModal = () => {
     setShowModal(false);
     setEditingService(null);
-    setForm({ title: '', description: '', cost: 0, price: 0, additionalMinutes: 30, isActive: true });
+    setForm({ title: '', description: '', price: 0, additionalMinutes: 30, isActive: true });
   };
 
   const filteredServices = services.filter(
@@ -138,9 +134,7 @@ export function AdminAdditionalServicesPage() {
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
   const totalRevenue = services.reduce((acc, s) => acc + s.price, 0);
-  const avgMargin = services.length > 0
-    ? services.reduce((acc, s) => acc + (s.price - s.cost), 0) / services.length
-    : 0;
+  const activeCount = services.filter(s => s.isActive).length;
 
   if (isLoading) {
     return (
@@ -278,11 +272,7 @@ export function AdminAdditionalServicesPage() {
                 {service.description || 'Sin descripción'}
               </p>
 
-              <div className="grid grid-cols-3 gap-2 text-sm">
-                <div className="text-center p-2 bg-gray-50 rounded-lg">
-                  <p className="text-gray-500 text-xs">Costo</p>
-                  <p className="font-semibold text-gray-700">{formatCurrency(service.cost)}</p>
-                </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="text-center p-2 bg-sky-50 rounded-lg">
                   <p className="text-sky-600 text-xs">Precio</p>
                   <p className="font-semibold text-sky-700">{formatCurrency(service.price)}</p>
@@ -294,14 +284,6 @@ export function AdminAdditionalServicesPage() {
                     {service.additionalMinutes}m
                   </p>
                 </div>
-              </div>
-
-              <div className="mt-3 pt-3 border-t flex justify-between items-center text-xs">
-                <span className="text-gray-500">Margen:</span>
-                <span className="font-semibold text-green-600">
-                  {formatCurrency(service.price - service.cost)} 
-                  ({((service.price - service.cost) / service.price * 100).toFixed(0)}%)
-                </span>
               </div>
             </div>
           ))}
@@ -384,18 +366,7 @@ export function AdminAdditionalServicesPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Costo ($)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={form.cost}
-                    onChange={(e) => setForm({ ...form, cost: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
-                  />
-                </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Precio ($) *</label>
                   <input
@@ -420,13 +391,6 @@ export function AdminAdditionalServicesPage() {
                   />
                 </div>
               </div>
-
-              {form.price > 0 && (
-                <div className="bg-green-50 text-green-700 px-4 py-2 rounded-lg text-sm">
-                  Margen: <span className="font-semibold">{formatCurrency(form.price - form.cost)}</span>
-                  {' '}({((form.price - form.cost) / form.price * 100).toFixed(0)}%)
-                </div>
-              )}
 
               {editingService && (
                 <label className="flex items-center gap-2 cursor-pointer">

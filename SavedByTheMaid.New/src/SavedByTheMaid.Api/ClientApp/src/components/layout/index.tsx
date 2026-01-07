@@ -117,7 +117,7 @@ export function Header() {
                   <span className="hidden sm:inline">Login</span>
                 </Link>
                 <Link
-                  to="/book"
+                  to="/booking"
                   className="rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600 transition-colors"
                 >
                   Book Now

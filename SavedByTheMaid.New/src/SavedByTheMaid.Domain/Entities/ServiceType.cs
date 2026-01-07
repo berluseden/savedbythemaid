@@ -10,13 +10,35 @@ public class ServiceType : BaseEntity
     public required string Name { get; set; }
     public string? Description { get; set; }
     
-    public decimal Cost { get; set; }
+    /// <summary>
+    /// Precio base (incluye 1 recámara + 1 baño)
+    /// </summary>
     public decimal Price { get; set; }
     
     /// <summary>
-    /// Duración estimada en minutos
+    /// Precio adicional por cada recámara extra
+    /// </summary>
+    public decimal PricePerBedroom { get; set; } = 15.00m;
+    
+    /// <summary>
+    /// Precio adicional por cada baño extra
+    /// </summary>
+    public decimal PricePerBathroom { get; set; } = 20.00m;
+    
+    /// <summary>
+    /// Duración estimada en minutos (base)
     /// </summary>
     public int EstimatedMinutes { get; set; } = 60;
+    
+    /// <summary>
+    /// Minutos adicionales por recámara
+    /// </summary>
+    public int MinutesPerBedroom { get; set; } = 20;
+    
+    /// <summary>
+    /// Minutos adicionales por baño
+    /// </summary>
+    public int MinutesPerBathroom { get; set; } = 15;
     
     public bool IsActive { get; set; } = true;
     public int DisplayOrder { get; set; } = 0;
@@ -35,7 +57,9 @@ public class AdditionalServiceType : BaseEntity
     public required string Title { get; set; }
     public string? Description { get; set; }
     
-    public decimal Cost { get; set; }
+    /// <summary>
+    /// Precio del servicio adicional
+    /// </summary>
     public decimal Price { get; set; }
     
     /// <summary>

@@ -103,7 +103,11 @@ public class BookingController : ControllerBase
                 Name = t.Name,
                 Description = t.Description,
                 Price = t.Price,
-                EstimatedMinutes = t.EstimatedMinutes
+                PricePerBedroom = t.PricePerBedroom,
+                PricePerBathroom = t.PricePerBathroom,
+                EstimatedMinutes = t.EstimatedMinutes,
+                MinutesPerBedroom = t.MinutesPerBedroom,
+                MinutesPerBathroom = t.MinutesPerBathroom
             })
             .ToListAsync();
 
@@ -923,7 +927,11 @@ public record ServiceTypeDto
     public string Name { get; init; } = "";
     public string? Description { get; init; }
     public decimal Price { get; init; }
+    public decimal PricePerBedroom { get; init; }
+    public decimal PricePerBathroom { get; init; }
     public int EstimatedMinutes { get; init; }
+    public int MinutesPerBedroom { get; init; }
+    public int MinutesPerBathroom { get; init; }
 }
 
 public record AdditionalServiceDto

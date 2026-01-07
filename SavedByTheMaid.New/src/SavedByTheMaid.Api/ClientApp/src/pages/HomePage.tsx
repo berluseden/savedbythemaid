@@ -70,7 +70,7 @@ export default function HomePage() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link to="/book">
+                <Link to="/booking">
                   <Button size="lg" className="w-full sm:w-auto">
                     Book Your Cleaning
                     <ArrowRight className="ml-2 h-5 w-5" />
@@ -172,7 +172,7 @@ export default function HomePage() {
           </div>
 
           <div className="mt-12 text-center">
-            <Link to="/book">
+            <Link to="/booking">
               <Button size="lg">
                 Get Started Now
                 <ArrowRight className="ml-2 h-5 w-5" />
@@ -220,7 +220,7 @@ export default function HomePage() {
             Book your professional cleaning today and enjoy a spotless space tomorrow.
           </p>
           <div className="mt-8">
-            <Link to="/book">
+            <Link to="/booking">
               <Button size="lg" variant="secondary" className="bg-white text-sky-600 hover:bg-sky-50">
                 Book Now - It's Free to Schedule
                 <ArrowRight className="ml-2 h-5 w-5" />

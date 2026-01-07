@@ -195,7 +195,7 @@ export default function BookingSuccessPage() {
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
-            <Link to="/book" className="block">
+            <Link to="/booking" className="block">
               <Button variant="outline" className="w-full">
                 Book Another Cleaning
               </Button>

@@ -49,8 +49,12 @@ export interface ServiceType {
   id: number;
   name: string;
   description: string;
-  basePrice: number;
+  price: number;
+  pricePerBedroom: number;
+  pricePerBathroom: number;
   estimatedMinutes: number;
+  minutesPerBedroom: number;
+  minutesPerBathroom: number;
   iconUrl?: string;
 }
 
@@ -173,6 +177,14 @@ export interface BookingConfirmation {
   message: string;
 }
 
+export interface AdditionalService {
+  id: number;
+  title: string;
+  description?: string;
+  price: number;
+  additionalMinutes: number;
+}
+
 export const bookingApi = {
   // Check coverage
   checkCoverage: (zipCode: string) =>
@@ -183,6 +195,9 @@ export const bookingApi = {
 
   // Get cleaning places
   getCleaningPlaces: () => api.get<CleaningPlace[]>('/booking/cleaning-places'),
+
+  // Get additional services
+  getAdditionalServices: () => api.get<AdditionalService[]>('/booking/additional-services'),
 
   // Get estimate
   getEstimate: (request: EstimateRequest) =>

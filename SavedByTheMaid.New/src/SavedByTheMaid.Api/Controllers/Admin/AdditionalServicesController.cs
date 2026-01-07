@@ -39,7 +39,6 @@ public class AdditionalServicesController : ControllerBase
         {
             Title = request.Title,
             Description = request.Description,
-            Cost = request.Cost,
             Price = request.Price,
             AdditionalMinutes = request.AdditionalMinutes,
             IsActive = true
@@ -59,7 +58,6 @@ public class AdditionalServicesController : ControllerBase
 
         service.Title = request.Title;
         service.Description = request.Description;
-        service.Cost = request.Cost;
         service.Price = request.Price;
         service.AdditionalMinutes = request.AdditionalMinutes;
         service.IsActive = request.IsActive;
@@ -83,7 +81,6 @@ public class AdditionalServicesController : ControllerBase
 public record CreateAdditionalServiceRequest(
     string Title, 
     string? Description, 
-    decimal Cost, 
     decimal Price, 
     int AdditionalMinutes = 30
 );
@@ -91,7 +88,6 @@ public record CreateAdditionalServiceRequest(
 public record UpdateAdditionalServiceRequest(
     string Title, 
     string? Description, 
-    decimal Cost, 
     decimal Price, 
     int AdditionalMinutes,
     bool IsActive

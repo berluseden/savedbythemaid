@@ -17,6 +17,7 @@ import { AdminServiceAreasPage } from '@/pages/admin/ServiceAreasPage';
 import { AdminUsersPage } from '@/pages/admin/UsersPage';
 import { AdminCleaningPlacesPage } from '@/pages/admin/CleaningPlacesPage';
 import { AdminAdditionalServicesPage } from '@/pages/admin/AdditionalServicesPage';
+import { ProfilePage } from '@/pages/ProfilePage';
 import ServicesPage from '@/pages/ServicesPage';
 import ContactPage from '@/pages/ContactPage';
 import AboutPage from '@/pages/AboutPage';
@@ -66,6 +67,16 @@ function App() {
               element={
                 <ProtectedRoute>
                   <PublicLayout><UserDashboardPage /></PublicLayout>
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* Profile (protected) */}
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
                 </ProtectedRoute>
               }
             />

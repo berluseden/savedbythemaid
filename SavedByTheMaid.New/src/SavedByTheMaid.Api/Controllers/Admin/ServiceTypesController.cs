@@ -43,9 +43,12 @@ public class ServiceTypesController : ControllerBase
         {
             Name = request.Name,
             Description = request.Description,
-            Cost = request.Cost,
             Price = request.Price,
+            PricePerBedroom = request.PricePerBedroom,
+            PricePerBathroom = request.PricePerBathroom,
             EstimatedMinutes = request.EstimatedMinutes,
+            MinutesPerBedroom = request.MinutesPerBedroom,
+            MinutesPerBathroom = request.MinutesPerBathroom,
             DisplayOrder = request.DisplayOrder,
             IsActive = true
         };
@@ -64,9 +67,12 @@ public class ServiceTypesController : ControllerBase
 
         serviceType.Name = request.Name;
         serviceType.Description = request.Description;
-        serviceType.Cost = request.Cost;
         serviceType.Price = request.Price;
+        serviceType.PricePerBedroom = request.PricePerBedroom;
+        serviceType.PricePerBathroom = request.PricePerBathroom;
         serviceType.EstimatedMinutes = request.EstimatedMinutes;
+        serviceType.MinutesPerBedroom = request.MinutesPerBedroom;
+        serviceType.MinutesPerBathroom = request.MinutesPerBathroom;
         serviceType.DisplayOrder = request.DisplayOrder;
         serviceType.IsActive = request.IsActive;
 
@@ -132,18 +138,24 @@ public class ServiceTypesController : ControllerBase
 public record CreateServiceTypeRequest(
     string Name, 
     string? Description, 
-    decimal Cost, 
     decimal Price, 
+    decimal PricePerBedroom = 15.00m,
+    decimal PricePerBathroom = 20.00m,
     int EstimatedMinutes = 60,
+    int MinutesPerBedroom = 20,
+    int MinutesPerBathroom = 15,
     int DisplayOrder = 0
 );
 
 public record UpdateServiceTypeRequest(
     string Name, 
     string? Description, 
-    decimal Cost, 
     decimal Price, 
+    decimal PricePerBedroom,
+    decimal PricePerBathroom,
     int EstimatedMinutes,
+    int MinutesPerBedroom,
+    int MinutesPerBathroom,
     int DisplayOrder,
     bool IsActive
 );

@@ -223,7 +223,7 @@ export default function AboutPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              to="/book"
+              to="/booking"
               className="inline-flex items-center justify-center gap-2 bg-white text-sky-600 px-8 py-4 rounded-xl font-semibold hover:bg-gray-100 transition-colors"
             >
               <Sparkles className="w-5 h-5" />
