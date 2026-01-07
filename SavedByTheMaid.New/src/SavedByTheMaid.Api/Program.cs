@@ -232,6 +232,13 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// SPA Hosting - Servir archivos estáticos SOLO si no coinciden con /api/*
+if (!app.Environment.IsDevelopment())
+{
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
+}
+
 app.MapControllers();
 
 // Health check
@@ -242,7 +249,7 @@ app.MapGet("/health", () => Results.Ok(new
     version = "1.0.0"
 })).AllowAnonymous();
 
-// SPA Hosting
+// Fallback para SPA routing - AL FINAL, SOLO para rutas que NO empiecen con /api
 if (app.Environment.IsDevelopment())
 {
     // En desarrollo: proxy a Vite dev server
@@ -250,12 +257,27 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
-    // En producción: servir archivos estáticos
-    app.UseDefaultFiles();
-    app.UseStaticFiles();
-    
-    // Fallback para SPA routing
-    app.MapFallbackToFile("index.html");
+    // En producción: custom fallback que ignora rutas /api
+    app.Use(async (context, next) =>
+    {
+        // Si la ruta empieza con /api, dejar pasar al siguiente middleware (será 404 si no existe)
+        if (context.Request.Path.StartsWithSegments("/api"))
+        {
+            await next();
+            return;
+        }
+        
+        // Para cualquier otra ruta no encontrada, servir index.html (SPA routing)
+        if (context.Response.StatusCode == 404)
+        {
+            context.Request.Path = "/index.html";
+            await next();
+        }
+        else
+        {
+            await next();
+        }
+    });
 }
 
 // ============================================

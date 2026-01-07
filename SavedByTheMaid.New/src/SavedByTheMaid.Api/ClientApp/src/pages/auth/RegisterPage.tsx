@@ -52,14 +52,14 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      await register({
+      const redirectPath = await register({
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
         phone: formData.phoneNumber,
         password: formData.password,
       });
-      navigate('/');
+      navigate(redirectPath);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {

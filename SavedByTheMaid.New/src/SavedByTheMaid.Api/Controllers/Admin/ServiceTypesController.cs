@@ -8,7 +8,7 @@ using SavedByTheMaid.Domain.Entities;
 namespace SavedByTheMaid.Api.Controllers;
 
 [ApiController]
-[Route("api/admin/[controller]")]
+[Route("api/admin/service-types")]
 [Authorize(Policy = Policies.AdminOnly)]
 public class ServiceTypesController : ControllerBase
 {

@@ -61,7 +61,7 @@ export function AdminEmployeesPage() {
 
   const fetchServiceAreas = async () => {
     try {
-      const response = await api.get<ServiceArea[]>('/admin/service-areas');
+      const response = await api.get<ServiceArea[]>('/serviceareas');
       setServiceAreas(response.data);
     } catch (err) {
       console.error('Error loading service areas', err);
