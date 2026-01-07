@@ -6,7 +6,7 @@ import { test, expect } from '@playwright/test';
  */
 test.describe('API Security - Pricing Fraud Prevention', () => {
   
-  test.skip('TC-API-003: Backend rechaza precio manipulado en /confirm', async ({ request }) => {
+  test('TC-API-003: Backend rechaza precio manipulado en /confirm', async ({ request }) => {
     // TODO: Necesita datos reales de la BD (ServiceTypeId, EmployeeId, ZipCode válidos)
     // Este test requiere setup de datos previo
     const tomorrow = new Date();
@@ -154,7 +154,7 @@ test.describe('API Security - Pricing Fraud Prevention', () => {
 
 test.describe('API - Soft Reserve Validation', () => {
   
-  test.skip('TC-API-006: Soft Reserve expira después de 15 minutos', async ({ request }) => {
+  test('TC-API-006: Soft Reserve expira después de 15 minutos', async ({ request }) => {
     // TODO: Requiere EmployeeId, ServiceAreaId, ZipCode válidos de la BD
     // Crear soft reserve
     const tomorrow = new Date();
@@ -205,7 +205,7 @@ test.describe('API - Soft Reserve Validation', () => {
     expect(invalidConfirm.status()).toBe(400 || 404);
   });
 
-  test.skip('TC-API-008: ExtendSoftReserve añade 10 minutos más', async ({ request }) => {
+  test('TC-API-008: ExtendSoftReserve añade 10 minutos más', async ({ request }) => {
     // TODO: Requiere crear SoftReserve válido primero
     // Crear soft reserve
     const tomorrow = new Date();

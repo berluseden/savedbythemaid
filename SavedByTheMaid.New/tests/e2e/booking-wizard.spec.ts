@@ -8,7 +8,7 @@ test.describe('Booking Wizard - E2E Critical Flows', () => {
     bookingPage = new BookingPage(page);
   });
 
-  test.skip('TC-E2E-001: Usuario completa reserva exitosamente (Happy Path)', async ({ page }) => {
+  test('TC-E2E-001: Usuario completa reserva exitosamente (Happy Path)', async ({ page }) => {
     // TODO: Actualizar Page Object locators para coincidir con componentes reales de BookingPage.tsx
     
     // Ejecutar flujo completo
@@ -41,7 +41,7 @@ test.describe('Booking Wizard - E2E Critical Flows', () => {
     await bookingPage.takeScreenshot('booking-success');
   });
 
-  test.skip('TC-E2E-002: Usuario cancela SoftReserve haciendo Back', async ({ page }) => {
+  test('TC-E2E-002: Usuario cancela SoftReserve haciendo Back', async ({ page }) => {
     await bookingPage.gotoBooking();
     
     // Completar hasta Schedule
@@ -66,7 +66,7 @@ test.describe('Booking Wizard - E2E Critical Flows', () => {
     await expect(timeSlot).not.toHaveClass(/selected|reserved/);
   });
 
-  test.skip('TC-NEG-005: ZIP code sin cobertura muestra mensaje de error', async ({ page }) => {
+  test('TC-NEG-005: ZIP code sin cobertura muestra mensaje de error', async ({ page }) => {
     await bookingPage.gotoBooking();
     
     // Ingresar ZIP inválido
@@ -83,7 +83,7 @@ test.describe('Booking Wizard - E2E Critical Flows', () => {
     await expect(bookingPage.nextButton).toBeDisabled();
   });
 
-  test.skip('TC-NEG-006: Sistema previene valores inválidos en detalles de propiedad', async ({ page }) => {
+  test('TC-NEG-006: Sistema previene valores inválidos en detalles de propiedad', async ({ page }) => {
     await bookingPage.gotoBooking();
     
     await bookingPage.checkCoverage('10001');
@@ -106,7 +106,7 @@ test.describe('Booking Wizard - E2E Critical Flows', () => {
     });
   });
 
-  test.skip('TC-UX-009: Mensajes de error son claros y en español', async ({ page }) => {
+  test('TC-UX-009: Mensajes de error son claros y en español', async ({ page }) => {
     await bookingPage.gotoBooking();
     
     // Simular error de red
@@ -129,7 +129,7 @@ test.describe('Booking Wizard - E2E Critical Flows', () => {
     expect(bodyText).not.toContain('Exception');
   });
 
-  test.skip('TC-EDGE-007: Concurrencia - Solo un usuario puede reservar el mismo slot', async ({ browser }) => {
+  test('TC-EDGE-007: Concurrencia - Solo un usuario puede reservar el mismo slot', async ({ browser }) => {
     test.slow();
     
     // Crear 2 contextos (2 usuarios simultáneos)
@@ -189,7 +189,7 @@ test.describe('Booking Wizard - E2E Critical Flows', () => {
   });
 });
 
-test.describe.skip('Booking Wizard - Navigation & UX', () => {
+test.describe('Booking Wizard - Navigation & UX', () => {
   // TODO: Actualizar locators para coincidir con BookingPage.tsx real
   let bookingPage: BookingPage;
 
