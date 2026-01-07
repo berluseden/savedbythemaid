@@ -1,0 +1,73 @@
+{
+  "validZipCodes": [
+    "10001",
+    "10002",
+    "10003"
+  ],
+  "invalidZipCodes": [
+    "00000",
+    "99999",
+    "XXXXX"
+  ],
+  "services": [
+    {
+      "id": 1,
+      "name": "Standard Clean",
+      "estimatedPrice": 100
+    },
+    {
+      "id": 2,
+      "name": "Deep Clean",
+      "estimatedPrice": 150
+    },
+    {
+      "id": 3,
+      "name": "Move In/Out",
+      "estimatedPrice": 200
+    }
+  ],
+  "testCustomers": [
+    {
+      "firstName": "Juan",
+      "lastName": "Pérez",
+      "email": "juan.perez@test.com",
+      "phone": "555-0001",
+      "address": "123 Main St, New York, NY 10001"
+    },
+    {
+      "firstName": "María",
+      "lastName": "García",
+      "email": "maria.garcia@test.com",
+      "phone": "555-0002",
+      "address": "456 Oak Ave, Brooklyn, NY 11201"
+    }
+  ],
+  "propertyDetails": {
+    "small": {
+      "bedrooms": 1,
+      "bathrooms": 1,
+      "squareFeet": 800
+    },
+    "medium": {
+      "bedrooms": 2,
+      "bathrooms": 2,
+      "squareFeet": 1500
+    },
+    "large": {
+      "bedrooms": 4,
+      "bathrooms": 3,
+      "squareFeet": 3000
+    }
+  },
+  "timeSlots": [
+    "08:00 AM",
+    "09:00 AM",
+    "10:00 AM",
+    "11:00 AM",
+    "12:00 PM",
+    "01:00 PM",
+    "02:00 PM",
+    "03:00 PM",
+    "04:00 PM"
+  ]
+}

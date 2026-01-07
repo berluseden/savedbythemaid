@@ -49,7 +49,7 @@ function App() {
           <Routes>
             {/* Public routes with header/footer */}
             <Route path="/" element={<PublicLayout><HomePage /></PublicLayout>} />
-            <Route path="/book" element={<PublicLayout><BookingPage /></PublicLayout>} />
+            <Route path="/booking" element={<PublicLayout><BookingPage /></PublicLayout>} />
             <Route path="/booking/success" element={<PublicLayout><BookingSuccessPage /></PublicLayout>} />
             <Route path="/services" element={<PublicLayout><ServicesPage /></PublicLayout>} />
             <Route path="/contact" element={<PublicLayout><ContactPage /></PublicLayout>} />

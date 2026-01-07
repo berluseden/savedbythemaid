@@ -160,6 +160,16 @@ public class BookingController : ControllerBase
     [HttpPost("estimate")]
     public async Task<ActionResult<EstimateResponse>> CalculateEstimate(EstimateRequest request)
     {
+        // Validar entrada
+        if (request.ServiceTypeId <= 0)
+            return BadRequest("ServiceTypeId debe ser mayor a 0");
+        
+        if (request.Rooms?.Any(r => r.Quantity < 0) == true)
+            return BadRequest("La cantidad de habitaciones no puede ser negativa");
+        
+        if (request.SquareFootage.HasValue && (request.SquareFootage < 100 || request.SquareFootage > 50000))
+            return BadRequest("SquareFootage debe estar entre 100 y 50,000 pies cuadrados");
+
         // Obtener tipo de servicio
         var serviceType = await _context.ServiceTypes.FindAsync(request.ServiceTypeId);
         if (serviceType == null)
@@ -563,8 +573,11 @@ public class BookingController : ControllerBase
         if (softReserve.Status != SoftReserveStatus.Active || softReserve.ExpiresAt <= DateTime.UtcNow)
             return BadRequest("La reserva ya expiró.");
 
-        // Extender 10 minutos más
-        softReserve.ExpiresAt = DateTime.UtcNow.AddMinutes(10);
+        // Extender 10 minutos más desde la expiración actual (no desde ahora)
+        var newExpiry = softReserve.ExpiresAt > DateTime.UtcNow 
+            ? softReserve.ExpiresAt.AddMinutes(10) 
+            : DateTime.UtcNow.AddMinutes(10);
+        softReserve.ExpiresAt = newExpiry;
         await _context.SaveChangesAsync();
 
         return Ok(new SoftReserveResponse

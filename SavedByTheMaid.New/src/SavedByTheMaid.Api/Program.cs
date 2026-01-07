@@ -10,9 +10,41 @@ using SavedByTheMaid.Api.Middleware;
 using SavedByTheMaid.Domain.Entities;
 using SavedByTheMaid.Infrastructure;
 using SavedByTheMaid.Infrastructure.Data;
+using SavedByTheMaid.Infrastructure.Extensions;
 using System.Text.Json.Serialization;
+using Serilog;
+using Serilog.Events;
+
+// Configurar Serilog antes de crear el builder
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .Enrich.WithEnvironmentName()
+    .Enrich.WithMachineName()
+    .Enrich.WithThreadId()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Reemplazar el logger por defecto con Serilog
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext()
+    .Enrich.WithEnvironmentName()
+    .Enrich.WithMachineName()
+    .Enrich.WithThreadId()
+    .WriteTo.Console()
+    .WriteTo.File(
+        path: "logs/savedbythemaid-.log",
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 30,
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
+    .WriteTo.ApplicationInsights(
+        context.Configuration["ApplicationInsights:ConnectionString"] ?? "",
+        TelemetryConverter.Traces));
 
 // ============================================
 // 1. Configuración de servicios
@@ -103,6 +135,16 @@ builder.Services.AddRateLimiter(options =>
 // Background Services
 builder.Services.AddHostedService<SavedByTheMaid.Api.BackgroundServices.SoftReserveCleanupService>();
 
+// Application Insights
+if (!string.IsNullOrEmpty(builder.Configuration["ApplicationInsights:ConnectionString"]))
+{
+    builder.Services.AddApplicationInsightsTelemetry(options =>
+    {
+        options.ConnectionString = builder.Configuration["ApplicationInsights:ConnectionString"];
+        options.EnableAdaptiveSampling = builder.Configuration.GetValue<bool>("ApplicationInsights:EnableAdaptiveSampling", true);
+    });
+}
+
 // CORS
 builder.Services.AddCors(options =>
 {
@@ -158,11 +200,6 @@ if (builder.Environment.IsDevelopment())
             });
 }
 
-// Logging
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
-builder.Logging.AddDebug();
-
 var app = builder.Build();
 
 // ============================================
@@ -171,6 +208,18 @@ var app = builder.Build();
 
 // Global Exception Handler (primero para capturar todo)
 app.UseGlobalExceptionHandler();
+
+// Usar Serilog para request logging
+app.UseSerilogRequestLogging(options =>
+{
+    options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";
+    options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+    {
+        diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value);
+        diagnosticContext.Set("UserAgent", httpContext.Request.Headers.UserAgent.ToString());
+        diagnosticContext.Set("UserId", httpContext.User?.FindFirst("sub")?.Value ?? "anonymous");
+    };
+});
 
 // Development-only middleware
 if (app.Environment.IsDevelopment())
@@ -222,13 +271,34 @@ else
     app.MapFallbackToFile("index.html");
 }
 
+// ============================================
+// 3. Inicialización de Base de Datos
+// ============================================
+
+// Aplicar migraciones automáticamente
+await app.Services.ApplyDatabaseMigrationsAsync();
+
 // Seed de roles al iniciar
 await SeedRolesAsync(app.Services);
 
 // Seed de usuario admin
 await SeedAdminUserAsync(app.Services);
 
-app.Run();
+// Log startup
+Log.Information("SavedByTheMaid API iniciado - Entorno: {Environment}", app.Environment.EnvironmentName);
+
+try
+{
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Aplicación terminó inesperadamente");
+}
+finally
+{
+    await Log.CloseAndFlushAsync();
+}
 
 // ============================================
 // 3. Seed de datos iniciales
