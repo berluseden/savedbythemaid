@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SavedByTheMaid.Api.Auth;
 using SavedByTheMaid.Api.Middleware;
+using SavedByTheMaid.Api.Services;
 using SavedByTheMaid.Domain.Entities;
 using SavedByTheMaid.Infrastructure;
 using SavedByTheMaid.Infrastructure.Data;
@@ -54,6 +55,9 @@ builder.Services.AddInfrastructure(builder.Configuration, builder.Environment.En
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IPasswordHasher<SavedByTheMaid.Domain.Entities.ApplicationUser>, PasswordHasher<SavedByTheMaid.Domain.Entities.ApplicationUser>>();
+
+// Email Service
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 // Autenticación JWT
 var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>() 

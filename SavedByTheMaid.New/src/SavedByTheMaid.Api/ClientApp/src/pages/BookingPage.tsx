@@ -224,13 +224,16 @@ function ZipCodeStep({
 }) {
   const [zipCode, setZipCode] = useState(value);
   const [error, setError] = useState('');
+  const [coverageInfo, setCoverageInfo] = useState<{ city?: string; state?: string } | null>(null);
 
   const checkCoverage = useMutation({
     mutationFn: (zip: string) => bookingApi.checkCoverage(zip),
     onSuccess: (response) => {
       if (response.data.isCovered) {
+        setCoverageInfo({ city: response.data.city, state: response.data.state });
         onChange(zipCode);
-        onNext();
+        // Auto-advance after showing success message
+        setTimeout(() => onNext(), 1500);
       } else {
         setError(response.data.message || 'Sorry, we do not service this area yet.');
       }
@@ -247,6 +250,7 @@ function ZipCodeStep({
       return;
     }
     setError('');
+    setCoverageInfo(null);
     checkCoverage.mutate(zipCode);
   };
 
@@ -265,10 +269,24 @@ function ZipCodeStep({
           className="text-center text-2xl tracking-widest"
           maxLength={5}
           error={error}
+          disabled={!!coverageInfo}
         />
-        <Button type="submit" className="w-full" loading={checkCoverage.isPending}>
-          Check Availability
-        </Button>
+        
+        {coverageInfo && (
+          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-green-800 font-medium">
+              ✓ Great news! We service {coverageInfo.city || 'your area'}
+              {coverageInfo.state ? `, ${coverageInfo.state}` : ''}.
+            </p>
+            <p className="text-green-600 text-sm mt-1">Continuing to next step...</p>
+          </div>
+        )}
+        
+        {!coverageInfo && (
+          <Button type="submit" className="w-full" loading={checkCoverage.isPending}>
+            Check Availability
+          </Button>
+        )}
       </form>
     </div>
   );
@@ -362,8 +380,8 @@ function DetailsStep({
   // Calcular precio en tiempo real
   const selectedService = serviceTypes?.data.find((s: ServiceType) => s.id === data.serviceTypeId);
   
-  const calculatePrice = () => {
-    if (!selectedService) return { total: 0, breakdown: [] };
+  const calculatePrice = (): { basePrice: number; bedroomExtra: number; bathroomExtra: number; extrasTotal: number; total: number } => {
+    if (!selectedService) return { basePrice: 0, bedroomExtra: 0, bathroomExtra: 0, extrasTotal: 0, total: 0 };
     
     const basePrice = selectedService.price;
     const bedroomExtra = Math.max(0, data.numberOfRooms - 1) * selectedService.pricePerBedroom;

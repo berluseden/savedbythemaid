@@ -42,6 +42,11 @@ api.interceptors.response.use(
 export interface CoverageResponse {
   zipCode: string;
   isCovered: boolean;
+  serviceAreaId?: number;
+  serviceAreaName?: string;
+  city?: string;
+  state?: string;
+  county?: string;
   message: string;
 }
 

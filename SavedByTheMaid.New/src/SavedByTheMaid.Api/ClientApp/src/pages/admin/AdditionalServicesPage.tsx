@@ -134,7 +134,6 @@ export function AdminAdditionalServicesPage() {
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
   const totalRevenue = services.reduce((acc, s) => acc + s.price, 0);
-  const activeCount = services.filter(s => s.isActive).length;
 
   if (isLoading) {
     return (
@@ -212,11 +211,11 @@ export function AdminAdditionalServicesPage() {
           </div>
           <div className="bg-white rounded-lg p-4 border">
             <div className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-emerald-500" />
-              <p className="text-sm text-gray-500">Margen Prom.</p>
+              <Clock className="h-5 w-5 text-emerald-500" />
+              <p className="text-sm text-gray-500">Tiempo Prom.</p>
             </div>
             <p className="text-2xl font-bold text-emerald-600 mt-1">
-              {formatCurrency(avgMargin)}
+              {services.length > 0 ? Math.round(services.reduce((acc, s) => acc + s.additionalMinutes, 0) / services.length) : 0} min
             </p>
           </div>
         </div>

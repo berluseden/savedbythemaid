@@ -23,6 +23,20 @@ public class ServiceAreaZip : BaseEntity
 {
     public required string ZipCode { get; set; }
     
+    // Datos geográficos del ZIP (para display y mapas)
+    public string? City { get; set; }
+    public string? State { get; set; }
+    public string? County { get; set; }
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
+    
+    // Reglas de negocio específicas por ZIP
+    public bool IsFullCoverage { get; set; } = true;
+    public decimal? SurchargeAmount { get; set; }
+    public int? MinimumMinutes { get; set; }
+    public string? AvailableDaysJson { get; set; }  // ["Monday","Wednesday","Friday"]
+    public string? Notes { get; set; }
+    
     public int ServiceAreaId { get; set; }
     public virtual ServiceArea? ServiceArea { get; set; }
 }

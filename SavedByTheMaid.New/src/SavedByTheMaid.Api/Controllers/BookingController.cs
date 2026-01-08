@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using SavedByTheMaid.Api.Services;
 using SavedByTheMaid.Infrastructure.Data;
 using SavedByTheMaid.Domain.Entities;
 using SavedByTheMaid.Domain.Enums;
@@ -19,11 +20,13 @@ public class BookingController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<BookingController> _logger;
+    private readonly IEmailService _emailService;
 
-    public BookingController(ApplicationDbContext context, ILogger<BookingController> logger)
+    public BookingController(ApplicationDbContext context, ILogger<BookingController> logger, IEmailService emailService)
     {
         _context = context;
         _logger = logger;
+        _emailService = emailService;
     }
 
     #region Step 1 - Dirección y Cobertura
@@ -52,7 +55,10 @@ public class BookingController : ControllerBase
             IsCovered = true,
             ServiceAreaId = serviceAreaZip.ServiceAreaId,
             ServiceAreaName = serviceAreaZip.ServiceArea.Name,
-            Message = "¡Excelente! Damos servicio en tu zona."
+            City = serviceAreaZip.City,
+            State = serviceAreaZip.State,
+            County = serviceAreaZip.County,
+            Message = $"¡Excelente! Damos servicio en {serviceAreaZip.City ?? "tu zona"}, {serviceAreaZip.State ?? ""}."
         });
     }
 
@@ -784,6 +790,36 @@ public class BookingController : ControllerBase
             _logger.LogInformation("Order confirmed - OrderId: {OrderId}, MeetId: {MeetId}, SessionId: {SessionId}, Total: {Total}", 
                 order.Id, meet.Id, request.SessionId, order.Total);
 
+            // Enviar email de confirmación
+            if (!string.IsNullOrEmpty(request.ContactEmail))
+            {
+                var employee = await _context.Employees.FindAsync(softReserve.EmployeeId);
+                var serviceTypeName = serviceType?.Name ?? "Cleaning Service";
+
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _emailService.SendBookingConfirmationAsync(
+                            request.ContactEmail,
+                            new BookingConfirmationEmail(
+                                CustomerName: request.ContactName ?? "Valued Customer",
+                                ServiceType: serviceTypeName,
+                                ScheduledDate: meet.ScheduledStart.Date,
+                                ScheduledTime: meet.ScheduledStart.ToString("h:mm tt"),
+                                Address: $"{request.Address}, {request.City}, {request.State} {request.ZipCode}",
+                                TotalAmount: order.Total,
+                                EmployeeName: employee != null ? $"{employee.FirstName} {employee.LastName}" : "Our professional cleaner",
+                                EstimatedDuration: meet.EstimatedDurationMinutes
+                            ));
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to send confirmation email for Order {OrderId}", order.Id);
+                    }
+                });
+            }
+
             return Ok(new BookingConfirmationResponse
             {
                 OrderId = order.Id,
@@ -901,6 +937,9 @@ public record CoverageResponse
     public bool IsCovered { get; init; }
     public int? ServiceAreaId { get; init; }
     public string? ServiceAreaName { get; init; }
+    public string? City { get; init; }
+    public string? State { get; init; }
+    public string? County { get; init; }
     public string Message { get; init; } = "";
 }
 

@@ -18,6 +18,7 @@ import { AdminUsersPage } from '@/pages/admin/UsersPage';
 import { AdminCleaningPlacesPage } from '@/pages/admin/CleaningPlacesPage';
 import { AdminAdditionalServicesPage } from '@/pages/admin/AdditionalServicesPage';
 import { ProfilePage } from '@/pages/ProfilePage';
+import { NotFoundPage, ServerErrorPage } from '@/pages/ErrorPage';
 import ServicesPage from '@/pages/ServicesPage';
 import ContactPage from '@/pages/ContactPage';
 import AboutPage from '@/pages/AboutPage';
@@ -155,6 +156,9 @@ function App() {
               }
             />
             
+            {/* Error pages */}
+            <Route path="/error" element={<ServerErrorPage />} />
+            
             {/* 404 */}
             <Route path="*" element={<PublicLayout><NotFoundPage /></PublicLayout>} />
           </Routes>
@@ -170,21 +174,6 @@ function PlaceholderPage({ title }: { title: string }) {
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-900 mb-4">{title}</h1>
         <p className="text-gray-600">Esta página estará disponible pronto.</p>
-      </div>
-    </div>
-  );
-}
-
-function NotFoundPage() {
-  return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="text-center">
-        <h1 className="text-6xl font-bold text-gray-300 mb-4">404</h1>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Página no encontrada</h2>
-        <p className="text-gray-600 mb-6">La página que buscas no existe o fue movida.</p>
-        <a href="/" className="inline-flex items-center px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors">
-          Volver al inicio
-        </a>
       </div>
     </div>
   );

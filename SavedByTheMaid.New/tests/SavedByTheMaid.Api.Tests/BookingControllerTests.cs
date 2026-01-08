@@ -103,4 +103,4 @@ public class BookingControllerTests : IClassFixture<CustomWebApplicationFactory>
 }
 
 public record HealthResponse(string Status, DateTime Timestamp, string Version);
-public record CoverageResponse(bool IsCovered, int? ServiceAreaId, string? ServiceAreaName, string Message);
+public record CoverageResponse(bool IsCovered, int? ServiceAreaId, string? ServiceAreaName, string? City, string? State, string? County, string Message);

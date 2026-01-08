@@ -300,7 +300,7 @@ export function AdminServicesPage() {
               </div>
 
               <div className="text-xs text-gray-500 mb-4">
-                Costo: {formatCurrency(service.cost)} | Margen: {formatCurrency(service.price - service.cost)}
+                +{formatCurrency(service.pricePerBedroom)}/recámara | +{formatCurrency(service.pricePerBathroom)}/baño
               </div>
 
               <div className="flex items-center justify-between pt-4 border-t">
