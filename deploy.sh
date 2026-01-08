@@ -15,18 +15,13 @@ REPO_URL="https://github.com/berluseden/savedbythemaid.git"
 APP_DIR="/opt/savedbythemaid"
 BRANCH="main"
 
-# 1. Actualizar sistema
-echo -e "${GREEN}📦 Actualizando sistema...${NC}"
-sudo apt-get update
-sudo apt-get upgrade -y
-
-# 2. Instalar Docker Compose si no está instalado
+# 1. Instalar Docker Compose si no está instalado
 if ! command -v docker compose &> /dev/null; then
     echo -e "${GREEN}📦 Instalando Docker Compose...${NC}"
     sudo apt-get install docker-compose-plugin -y
 fi
 
-# 3. Configurar firewall (UFW)
+# 2. Configurar firewall (UFW)
 echo -e "${GREEN}🔥 Configurando firewall...${NC}"
 sudo ufw allow 22/tcp    # SSH
 sudo ufw allow 80/tcp    # HTTP
@@ -35,7 +30,7 @@ sudo ufw allow 3000/tcp  # Frontend
 sudo ufw allow 5000/tcp  # API
 echo "y" | sudo ufw enable || true
 
-# 4. Clonar o actualizar repositorio
+# 3. Clonar o actualizar repositorio
 if [ -d "$APP_DIR" ]; then
     echo -e "${GREEN}🔄 Actualizando repositorio...${NC}"
     cd "$APP_DIR"
@@ -50,23 +45,23 @@ else
     cd "$APP_DIR"
 fi
 
-# 5. Detener contenedores existentes
+# 4. Detener contenedores existentes
 echo -e "${GREEN}🛑 Deteniendo contenedores existentes...${NC}"
 docker compose down || true
 
-# 6. Limpiar imágenes antiguas (opcional)
+# 5. Limpiar imágenes antiguas (opcional)
 echo -e "${YELLOW}🧹 Limpiando imágenes antiguas...${NC}"
 docker system prune -f
 
-# 7. Construir y levantar contenedores
+# 6. Construir y levantar contenedores
 echo -e "${GREEN}🏗️  Construyendo y levantando contenedores...${NC}"
 docker compose up -d --build
 
-# 8. Esperar a que MySQL esté listo
+# 7. Esperar a que MySQL esté listo
 echo -e "${GREEN}⏳ Esperando a que MySQL inicie...${NC}"
 sleep 15
 
-# 9. Esperar a que la API esté lista
+# 8. Esperar a que la API esté lista
 echo -e "${GREEN}⏳ Esperando a que la API inicie...${NC}"
 for i in {1..30}; do
     if curl -sf http://localhost:5000/health > /dev/null; then
@@ -77,18 +72,18 @@ for i in {1..30}; do
     sleep 2
 done
 
-# 10. Verificar estado de los contenedores
+# 9. Verificar estado de los contenedores
 echo -e "${GREEN}✅ Estado de los contenedores:${NC}"
 docker compose ps
 
-# 11. Mostrar logs
+# 10. Mostrar logs
 echo -e "${GREEN}📋 Logs recientes de la API:${NC}"
 docker compose logs api --tail=30
 
 echo -e "${GREEN}📋 Logs recientes del Frontend:${NC}"
 docker compose logs frontend --tail=20
 
-# 12. Obtener IP externa
+# 11. Obtener IP externa
 EXTERNAL_IP=$(curl -s ifconfig.me)
 
 echo ""
