@@ -22,13 +22,18 @@ if ! command -v docker compose &> /dev/null; then
 fi
 
 # 2. Configurar firewall (UFW)
-echo -e "${GREEN}🔥 Configurando firewall...${NC}"
-sudo ufw allow 22/tcp    # SSH
-sudo ufw allow 80/tcp    # HTTP
-sudo ufw allow 443/tcp   # HTTPS
-sudo ufw allow 3000/tcp  # Frontend
-sudo ufw allow 5000/tcp  # API
-echo "y" | sudo ufw enable || true
+if command -v ufw &> /dev/null; then
+    echo -e "${GREEN}🔥 Configurando firewall...${NC}"
+    sudo ufw allow 22/tcp    # SSH
+    sudo ufw allow 80/tcp    # HTTP
+    sudo ufw allow 443/tcp   # HTTPS
+    sudo ufw allow 3000/tcp  # Frontend
+    sudo ufw allow 5000/tcp  # API
+    echo "y" | sudo ufw enable || true
+else
+    echo -e "${YELLOW}⚠️  UFW no disponible, saltando configuración de firewall...${NC}"
+    echo -e "${YELLOW}   (En GCP usa las reglas de firewall de la consola)${NC}"
+fi
 
 # 3. Clonar o actualizar repositorio
 if [ -d "$APP_DIR" ]; then
