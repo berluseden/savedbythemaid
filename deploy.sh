@@ -62,19 +62,33 @@ docker system prune -f
 echo -e "${GREEN}🏗️  Construyendo y levantando contenedores...${NC}"
 docker compose up -d --build
 
-# 8. Esperar a que los servicios estén listos
-echo -e "${GREEN}⏳ Esperando a que los servicios inicien...${NC}"
-sleep 10
+# 8. Esperar a que MySQL esté listo
+echo -e "${GREEN}⏳ Esperando a que MySQL inicie...${NC}"
+sleep 15
 
-# 9. Verificar estado de los contenedores
+# 9. Esperar a que la API esté lista
+echo -e "${GREEN}⏳ Esperando a que la API inicie...${NC}"
+for i in {1..30}; do
+    if curl -sf http://localhost:5000/health > /dev/null; then
+        echo -e "${GREEN}✅ API está lista!${NC}"
+        break
+    fi
+    echo "Esperando API... ($i/30)"
+    sleep 2
+done
+
+# 10. Verificar estado de los contenedores
 echo -e "${GREEN}✅ Estado de los contenedores:${NC}"
 docker compose ps
 
-# 10. Mostrar logs
-echo -e "${GREEN}📋 Logs recientes:${NC}"
-docker compose logs --tail=50
+# 11. Mostrar logs
+echo -e "${GREEN}📋 Logs recientes de la API:${NC}"
+docker compose logs api --tail=30
 
-# 11. Obtener IP externa
+echo -e "${GREEN}📋 Logs recientes del Frontend:${NC}"
+docker compose logs frontend --tail=20
+
+# 12. Obtener IP externa
 EXTERNAL_IP=$(curl -s ifconfig.me)
 
 echo ""
@@ -88,8 +102,8 @@ echo -e "📊 API Health: http://${EXTERNAL_IP}:5000/health"
 echo -e "📚 Swagger: http://${EXTERNAL_IP}:5000/swagger"
 echo ""
 echo -e "${YELLOW}Comandos útiles:${NC}"
-echo -e "  Ver logs:      cd $APP_DIR && docker compose logs -f"
-echo -e "  Reiniciar:     cd $APP_DIR && docker compose restart"
-echo -e "  Detener:       cd $APP_DIR && docker compose down"
-echo -e "  Ver estado:    cd $APP_DIR && docker compose ps"
+echo -e "  Ver logs:      cd ${APP_DIR} && docker compose logs -f"
+echo -e "  Reiniciar:     cd ${APP_DIR} && docker compose restart"
+echo -e "  Detener:       cd ${APP_DIR} && docker compose down"
+echo -e "  Ver estado:    cd ${APP_DIR} && docker compose ps"
 echo ""
