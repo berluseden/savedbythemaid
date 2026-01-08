@@ -21,21 +21,7 @@ if ! command -v docker compose &> /dev/null; then
     sudo apt-get install docker-compose-plugin -y
 fi
 
-# 2. Configurar firewall (UFW)
-if command -v ufw &> /dev/null; then
-    echo -e "${GREEN}🔥 Configurando firewall...${NC}"
-    sudo ufw allow 22/tcp    # SSH
-    sudo ufw allow 80/tcp    # HTTP
-    sudo ufw allow 443/tcp   # HTTPS
-    sudo ufw allow 3000/tcp  # Frontend
-    sudo ufw allow 5000/tcp  # API
-    echo "y" | sudo ufw enable || true
-else
-    echo -e "${YELLOW}⚠️  UFW no disponible, saltando configuración de firewall...${NC}"
-    echo -e "${YELLOW}   (En GCP usa las reglas de firewall de la consola)${NC}"
-fi
-
-# 3. Clonar o actualizar repositorio
+# 2. Clonar o actualizar repositorio
 if [ -d "$APP_DIR" ]; then
     echo -e "${GREEN}🔄 Actualizando repositorio...${NC}"
     cd "$APP_DIR"
@@ -50,23 +36,23 @@ else
     cd "$APP_DIR"
 fi
 
-# 4. Detener contenedores existentes
+# 3. Detener contenedores existentes
 echo -e "${GREEN}🛑 Deteniendo contenedores existentes...${NC}"
 docker compose down || true
 
-# 5. Limpiar imágenes antiguas (opcional)
+# 4. Limpiar imágenes antiguas (opcional)
 echo -e "${YELLOW}🧹 Limpiando imágenes antiguas...${NC}"
 docker system prune -f
 
-# 6. Construir y levantar contenedores
+# 5. Construir y levantar contenedores
 echo -e "${GREEN}🏗️  Construyendo y levantando contenedores...${NC}"
 docker compose up -d --build
 
-# 7. Esperar a que MySQL esté listo
+# 6. Esperar a que MySQL esté listo
 echo -e "${GREEN}⏳ Esperando a que MySQL inicie...${NC}"
 sleep 15
 
-# 8. Esperar a que la API esté lista
+# 7. Esperar a que la API esté lista
 echo -e "${GREEN}⏳ Esperando a que la API inicie...${NC}"
 for i in {1..30}; do
     if curl -sf http://localhost:5000/health > /dev/null; then
@@ -77,18 +63,18 @@ for i in {1..30}; do
     sleep 2
 done
 
-# 9. Verificar estado de los contenedores
+# 8. Verificar estado de los contenedores
 echo -e "${GREEN}✅ Estado de los contenedores:${NC}"
 docker compose ps
 
-# 10. Mostrar logs
+# 9. Mostrar logs
 echo -e "${GREEN}📋 Logs recientes de la API:${NC}"
 docker compose logs api --tail=30
 
 echo -e "${GREEN}📋 Logs recientes del Frontend:${NC}"
 docker compose logs frontend --tail=20
 
-# 11. Obtener IP externa
+# 10. Obtener IP externa
 EXTERNAL_IP=$(curl -s ifconfig.me)
 
 echo ""
