@@ -31,6 +31,25 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
+    /// Verificar si un email ya está registrado
+    /// </summary>
+    [HttpGet("check-email")]
+    [AllowAnonymous]
+    public async Task<ActionResult<EmailCheckResponse>> CheckEmail([FromQuery] string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return BadRequest(new { message = "Email es requerido" });
+
+        var exists = await _context.Users.AnyAsync(u => u.Email == email);
+        
+        return Ok(new EmailCheckResponse
+        {
+            Email = email,
+            Exists = exists
+        });
+    }
+
+    /// <summary>
     /// Registrar nuevo usuario
     /// </summary>
     [HttpPost("register")]
@@ -307,6 +326,12 @@ public record UserDto
     public string Email { get; init; } = "";
     public string? Phone { get; init; }
     public string[] Roles { get; init; } = Array.Empty<string>();
+}
+
+public record EmailCheckResponse
+{
+    public string Email { get; init; } = "";
+    public bool Exists { get; init; }
 }
 
 #endregion

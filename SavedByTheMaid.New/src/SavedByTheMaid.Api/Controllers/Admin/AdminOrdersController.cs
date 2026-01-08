@@ -156,6 +156,7 @@ public class AdminOrdersController : ControllerBase
         [FromQuery] int? employeeId = null,
         [FromQuery] int? serviceAreaId = null,
         [FromQuery] MeetStatus? status = null,
+        [FromQuery] int? orderId = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50)
     {
@@ -173,6 +174,9 @@ public class AdminOrdersController : ControllerBase
 
         if (status.HasValue)
             query = query.Where(m => m.Status == status.Value);
+
+        if (orderId.HasValue)
+            query = query.Where(m => m.ServiceOrderId == orderId.Value);
 
         return await query
             .Include(m => m.ServiceOrder)

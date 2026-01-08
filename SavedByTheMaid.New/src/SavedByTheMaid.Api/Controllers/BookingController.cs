@@ -1,8 +1,10 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using SavedByTheMaid.Api.Auth;
 using SavedByTheMaid.Api.Services;
 using SavedByTheMaid.Infrastructure.Data;
 using SavedByTheMaid.Domain.Entities;
@@ -21,12 +23,21 @@ public class BookingController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly ILogger<BookingController> _logger;
     private readonly IEmailService _emailService;
+    private readonly IJwtService _jwtService;
+    private readonly IPasswordHasher<ApplicationUser> _passwordHasher;
 
-    public BookingController(ApplicationDbContext context, ILogger<BookingController> logger, IEmailService emailService)
+    public BookingController(
+        ApplicationDbContext context, 
+        ILogger<BookingController> logger, 
+        IEmailService emailService,
+        IJwtService jwtService,
+        IPasswordHasher<ApplicationUser> passwordHasher)
     {
         _context = context;
         _logger = logger;
         _emailService = emailService;
+        _jwtService = jwtService;
+        _passwordHasher = passwordHasher;
     }
 
     #region Step 1 - Dirección y Cobertura
@@ -699,10 +710,83 @@ public class BookingController : ControllerBase
                 return BadRequest($"El total no coincide. Esperado: ${calculatedTotal:F2}, Recibido: ${request.Total:F2}");
             }
 
+            // NUEVO: Crear usuario automáticamente si no existe
+            string? customerId = request.CustomerId;
+            AuthToken? authToken = null;
+            bool isNewUser = false;
+
+            if (string.IsNullOrEmpty(customerId))
+            {
+                // Verificar si el email ya existe
+                var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.ContactEmail);
+                
+                if (existingUser != null)
+                {
+                    // Usuario existe pero no está logueado - debería loguearse
+                    return BadRequest(new { 
+                        message = "Este email ya está registrado. Por favor inicia sesión para continuar.",
+                        requireLogin = true
+                    });
+                }
+
+                // Validar que se proporcionó contraseña para crear cuenta
+                if (string.IsNullOrWhiteSpace(request.Password))
+                {
+                    return BadRequest(new { message = "Se requiere una contraseña para crear tu cuenta." });
+                }
+
+                // Crear nuevo usuario
+                var newUser = new ApplicationUser
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    UserName = request.ContactEmail,
+                    NormalizedUserName = request.ContactEmail.ToUpperInvariant(),
+                    Email = request.ContactEmail,
+                    NormalizedEmail = request.ContactEmail.ToUpperInvariant(),
+                    EmailConfirmed = false,
+                    PhoneNumber = request.ContactPhone,
+                    SecurityStamp = Guid.NewGuid().ToString(),
+                    FirstName = request.ContactName?.Split(' ').FirstOrDefault(),
+                    LastName = request.ContactName?.Split(' ').Skip(1).FirstOrDefault()
+                };
+
+                newUser.PasswordHash = _passwordHasher.HashPassword(newUser, request.Password);
+                _context.Users.Add(newUser);
+
+                // Asignar rol Customer
+                var customerRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == Roles.Customer);
+                if (customerRole != null)
+                {
+                    _context.UserRoles.Add(new IdentityUserRole<string>
+                    {
+                        UserId = newUser.Id,
+                        RoleId = customerRole.Id
+                    });
+                }
+
+                customerId = newUser.Id;
+                isNewUser = true;
+
+                // Generar tokens JWT para auto-login
+                var roles = new[] { Roles.Customer };
+                var accessToken = _jwtService.GenerateAccessToken(newUser.Id, newUser.Email!, roles);
+                var refreshToken = _jwtService.GenerateRefreshToken();
+
+                authToken = new AuthToken
+                {
+                    AccessToken = accessToken,
+                    RefreshToken = refreshToken,
+                    ExpiresAt = DateTime.UtcNow.AddHours(24),
+                    IsNewUser = true
+                };
+
+                _logger.LogInformation("Usuario creado automáticamente durante booking: {Email}", request.ContactEmail);
+            }
+
             // Crear orden con pricing validado
             var order = new ServiceOrder
             {
-                CustomerId = request.CustomerId,
+                CustomerId = customerId,
                 ServiceAreaId = softReserve.ServiceAreaId,
                 ZipCode = request.ZipCode,
                 Address = request.Address,
@@ -775,7 +859,7 @@ public class BookingController : ControllerBase
             // Actualizar soft reserve
             softReserve.Status = SoftReserveStatus.Converted;
             softReserve.ServiceOrderId = order.Id;
-            softReserve.CustomerId = request.CustomerId;
+            softReserve.CustomerId = customerId;
 
             await _context.SaveChangesAsync();
 
@@ -829,7 +913,10 @@ public class BookingController : ControllerBase
                 ScheduledEnd = meet.ScheduledEnd,
                 Total = order.Total,
                 OrderStatus = order.OrderStatus.ToString(),
-                Message = "Your booking request has been received! We'll confirm your appointment shortly."
+                Message = isNewUser 
+                    ? "¡Cuenta creada y reserva confirmada! Ahora puedes dar seguimiento a tu servicio."
+                    : "Your booking request has been received! We'll confirm your appointment shortly.",
+                AuthToken = authToken
             });
         }
         catch (Exception ex)
@@ -1182,9 +1269,14 @@ public record ConfirmBookingRequest
     [StringLength(20)]
     public string? ContactPhone { get; init; }
     
+    [Required(ErrorMessage = "El email es requerido")]
     [EmailAddress(ErrorMessage = "Formato de email inválido")]
     [StringLength(256)]
-    public string? ContactEmail { get; init; }
+    public string ContactEmail { get; init; } = "";
+    
+    // Password para crear cuenta si no existe
+    [StringLength(100, MinimumLength = 8)]
+    public string? Password { get; init; }
     
     [StringLength(1000)]
     public string? SpecialInstructions { get; init; }
@@ -1200,6 +1292,15 @@ public record BookingConfirmationResponse
     public decimal Total { get; init; }
     public string OrderStatus { get; init; } = "";
     public string Message { get; init; } = "";
+    public AuthToken? AuthToken { get; init; }
+}
+
+public record AuthToken
+{
+    public string AccessToken { get; init; } = "";
+    public string RefreshToken { get; init; } = "";
+    public DateTime ExpiresAt { get; init; }
+    public bool IsNewUser { get; init; }
 }
 
 #endregion

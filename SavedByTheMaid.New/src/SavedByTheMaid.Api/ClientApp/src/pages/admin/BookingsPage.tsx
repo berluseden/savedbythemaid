@@ -13,12 +13,15 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Users,
+  PlayCircle,
 } from 'lucide-react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import api from '../../lib/api';
 
 type OrderStatus = 'Pending' | 'Confirmed' | 'InProgress' | 'Completed' | 'Cancelled';
 type PaymentStatus = 'Pending' | 'Authorized' | 'Paid' | 'Refunded' | 'Failed';
+type MeetStatus = 'Scheduled' | 'Assigned' | 'OnTheWay' | 'InProgress' | 'Completed' | 'Cancelled' | 'Rescheduled' | 'NoShow';
 
 interface OrderSummary {
   id: number;
@@ -37,12 +40,43 @@ interface OrderSummary {
   createdAt: string;
 }
 
+interface MeetingSummary {
+  id: number;
+  orderId: number;
+  scheduledStart: string;
+  scheduledEnd: string;
+  actualStart: string | null;
+  actualEnd: string | null;
+  employeeId: number | null;
+  employeeName: string | null;
+  status: MeetStatus;
+  estimatedDurationMinutes: number;
+}
+
+interface Employee {
+  id: number;
+  firstName: string;
+  lastName: string;
+  isActive: boolean;
+}
+
 const statusConfig: Record<OrderStatus, { label: string; color: string; bgColor: string }> = {
   Pending: { label: 'Pendiente', color: 'text-yellow-700', bgColor: 'bg-yellow-100' },
   Confirmed: { label: 'Confirmada', color: 'text-blue-700', bgColor: 'bg-blue-100' },
   InProgress: { label: 'En Progreso', color: 'text-purple-700', bgColor: 'bg-purple-100' },
   Completed: { label: 'Completada', color: 'text-green-700', bgColor: 'bg-green-100' },
   Cancelled: { label: 'Cancelada', color: 'text-red-700', bgColor: 'bg-red-100' },
+};
+
+const meetStatusConfig: Record<MeetStatus, { label: string; color: string; bgColor: string }> = {
+  Scheduled: { label: 'Programada', color: 'text-gray-700', bgColor: 'bg-gray-100' },
+  Assigned: { label: 'Asignada', color: 'text-blue-700', bgColor: 'bg-blue-100' },
+  OnTheWay: { label: 'En Camino', color: 'text-cyan-700', bgColor: 'bg-cyan-100' },
+  InProgress: { label: 'En Curso', color: 'text-purple-700', bgColor: 'bg-purple-100' },
+  Completed: { label: 'Completada', color: 'text-green-700', bgColor: 'bg-green-100' },
+  Cancelled: { label: 'Cancelada', color: 'text-red-700', bgColor: 'bg-red-100' },
+  Rescheduled: { label: 'Reprogramada', color: 'text-orange-700', bgColor: 'bg-orange-100' },
+  NoShow: { label: 'No Presentó', color: 'text-red-700', bgColor: 'bg-red-100' },
 };
 
 export function AdminBookingsPage() {
@@ -54,11 +88,40 @@ export function AdminBookingsPage() {
   const [selectedBooking, setSelectedBooking] = useState<OrderSummary | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState('');
+  const [meetings, setMeetings] = useState<MeetingSummary[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [assigningMeetingId, setAssigningMeetingId] = useState<number | null>(null);
   const itemsPerPage = 10;
 
   useEffect(() => {
     fetchBookings();
+    fetchEmployees();
   }, []);
+
+  useEffect(() => {
+    if (selectedBooking) {
+      fetchMeetings(selectedBooking.id);
+    }
+  }, [selectedBooking]);
+
+  const fetchEmployees = async () => {
+    try {
+      const response = await api.get<Employee[]>('/admin/employees');
+      setEmployees(response.data.filter(e => e.isActive));
+    } catch (err) {
+      console.error('Error loading employees:', err);
+    }
+  };
+
+  const fetchMeetings = async (orderId: number) => {
+    try {
+      const response = await api.get<MeetingSummary[]>(`/admin/orders/meetings?orderId=${orderId}`);
+      setMeetings(response.data);
+    } catch (err) {
+      console.error('Error loading meetings:', err);
+      setMeetings([]);
+    }
+  };
 
   const fetchBookings = async () => {
     setIsLoading(true);
@@ -98,6 +161,31 @@ export function AdminBookingsPage() {
     }
   };
 
+  const assignEmployee = async (meetingId: number, employeeId: number) => {
+    try {
+      await api.put(`/admin/orders/meetings/${meetingId}/assign`, { employeeId });
+      if (selectedBooking) {
+        await fetchMeetings(selectedBooking.id);
+      }
+      setAssigningMeetingId(null);
+    } catch (err) {
+      setError('Error al asignar empleado');
+      console.error(err);
+    }
+  };
+
+  const updateMeetingStatus = async (meetingId: number, status: MeetStatus) => {
+    try {
+      await api.put(`/admin/orders/meetings/${meetingId}/status`, { status });
+      if (selectedBooking) {
+        await fetchMeetings(selectedBooking.id);
+      }
+    } catch (err) {
+      setError('Error al actualizar estado de cita');
+      console.error(err);
+    }
+  };
+
   const filteredBookings = bookings.filter(booking => {
     const matchesSearch =
       (booking.contactName?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
@@ -124,6 +212,16 @@ export function AdminBookingsPage() {
       month: 'short',
       day: 'numeric',
     });
+
+  const formatDateTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleString('es-ES', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
 
   if (isLoading) {
     return (
@@ -428,6 +526,136 @@ export function AdminBookingsPage() {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Meetings Section */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-3 flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Citas Programadas
+                </h3>
+                {meetings.length === 0 ? (
+                  <div className="bg-gray-50 rounded-lg p-4 text-center text-gray-500 text-sm">
+                    No hay citas programadas para esta orden
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {meetings.map((meeting) => (
+                      <div key={meeting.id} className="bg-gray-50 rounded-lg p-4 space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span
+                                className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                                  meetStatusConfig[meeting.status]?.bgColor || 'bg-gray-100'
+                                } ${meetStatusConfig[meeting.status]?.color || 'text-gray-700'}`}
+                              >
+                                {meetStatusConfig[meeting.status]?.label || meeting.status}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                              <div>
+                                <p className="text-xs text-gray-500">Inicio Programado</p>
+                                <p className="font-medium text-gray-900">{formatDateTime(meeting.scheduledStart)}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-gray-500">Fin Programado</p>
+                                <p className="font-medium text-gray-900">{formatDateTime(meeting.scheduledEnd)}</p>
+                              </div>
+                              {meeting.actualStart && (
+                                <div>
+                                  <p className="text-xs text-gray-500">Inicio Real</p>
+                                  <p className="font-medium text-green-700">{formatDateTime(meeting.actualStart)}</p>
+                                </div>
+                              )}
+                              {meeting.actualEnd && (
+                                <div>
+                                  <p className="text-xs text-gray-500">Fin Real</p>
+                                  <p className="font-medium text-green-700">{formatDateTime(meeting.actualEnd)}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Employee Assignment */}
+                        <div className="pt-3 border-t border-gray-200">
+                          <p className="text-xs text-gray-500 mb-2">Empleado Asignado</p>
+                          {assigningMeetingId === meeting.id ? (
+                            <div className="flex gap-2">
+                              <select
+                                onChange={(e) => assignEmployee(meeting.id, parseInt(e.target.value))}
+                                className="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-sky-500"
+                                defaultValue=""
+                              >
+                                <option value="" disabled>Seleccionar empleado...</option>
+                                {employees.map((emp) => (
+                                  <option key={emp.id} value={emp.id}>
+                                    {emp.firstName} {emp.lastName}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                onClick={() => setAssigningMeetingId(null)}
+                                className="px-3 py-2 border rounded-lg hover:bg-gray-100"
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <User className="h-4 w-4 text-gray-400" />
+                                <span className="font-medium text-gray-900">
+                                  {meeting.employeeName || 'Sin asignar'}
+                                </span>
+                              </div>
+                              <button
+                                onClick={() => setAssigningMeetingId(meeting.id)}
+                                className="text-sm text-sky-600 hover:text-sky-700 font-medium"
+                              >
+                                {meeting.employeeId ? 'Cambiar' : 'Asignar'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Meeting Actions */}
+                        {meeting.status !== 'Completed' && meeting.status !== 'Cancelled' && (
+                          <div className="pt-3 border-t border-gray-200 flex gap-2">
+                            {meeting.status === 'Assigned' && (
+                              <button
+                                onClick={() => updateMeetingStatus(meeting.id, 'InProgress')}
+                                className="flex-1 px-3 py-1.5 bg-purple-500 text-white rounded text-sm hover:bg-purple-600 flex items-center justify-center gap-1"
+                              >
+                                <PlayCircle className="h-4 w-4" />
+                                Iniciar
+                              </button>
+                            )}
+                            {meeting.status === 'InProgress' && (
+                              <button
+                                onClick={() => updateMeetingStatus(meeting.id, 'Completed')}
+                                className="flex-1 px-3 py-1.5 bg-green-500 text-white rounded text-sm hover:bg-green-600 flex items-center justify-center gap-1"
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                                Completar
+                              </button>
+                            )}
+                            {(meeting.status === 'Scheduled' || meeting.status === 'Assigned') && (
+                              <button
+                                onClick={() => updateMeetingStatus(meeting.id, 'Cancelled')}
+                                className="px-3 py-1.5 bg-red-500 text-white rounded text-sm hover:bg-red-600 flex items-center justify-center gap-1"
+                              >
+                                <XCircle className="h-4 w-4" />
+                                Cancelar
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Actions */}

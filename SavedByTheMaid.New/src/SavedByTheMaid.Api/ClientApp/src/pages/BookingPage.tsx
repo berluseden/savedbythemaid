@@ -3,7 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Home, Sparkles, Calendar, User, CreditCard, CheckCircle } from 'lucide-react';
 import { Button, Input, Card, CardContent, Spinner } from '@/components/ui';
-import { bookingApi, type ServiceType, type CleaningPlace, type EstimateResponse, type BookingConfirmation } from '@/lib/api';
+import api, { bookingApi, type ServiceType, type CleaningPlace, type EstimateResponse, type BookingConfirmation } from '@/lib/api';
 import { cn, formatCurrency } from '@/lib/utils';
 
 type BookingStep = 'zipcode' | 'service' | 'details' | 'schedule' | 'contact' | 'confirm';
@@ -22,6 +22,7 @@ interface BookingData {
   firstName: string;
   lastName: string;
   email: string;
+  password: string;
   phone: string;
   address: string;
   city: string;
@@ -45,6 +46,7 @@ const initialBookingData: BookingData = {
   firstName: '',
   lastName: '',
   email: '',
+  password: '',
   phone: '',
   address: '',
   city: '',
@@ -757,6 +759,26 @@ function ContactStep({
   onBack: () => void;
 }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [emailExists, setEmailExists] = useState<boolean | null>(null);
+  const [checkingEmail, setCheckingEmail] = useState(false);
+
+  const checkEmail = async (email: string) => {
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+      setEmailExists(null);
+      return;
+    }
+
+    setCheckingEmail(true);
+    try {
+      const response = await api.get<{ email: string; exists: boolean }>(`/auth/check-email?email=${encodeURIComponent(email)}`);
+      setEmailExists(response.data.exists);
+    } catch (err) {
+      console.error('Error checking email:', err);
+      setEmailExists(null);
+    } finally {
+      setCheckingEmail(false);
+    }
+  };
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -767,6 +789,15 @@ function ContactStep({
     if (!data.address) newErrors.address = 'Address is required';
     if (!data.city) newErrors.city = 'City is required';
     if (!data.state) newErrors.state = 'State is required';
+    
+    // Validar password solo si el email no existe
+    if (emailExists === false && (!data.password || data.password.length < 8)) {
+      newErrors.password = 'Password must be at least 8 characters';
+    }
+
+    if (emailExists === true) {
+      newErrors.email = 'This email is already registered. Please login to continue.';
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -798,13 +829,37 @@ function ContactStep({
             error={errors.lastName}
           />
         </div>
-        <Input
-          label="Email"
-          type="email"
-          value={data.email}
-          onChange={(e) => onChange({ email: e.target.value })}
-          error={errors.email}
-        />
+        <div>
+          <Input
+            label="Email"
+            type="email"
+            value={data.email}
+            onChange={(e) => {
+              onChange({ email: e.target.value });
+              setEmailExists(null);
+              setErrors(prev => ({ ...prev, email: '' }));
+            }}
+            onBlur={(e) => checkEmail(e.target.value)}
+            error={errors.email}
+          />
+          {checkingEmail && <p className="text-sm text-gray-500 mt-1">Checking email...</p>}
+          {emailExists === false && (
+            <p className="text-sm text-green-600 mt-1">✓ Email available - we'll create your account</p>
+          )}
+        </div>
+        
+        {/* Password field - solo mostrar si email es nuevo */}
+        {emailExists === false && (
+          <Input
+            label="Create Password (min. 8 characters)"
+            type="password"
+            value={data.password}
+            onChange={(e) => onChange({ password: e.target.value })}
+            error={errors.password}
+            placeholder="Create a password for your account"
+          />
+        )}
+
         <Input
           label="Phone"
           type="tel"
@@ -886,9 +941,15 @@ function ConfirmStep({
         contactName: `${data.firstName} ${data.lastName}`,
         contactPhone: data.phone,
         contactEmail: data.email,
+        password: data.password || undefined,
         specialInstructions: data.specialInstructions,
       }),
     onSuccess: (response) => {
+      // Si se creó usuario, guardar tokens automáticamente
+      if (response.data.authToken) {
+        localStorage.setItem('token', response.data.authToken.accessToken);
+        localStorage.setItem('refreshToken', response.data.authToken.refreshToken);
+      }
       onSuccess(response.data);
     },
   });

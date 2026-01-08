@@ -5,7 +5,6 @@ import {
   Calendar,
   Users,
   Briefcase,
-  Settings,
   LogOut,
   Sparkles,
   ChevronDown,
@@ -32,7 +31,6 @@ const navigation = [
   { name: 'Servicios Adicionales', href: '/admin/additional-services', icon: PlusCircle },
   { name: 'Zonas de Servicio', href: '/admin/service-areas', icon: MapPin },
   { name: 'Usuarios', href: '/admin/users', icon: Shield },
-  { name: 'Configuración', href: '/admin/settings', icon: Settings },
 ];
 
 export function AdminLayout({ children }: AdminLayoutProps) {

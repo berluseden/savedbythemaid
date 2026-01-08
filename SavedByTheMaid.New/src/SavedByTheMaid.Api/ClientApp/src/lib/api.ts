@@ -167,7 +167,8 @@ export interface ConfirmBookingRequest {
   // Contact
   contactName?: string;
   contactPhone?: string;
-  contactEmail?: string;
+  contactEmail: string;
+  password?: string;
   specialInstructions?: string;
 }
 
@@ -180,6 +181,12 @@ export interface BookingConfirmation {
   total: number;
   orderStatus: string;
   message: string;
+  authToken?: {
+    accessToken: string;
+    refreshToken: string;
+    expiresAt: string;
+    isNewUser: boolean;
+  };
 }
 
 export interface AdditionalService {
@@ -269,6 +276,9 @@ export const authApi = {
     api.post<AuthResponse>('/auth/register', request),
 
   me: () => api.get<UserInfo>('/auth/me'),
+
+  checkEmail: (email: string) =>
+    api.get<{ email: string; exists: boolean }>(`/auth/check-email?email=${encodeURIComponent(email)}`),
 
   logout: () => {
     localStorage.removeItem('accessToken');

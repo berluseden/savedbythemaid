@@ -11,6 +11,9 @@ import {
   Calendar,
   Clock,
   CalendarOff,
+  MapPin,
+  Wrench,
+  Check,
 } from 'lucide-react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import api from '../../lib/api';
@@ -33,6 +36,24 @@ interface ServiceArea {
   name: string;
 }
 
+interface EmployeeServiceArea {
+  serviceAreaId: number;
+  serviceArea: { id: number; name: string };
+  isPrimary: boolean;
+}
+
+interface Equipment {
+  id: number;
+  name: string;
+  description: string | null;
+}
+
+interface EmployeeEquipment {
+  equipmentId: number;
+  equipment: { id: number; name: string };
+  isAvailable: boolean;
+}
+
 interface EmployeeSchedule {
   id: number;
   dayOfWeek: number;
@@ -46,17 +67,35 @@ interface EmployeeTimeOff {
   id: number;
   startDateTime: string;
   endDateTime: string;
+  isAllDay: boolean;
+  type: number;
   reason: string;
-  status: string;
+  status: number;
 }
 
-const DAYS_OF_WEEK = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+const TIME_OFF_TYPES = [
+  { value: 0, label: 'Permiso General', color: 'gray' },
+  { value: 1, label: 'Vacaciones', color: 'blue' },
+  { value: 2, label: 'Enfermedad', color: 'red' },
+  { value: 3, label: 'Personal', color: 'purple' },
+  { value: 4, label: 'Bloqueo Manual', color: 'orange' },
+];
 
-type ModalTab = 'info' | 'schedule' | 'timeoff';
+const TIME_OFF_STATUS = [
+  { value: 0, label: 'Pendiente', color: 'yellow' },
+  { value: 1, label: 'Aprobado', color: 'green' },
+  { value: 2, label: 'Rechazado', color: 'red' },
+];
+
+const DAYS_OF_WEEK = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+const DAYS_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+type ModalTab = 'info' | 'zones' | 'equipment' | 'schedule' | 'timeoff';
 
 export function AdminEmployeesPage() {
   const [employees, setEmployees] = useState<EmployeeDto[]>([]);
   const [serviceAreas, setServiceAreas] = useState<ServiceArea[]>([]);
+  const [allEquipment, setAllEquipment] = useState<Equipment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -68,6 +107,8 @@ export function AdminEmployeesPage() {
   const [activeTab, setActiveTab] = useState<ModalTab>('info');
   const [schedules, setSchedules] = useState<EmployeeSchedule[]>([]);
   const [timeOffs, setTimeOffs] = useState<EmployeeTimeOff[]>([]);
+  const [assignedZones, setAssignedZones] = useState<EmployeeServiceArea[]>([]);
+  const [assignedEquipment, setAssignedEquipment] = useState<EmployeeEquipment[]>([]);
   const [loadingSchedules, setLoadingSchedules] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -93,12 +134,15 @@ export function AdminEmployeesPage() {
   const [timeOffForm, setTimeOffForm] = useState({
     startDate: '',
     endDate: '',
+    isAllDay: false,
+    type: 0,
     reason: '',
   });
 
   useEffect(() => {
     fetchEmployees();
     fetchServiceAreas();
+    fetchAllEquipment();
   }, []);
 
   const fetchServiceAreas = async () => {
@@ -107,6 +151,15 @@ export function AdminEmployeesPage() {
       setServiceAreas(response.data);
     } catch (err) {
       console.error('Error loading service areas', err);
+    }
+  };
+
+  const fetchAllEquipment = async () => {
+    try {
+      const response = await api.get<Equipment[]>('/admin/equipment');
+      setAllEquipment(response.data);
+    } catch (err) {
+      console.error('Error loading equipment', err);
     }
   };
 
@@ -120,6 +173,19 @@ export function AdminEmployeesPage() {
       console.error(err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchEmployeeDetails = async (employeeId: number) => {
+    try {
+      const response = await api.get<{
+        serviceAreas: EmployeeServiceArea[];
+        equipment: EmployeeEquipment[];
+      }>(`/admin/employees/${employeeId}`);
+      setAssignedZones(response.data.serviceAreas || []);
+      setAssignedEquipment(response.data.equipment || []);
+    } catch (err) {
+      console.error('Error loading employee details', err);
     }
   };
 
@@ -177,10 +243,12 @@ export function AdminEmployeesPage() {
       await api.post(`/admin/employees/${editingEmployee.id}/time-off`, {
         startDateTime: new Date(timeOffForm.startDate).toISOString(),
         endDateTime: new Date(timeOffForm.endDate).toISOString(),
+        isAllDay: timeOffForm.isAllDay,
+        type: timeOffForm.type,
         reason: timeOffForm.reason,
       });
       await fetchTimeOffs(editingEmployee.id);
-      setTimeOffForm({ startDate: '', endDate: '', reason: '' });
+      setTimeOffForm({ startDate: '', endDate: '', isAllDay: false, type: 0, reason: '' });
     } catch (err) {
       setError('Error al guardar bloqueo');
     } finally {
@@ -235,7 +303,80 @@ export function AdminEmployeesPage() {
     setActiveTab('info');
     fetchSchedules(employee.id);
     fetchTimeOffs(employee.id);
+    fetchEmployeeDetails(employee.id);
     setShowModal(true);
+  };
+
+  // Zone management
+  const handleAddZone = async (serviceAreaId: number, isPrimary: boolean = false) => {
+    if (!editingEmployee) return;
+    setSaving(true);
+    try {
+      await api.post(`/admin/employees/${editingEmployee.id}/service-areas/${serviceAreaId}?isPrimary=${isPrimary}`);
+      await fetchEmployeeDetails(editingEmployee.id);
+      await fetchEmployees();
+    } catch (err) {
+      setError('Error al agregar zona');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRemoveZone = async (serviceAreaId: number) => {
+    if (!editingEmployee) return;
+    try {
+      await api.delete(`/admin/employees/${editingEmployee.id}/service-areas/${serviceAreaId}`);
+      await fetchEmployeeDetails(editingEmployee.id);
+      await fetchEmployees();
+    } catch (err) {
+      setError('Error al eliminar zona');
+    }
+  };
+
+  const handleSetPrimaryZone = async (serviceAreaId: number) => {
+    if (!editingEmployee) return;
+    try {
+      await api.post(`/admin/employees/${editingEmployee.id}/service-areas/${serviceAreaId}?isPrimary=true`);
+      await fetchEmployeeDetails(editingEmployee.id);
+      await fetchEmployees();
+    } catch (err) {
+      setError('Error al establecer zona principal');
+    }
+  };
+
+  // Equipment management
+  const handleAddEquipment = async (equipmentId: number) => {
+    if (!editingEmployee) return;
+    setSaving(true);
+    try {
+      await api.post(`/admin/employees/${editingEmployee.id}/equipment/${equipmentId}`);
+      await fetchEmployeeDetails(editingEmployee.id);
+    } catch (err) {
+      setError('Error al agregar equipamiento');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRemoveEquipment = async (equipmentId: number) => {
+    if (!editingEmployee) return;
+    try {
+      await api.delete(`/admin/employees/${editingEmployee.id}/equipment/${equipmentId}`);
+      await fetchEmployeeDetails(editingEmployee.id);
+    } catch (err) {
+      setError('Error al eliminar equipamiento');
+    }
+  };
+
+  const handleToggleEquipmentAvailability = async (equipmentId: number, currentAvailable: boolean) => {
+    if (!editingEmployee) return;
+    try {
+      // Primero eliminamos y luego volvemos a agregar con el nuevo estado
+      await api.post(`/admin/employees/${editingEmployee.id}/equipment/${equipmentId}?isAvailable=${!currentAvailable}`);
+      await fetchEmployeeDetails(editingEmployee.id);
+    } catch (err) {
+      setError('Error al cambiar disponibilidad');
+    }
   };
 
   const handleDelete = async (id: number) => {
@@ -255,6 +396,8 @@ export function AdminEmployeesPage() {
     setActiveTab('info');
     setSchedules([]);
     setTimeOffs([]);
+    setAssignedZones([]);
+    setAssignedEquipment([]);
     setFormData({
       firstName: '',
       lastName: '',
@@ -489,39 +632,61 @@ export function AdminEmployeesPage() {
 
             {/* Tabs - solo mostrar si estamos editando */}
             {editingEmployee && (
-              <div className="flex border-b bg-gray-50">
+              <div className="flex border-b bg-gray-50 overflow-x-auto">
                 <button
                   onClick={() => setActiveTab('info')}
-                  className={`flex-1 px-4 py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
+                  className={`flex-1 min-w-[80px] px-3 py-3 text-sm font-medium flex items-center justify-center gap-1 transition-colors ${
                     activeTab === 'info' 
                       ? 'text-sky-600 border-b-2 border-sky-500 bg-white' 
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   <User className="h-4 w-4" />
-                  Información
+                  <span className="hidden sm:inline">Info</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('zones')}
+                  className={`flex-1 min-w-[80px] px-3 py-3 text-sm font-medium flex items-center justify-center gap-1 transition-colors ${
+                    activeTab === 'zones' 
+                      ? 'text-sky-600 border-b-2 border-sky-500 bg-white' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <MapPin className="h-4 w-4" />
+                  <span className="hidden sm:inline">Zonas</span> ({assignedZones.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab('equipment')}
+                  className={`flex-1 min-w-[80px] px-3 py-3 text-sm font-medium flex items-center justify-center gap-1 transition-colors ${
+                    activeTab === 'equipment' 
+                      ? 'text-sky-600 border-b-2 border-sky-500 bg-white' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Wrench className="h-4 w-4" />
+                  <span className="hidden sm:inline">Equipo</span> ({assignedEquipment.length})
                 </button>
                 <button
                   onClick={() => setActiveTab('schedule')}
-                  className={`flex-1 px-4 py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
+                  className={`flex-1 min-w-[80px] px-3 py-3 text-sm font-medium flex items-center justify-center gap-1 transition-colors ${
                     activeTab === 'schedule' 
                       ? 'text-sky-600 border-b-2 border-sky-500 bg-white' 
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   <Clock className="h-4 w-4" />
-                  Horarios ({schedules.length})
+                  <span className="hidden sm:inline">Horarios</span> ({schedules.length})
                 </button>
                 <button
                   onClick={() => setActiveTab('timeoff')}
-                  className={`flex-1 px-4 py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
+                  className={`flex-1 min-w-[80px] px-3 py-3 text-sm font-medium flex items-center justify-center gap-1 transition-colors ${
                     activeTab === 'timeoff' 
                       ? 'text-sky-600 border-b-2 border-sky-500 bg-white' 
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   <CalendarOff className="h-4 w-4" />
-                  Bloqueos ({timeOffs.length})
+                  <span className="hidden sm:inline">Bloqueos</span> ({timeOffs.length})
                 </button>
               </div>
             )}
@@ -655,9 +820,184 @@ export function AdminEmployeesPage() {
                 </form>
               )}
 
-              {/* Tab: Horarios */}
+              {/* Tab: Zonas de Servicio */}
+              {activeTab === 'zones' && (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="font-medium text-gray-900 mb-3">Zonas asignadas</h3>
+                    {assignedZones.length === 0 ? (
+                      <p className="text-gray-500 text-center py-4">No hay zonas asignadas</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {assignedZones.map((zone) => (
+                          <div key={zone.serviceAreaId} className="flex items-center justify-between p-3 bg-white border rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <MapPin className={`h-4 w-4 ${zone.isPrimary ? 'text-sky-500' : 'text-gray-400'}`} />
+                              <span className="font-medium">{zone.serviceArea?.name || `Zona ${zone.serviceAreaId}`}</span>
+                              {zone.isPrimary && (
+                                <span className="px-2 py-0.5 bg-sky-100 text-sky-700 text-xs rounded-full">Principal</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {!zone.isPrimary && (
+                                <button
+                                  onClick={() => handleSetPrimaryZone(zone.serviceAreaId)}
+                                  className="p-1 text-gray-400 hover:text-sky-500 text-xs"
+                                  title="Establecer como principal"
+                                >
+                                  <Check className="h-4 w-4" />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleRemoveZone(zone.serviceAreaId)}
+                                className="p-1 text-gray-400 hover:text-red-500"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <h3 className="font-medium text-gray-900 mb-3">Agregar zona</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {serviceAreas
+                        .filter(area => !assignedZones.some(z => z.serviceAreaId === area.id))
+                        .map(area => (
+                          <button
+                            key={area.id}
+                            onClick={() => handleAddZone(area.id, assignedZones.length === 0)}
+                            disabled={saving}
+                            className="p-3 text-left border rounded-lg hover:border-sky-300 hover:bg-sky-50 transition-colors disabled:opacity-50"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Plus className="h-4 w-4 text-gray-400" />
+                              <span className="text-sm font-medium">{area.name}</span>
+                            </div>
+                          </button>
+                        ))}
+                    </div>
+                    {serviceAreas.filter(area => !assignedZones.some(z => z.serviceAreaId === area.id)).length === 0 && (
+                      <p className="text-gray-500 text-center py-4">Todas las zonas ya están asignadas</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Tab: Equipamiento */}
+              {activeTab === 'equipment' && (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="font-medium text-gray-900 mb-3">Equipamiento asignado</h3>
+                    {assignedEquipment.length === 0 ? (
+                      <p className="text-gray-500 text-center py-4">No hay equipamiento asignado</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {assignedEquipment.map((eq) => (
+                          <div key={eq.equipmentId} className="flex items-center justify-between p-3 bg-white border rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <Wrench className="h-4 w-4 text-gray-400" />
+                              <span className="font-medium">{eq.equipment?.name || `Equipo ${eq.equipmentId}`}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {/* Toggle disponibilidad */}
+                              <button
+                                onClick={() => handleToggleEquipmentAvailability(eq.equipmentId, eq.isAvailable)}
+                                className={`px-3 py-1 text-xs rounded-full transition-colors ${
+                                  eq.isAvailable 
+                                    ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                                    : 'bg-red-100 text-red-700 hover:bg-red-200'
+                                }`}
+                                title={eq.isAvailable ? 'Click para marcar como no disponible' : 'Click para marcar como disponible'}
+                              >
+                                {eq.isAvailable ? '✓ Disponible' : '✗ En uso'}
+                              </button>
+                              <button
+                                onClick={() => handleRemoveEquipment(eq.equipmentId)}
+                                className="p-1 text-gray-400 hover:text-red-500"
+                                title="Quitar equipamiento"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <h3 className="font-medium text-gray-900 mb-3">Agregar equipamiento</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {allEquipment
+                        .filter(eq => !assignedEquipment.some(ae => ae.equipmentId === eq.id))
+                        .map(eq => (
+                          <button
+                            key={eq.id}
+                            onClick={() => handleAddEquipment(eq.id)}
+                            disabled={saving}
+                            className="p-3 text-left border rounded-lg hover:border-sky-300 hover:bg-sky-50 transition-colors disabled:opacity-50"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Plus className="h-4 w-4 text-gray-400" />
+                              <span className="text-sm font-medium">{eq.name}</span>
+                            </div>
+                          </button>
+                        ))}
+                    </div>
+                    {allEquipment.filter(eq => !assignedEquipment.some(ae => ae.equipmentId === eq.id)).length === 0 && (
+                      <p className="text-gray-500 text-center py-4">
+                        {allEquipment.length === 0 ? 'No hay equipamiento disponible en el sistema' : 'Todo el equipamiento ya está asignado'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Tab: Horarios - Vista Calendario */}
               {activeTab === 'schedule' && (
                 <div className="space-y-6">
+                  {/* Vista Calendario Semanal */}
+                  <div>
+                    <h3 className="font-medium text-gray-900 mb-3">Horario Semanal</h3>
+                    <div className="bg-white border rounded-lg overflow-hidden">
+                      <div className="grid grid-cols-7 bg-gray-50">
+                        {DAYS_SHORT.map((day, idx) => {
+                          const schedule = schedules.find(s => s.dayOfWeek === idx);
+                          return (
+                            <div key={idx} className="text-center border-r last:border-r-0">
+                              <div className="py-2 border-b font-medium text-sm text-gray-700">{day}</div>
+                              <div className="min-h-[80px] p-2">
+                                {schedule ? (
+                                  <div 
+                                    className="bg-sky-100 text-sky-800 rounded p-1.5 text-xs cursor-pointer hover:bg-sky-200"
+                                    onClick={() => handleDeleteSchedule(idx)}
+                                    title="Click para eliminar"
+                                  >
+                                    <div className="font-medium">{schedule.startTime.substring(0, 5)}</div>
+                                    <div className="text-sky-600">a</div>
+                                    <div className="font-medium">{schedule.endTime.substring(0, 5)}</div>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => setScheduleForm({ ...scheduleForm, dayOfWeek: idx })}
+                                    className="w-full h-full min-h-[60px] border-2 border-dashed border-gray-200 rounded text-gray-400 hover:border-sky-300 hover:text-sky-500 flex items-center justify-center"
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Formulario para agregar */}
                   <form onSubmit={handleAddSchedule} className="bg-gray-50 rounded-lg p-4 space-y-4">
                     <h3 className="font-medium text-gray-900">Agregar horario</h3>
                     <div className="grid grid-cols-2 gap-4">
@@ -694,6 +1034,33 @@ export function AdminEmployeesPage() {
                         </div>
                       </div>
                     </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Buffer entre servicios (min)</label>
+                        <select
+                          value={scheduleForm.bufferMinutes}
+                          onChange={(e) => setScheduleForm({ ...scheduleForm, bufferMinutes: parseInt(e.target.value) })}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                        >
+                          <option value={0}>Sin buffer</option>
+                          <option value={15}>15 minutos</option>
+                          <option value={30}>30 minutos</option>
+                          <option value={45}>45 minutos</option>
+                          <option value={60}>1 hora</option>
+                        </select>
+                      </div>
+                      <div className="flex items-end pb-2">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={scheduleForm.isAvailable}
+                            onChange={(e) => setScheduleForm({ ...scheduleForm, isAvailable: e.target.checked })}
+                            className="w-4 h-4 text-sky-500 border-gray-300 rounded focus:ring-sky-500"
+                          />
+                          <span className="text-sm text-gray-700">Disponible para servicios</span>
+                        </label>
+                      </div>
+                    </div>
                     <button
                       type="submit"
                       disabled={saving}
@@ -714,13 +1081,23 @@ export function AdminEmployeesPage() {
                     ) : (
                       <div className="space-y-2">
                         {schedules.map((schedule) => (
-                          <div key={schedule.dayOfWeek} className="flex items-center justify-between p-3 bg-white border rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <Calendar className="h-4 w-4 text-gray-400" />
+                          <div key={schedule.dayOfWeek} className={`flex items-center justify-between p-3 border rounded-lg ${schedule.isAvailable ? 'bg-white' : 'bg-gray-100'}`}>
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <Calendar className={`h-4 w-4 ${schedule.isAvailable ? 'text-sky-500' : 'text-gray-400'}`} />
                               <span className="font-medium">{DAYS_OF_WEEK[schedule.dayOfWeek]}</span>
                               <span className="text-gray-500">
                                 {schedule.startTime.substring(0, 5)} - {schedule.endTime.substring(0, 5)}
                               </span>
+                              {schedule.bufferMinutes > 0 && (
+                                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                                  Buffer: {schedule.bufferMinutes} min
+                                </span>
+                              )}
+                              {!schedule.isAvailable && (
+                                <span className="px-2 py-0.5 bg-gray-200 text-gray-600 text-xs rounded-full">
+                                  No disponible
+                                </span>
+                              )}
                             </div>
                             <button
                               onClick={() => handleDeleteSchedule(schedule.dayOfWeek)}
@@ -740,12 +1117,40 @@ export function AdminEmployeesPage() {
               {activeTab === 'timeoff' && (
                 <div className="space-y-6">
                   <form onSubmit={handleAddTimeOff} className="bg-gray-50 rounded-lg p-4 space-y-4">
-                    <h3 className="font-medium text-gray-900">Agregar bloqueo</h3>
+                    <h3 className="font-medium text-gray-900">Agregar bloqueo o permiso</h3>
+                    
+                    {/* Tipo de bloqueo */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+                      <select
+                        value={timeOffForm.type}
+                        onChange={(e) => setTimeOffForm({ ...timeOffForm, type: parseInt(e.target.value) })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                      >
+                        {TIME_OFF_TYPES.map(type => (
+                          <option key={type.value} value={type.value}>{type.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Día completo toggle */}
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={timeOffForm.isAllDay}
+                        onChange={(e) => setTimeOffForm({ ...timeOffForm, isAllDay: e.target.checked })}
+                        className="w-4 h-4 text-sky-500 border-gray-300 rounded focus:ring-sky-500"
+                      />
+                      <span className="text-sm text-gray-700">Día completo</span>
+                    </label>
+
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Fecha inicio</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {timeOffForm.isAllDay ? 'Fecha inicio' : 'Fecha y hora inicio'}
+                        </label>
                         <input
-                          type="datetime-local"
+                          type={timeOffForm.isAllDay ? 'date' : 'datetime-local'}
                           value={timeOffForm.startDate}
                           onChange={(e) => setTimeOffForm({ ...timeOffForm, startDate: e.target.value })}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg"
@@ -753,9 +1158,11 @@ export function AdminEmployeesPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Fecha fin</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {timeOffForm.isAllDay ? 'Fecha fin' : 'Fecha y hora fin'}
+                        </label>
                         <input
-                          type="datetime-local"
+                          type={timeOffForm.isAllDay ? 'date' : 'datetime-local'}
                           value={timeOffForm.endDate}
                           onChange={(e) => setTimeOffForm({ ...timeOffForm, endDate: e.target.value })}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg"
@@ -764,12 +1171,12 @@ export function AdminEmployeesPage() {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Motivo</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Motivo (opcional)</label>
                       <input
                         type="text"
                         value={timeOffForm.reason}
                         onChange={(e) => setTimeOffForm({ ...timeOffForm, reason: e.target.value })}
-                        placeholder="Vacaciones, cita médica, etc."
+                        placeholder="Vacaciones, cita médica, emergencia familiar..."
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                       />
                     </div>
@@ -778,37 +1185,58 @@ export function AdminEmployeesPage() {
                       disabled={saving}
                       className="px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 disabled:opacity-50"
                     >
-                      {saving ? 'Guardando...' : 'Agregar bloqueo'}
+                      {saving ? 'Guardando...' : 'Agregar'}
                     </button>
                   </form>
 
                   <div>
-                    <h3 className="font-medium text-gray-900 mb-3">Bloqueos programados</h3>
+                    <h3 className="font-medium text-gray-900 mb-3">Bloqueos y permisos programados</h3>
                     {timeOffs.length === 0 ? (
                       <p className="text-gray-500 text-center py-4">No hay bloqueos programados</p>
                     ) : (
                       <div className="space-y-2">
-                        {timeOffs.map((timeOff) => (
-                          <div key={timeOff.id} className="flex items-center justify-between p-3 bg-white border rounded-lg">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <CalendarOff className="h-4 w-4 text-orange-500" />
-                                <span className="font-medium">
-                                  {new Date(timeOff.startDateTime).toLocaleDateString()} - {new Date(timeOff.endDateTime).toLocaleDateString()}
-                                </span>
+                        {timeOffs.map((timeOff) => {
+                          const typeInfo = TIME_OFF_TYPES.find(t => t.value === timeOff.type) || TIME_OFF_TYPES[0];
+                          const statusInfo = TIME_OFF_STATUS.find(s => s.value === timeOff.status) || TIME_OFF_STATUS[1];
+                          return (
+                            <div key={timeOff.id} className="flex items-center justify-between p-3 bg-white border rounded-lg">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <CalendarOff className={`h-4 w-4 text-${typeInfo.color}-500`} />
+                                  <span className={`px-2 py-0.5 text-xs rounded-full bg-${typeInfo.color}-100 text-${typeInfo.color}-700`}>
+                                    {typeInfo.label}
+                                  </span>
+                                  <span className="font-medium text-sm">
+                                    {new Date(timeOff.startDateTime).toLocaleDateString()} 
+                                    {!timeOff.isAllDay && ` ${new Date(timeOff.startDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                                    {' - '}
+                                    {new Date(timeOff.endDateTime).toLocaleDateString()}
+                                    {!timeOff.isAllDay && ` ${new Date(timeOff.endDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                                  </span>
+                                  {timeOff.isAllDay && (
+                                    <span className="text-xs text-gray-500">(Todo el día)</span>
+                                  )}
+                                  <span className={`px-2 py-0.5 text-xs rounded-full ${
+                                    statusInfo.value === 1 ? 'bg-green-100 text-green-700' :
+                                    statusInfo.value === 0 ? 'bg-yellow-100 text-yellow-700' :
+                                    'bg-red-100 text-red-700'
+                                  }`}>
+                                    {statusInfo.label}
+                                  </span>
+                                </div>
+                                {timeOff.reason && (
+                                  <p className="text-sm text-gray-500 ml-6 mt-1">{timeOff.reason}</p>
+                                )}
                               </div>
-                              {timeOff.reason && (
-                                <p className="text-sm text-gray-500 ml-6">{timeOff.reason}</p>
-                              )}
+                              <button
+                                onClick={() => handleDeleteTimeOff(timeOff.id)}
+                                className="p-1 text-gray-400 hover:text-red-500"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
                             </div>
-                            <button
-                              onClick={() => handleDeleteTimeOff(timeOff.id)}
-                              className="p-1 text-gray-400 hover:text-red-500"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
