@@ -11,6 +11,11 @@ public class ServiceType : BaseEntity
     public string? Description { get; set; }
     
     /// <summary>
+    /// Costo operativo del servicio (para cálculos internos)
+    /// </summary>
+    public decimal Cost { get; set; }
+    
+    /// <summary>
     /// Precio base (incluye 1 recámara + 1 baño)
     /// </summary>
     public decimal Price { get; set; }

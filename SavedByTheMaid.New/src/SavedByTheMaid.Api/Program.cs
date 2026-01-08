@@ -297,6 +297,9 @@ await SeedRolesAsync(app.Services);
 // Seed de usuario admin
 await SeedAdminUserAsync(app.Services);
 
+// Seed de datos maestros (idempotente)
+await SeedMasterDataAsync(app.Services);
+
 // Log startup
 Log.Information("SavedByTheMaid API iniciado - Entorno: {Environment}", app.Environment.EnvironmentName);
 
@@ -389,6 +392,25 @@ static async Task SeedAdminUserAsync(IServiceProvider services)
     catch (Exception ex)
     {
         logger.LogError(ex, "Error al crear usuario admin");
+    }
+}
+
+static async Task SeedMasterDataAsync(IServiceProvider services)
+{
+    using var scope = services.CreateScope();
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+    try
+    {
+        var seeder = new SavedByTheMaid.Infrastructure.Data.DataSeeder(context, 
+            scope.ServiceProvider.GetRequiredService<ILogger<SavedByTheMaid.Infrastructure.Data.DataSeeder>>());
+        await seeder.SeedAllAsync();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error al ejecutar seed de datos maestros");
+        // No lanzar excepción para permitir que la app continúe
     }
 }
 
