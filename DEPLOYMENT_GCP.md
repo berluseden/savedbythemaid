@@ -337,7 +337,94 @@ crontab -e
 # Agregar: 0 2 * * * /home/codespace/backup-db.sh
 ```
 
+## 🔄 Paso 10: Actualización de la Aplicación
+
+### Actualización completa (recomendado)
+
+```bash
+cd /opt/savedbythemaid
+./deploy.sh
+```
+
+Este script automáticamente:
+- Actualiza el código desde GitHub
+- Detiene los contenedores
+- Reconstruye las imágenes
+- Reinicia todo
+
+### Actualización solo del frontend
+
+Si solo necesitas actualizar el frontend (por ejemplo, después de corregir el healthcheck):
+
+```bash
+cd /opt/savedbythemaid
+
+# Actualizar código
+git pull origin main
+
+# Ejecutar script de actualización
+./update-frontend.sh
+```
+
+### Actualización manual selectiva
+
+```bash
+cd /opt/savedbythemaid
+
+# Actualizar repositorio
+git pull origin main
+
+# Reconstruir y actualizar contenedores
+docker compose up -d --build
+
+# Verificar estado
+docker compose ps
+```
+
+### Actualización solo de la API
+
+```bash
+cd /opt/savedbythemaid
+docker compose stop api
+docker compose build --no-cache api
+docker compose up -d api
+docker compose ps api
+```
+
+### Actualización sin downtime (rolling update)
+
+Para minimizar el downtime:
+
+```bash
+cd /opt/savedbythemaid
+git pull origin main
+
+# Actualizar solo un servicio a la vez
+docker compose up -d --no-deps --build api
+sleep 10
+docker compose up -d --no-deps --build frontend
+```
+
 ## 🔧 Troubleshooting
+
+### Frontend marcado como "unhealthy"
+
+**Síntoma**: `docker ps` muestra el frontend como `(unhealthy)`
+
+**Causa**: El healthcheck del Dockerfile.frontend usa `wget` pero no estaba instalado.
+
+**Solución**: Actualiza a la última versión que incluye la corrección:
+
+```bash
+cd /opt/savedbythemaid
+git pull origin main
+./update-frontend.sh
+
+# Verificar
+docker compose ps frontend
+```
+
+Deberías ver el status cambiar de `(unhealthy)` a `(healthy)` después de ~30 segundos.
 
 ### Error: "Cannot connect to Docker daemon"
 

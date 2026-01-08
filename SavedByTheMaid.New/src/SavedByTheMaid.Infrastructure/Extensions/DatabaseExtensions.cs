@@ -28,19 +28,36 @@ public static class DatabaseExtensions
                 throw new InvalidOperationException("No se puede conectar a la base de datos");
             }
 
-            logger.LogInformation("Aplicando migraciones pendientes...");
+            logger.LogInformation("Verificando esquema de base de datos...");
             
-            // Aplicar migraciones pendientes
+            // Verificar si hay migraciones disponibles
+            var appliedMigrations = await context.Database.GetAppliedMigrationsAsync();
             var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
-            if (pendingMigrations.Any())
+            
+            if (!appliedMigrations.Any() && !pendingMigrations.Any())
             {
+                // No hay migraciones creadas, usar EnsureCreated
+                logger.LogWarning("No se encontraron migraciones. Creando esquema con EnsureCreated()");
+                var created = await context.Database.EnsureCreatedAsync();
+                if (created)
+                {
+                    logger.LogInformation("Esquema de base de datos creado exitosamente");
+                }
+                else
+                {
+                    logger.LogInformation("El esquema de base de datos ya existe");
+                }
+            }
+            else if (pendingMigrations.Any())
+            {
+                // Hay migraciones pendientes, aplicarlas
                 logger.LogInformation("Migraciones pendientes: {Migrations}", string.Join(", ", pendingMigrations));
                 await context.Database.MigrateAsync();
                 logger.LogInformation("Migraciones aplicadas exitosamente");
             }
             else
             {
-                logger.LogInformation("No hay migraciones pendientes");
+                logger.LogInformation("No hay migraciones pendientes. Esquema actualizado.");
             }
 
             // Aplicar correcciones manuales si la columna PaymentStatus existe
