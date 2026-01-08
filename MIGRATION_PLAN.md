@@ -529,3 +529,8 @@ dotnet run --project netcore --urls "http://localhost:5001"
 ---
 
 **Última actualización:** 6 de Enero 2026
+cd /opt
+sudo rm savedbythemaid-deploy.sh
+sudo wget https://raw.githubusercontent.com/berluseden/savedbythemaid/main/deploy.sh -O savedbythemaid-deploy.sh
+sudo chmod +x savedbythemaid-deploy.sh
+sudo ./savedbythemaid-deploy.sh
