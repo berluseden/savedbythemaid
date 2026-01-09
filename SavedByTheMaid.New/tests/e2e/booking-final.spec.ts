@@ -68,17 +68,26 @@ test.describe('SavedByTheMaid Booking Flow', () => {
     console.log('🏠 Paso 3: Ingresando detalles...');
     
     // Esperar que aparezca la página de detalles
-    await expect(page.getByText('Property details')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Tell us about your space')).toBeVisible({ timeout: 10000 });
     await page.screenshot({ path: `test-results/v3-04-details-page-${timestamp}.png`, fullPage: true });
     
-    // Seleccionar tipo de propiedad (primer card)
-    const propertyCard = page.locator('button').filter({ hasText: /House|Apartment|Condo/ }).first();
-    if (await propertyCard.isVisible()) {
-      await propertyCard.click();
+    // IMPORTANTE: Seleccionar tipo de propiedad (requerido para habilitar Continue)
+    // Los tipos son: House, Apartment, Office, etc.
+    const propertyCards = page.locator('button').filter({ hasText: /House|Apartment|Office|Condo|Studio/i });
+    const cardCount = await propertyCards.count();
+    console.log(`   Encontrados ${cardCount} tipos de propiedad`);
+    
+    if (cardCount > 0) {
+      await propertyCards.first().click();
+      console.log('   ✓ Tipo de propiedad seleccionado');
+    } else {
+      // Si no hay cards, buscar cualquier botón clickeable en la sección de Property Type
+      const anyPropertyButton = page.locator('[class*="rounded-lg"]').filter({ hasText: /.+/ }).first();
+      await anyPropertyButton.click();
     }
     
-    // Los valores de bedrooms/bathrooms ya tienen defaults (2/1)
-    // Simplemente continuar
+    // Esperar un momento para que React procese el cambio
+    await page.waitForTimeout(500);
     
     // Click en Continue
     const detailsContinue = page.getByRole('button', { name: 'Continue' });

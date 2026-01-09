@@ -571,7 +571,7 @@ public class BookingController : ControllerBase
             return NotFound();
 
         if (softReserve.Status != SoftReserveStatus.Active)
-            return BadRequest("La reserva ya fue procesada o expiró.");
+            return BadRequest(new { message = "This reservation has already been processed or expired. Please select a new time." });
 
         softReserve.Status = SoftReserveStatus.Cancelled;
         await _context.SaveChangesAsync();
@@ -592,7 +592,7 @@ public class BookingController : ControllerBase
             return NotFound();
 
         if (softReserve.Status != SoftReserveStatus.Active || softReserve.ExpiresAt <= DateTime.UtcNow)
-            return BadRequest("La reserva ya expiró.");
+            return BadRequest(new { message = "Your time slot has expired. Please go back and select a new time." });
 
         // Extender 10 minutos más desde la expiración actual (no desde ahora)
         var newExpiry = softReserve.ExpiresAt > DateTime.UtcNow 
@@ -632,16 +632,16 @@ public class BookingController : ControllerBase
                 .FirstOrDefaultAsync(s => s.Id == request.SoftReserveId && s.SessionId == request.SessionId);
 
             if (softReserve == null)
-                return NotFound("Reserva no encontrada.");
+                return NotFound(new { message = "Your time slot reservation was not found. Please go back and select a new time." });
 
             if (softReserve.Status != SoftReserveStatus.Active)
-                return BadRequest("La reserva ya fue procesada.");
+                return BadRequest(new { message = "This reservation has already been processed. Please start a new booking." });
 
             if (softReserve.ExpiresAt <= DateTime.UtcNow)
             {
                 softReserve.Status = SoftReserveStatus.Expired;
                 await _context.SaveChangesAsync();
-                return BadRequest("La reserva expiró. Por favor selecciona otro horario.");
+                return BadRequest(new { message = "Your time slot has expired. Please go back and select a new time." });
             }
 
             // CRÍTICO: Re-calcular pricing en backend para prevenir fraude
@@ -649,7 +649,7 @@ public class BookingController : ControllerBase
             
             var serviceType = await _context.ServiceTypes.FindAsync(request.ServiceTypeId);
             if (serviceType == null)
-                return BadRequest("Tipo de servicio no válido");
+                return BadRequest(new { message = "Invalid service type. Please go back and select a service." });
 
             // Precio base del servicio
             decimal calculatedSubtotal = serviceType.Price;

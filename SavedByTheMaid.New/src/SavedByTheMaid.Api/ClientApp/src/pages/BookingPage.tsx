@@ -919,6 +919,8 @@ function ConfirmStep({
   onBack: () => void;
   onSuccess: (confirmation: BookingConfirmation) => void;
 }) {
+  const [error, setError] = useState<string | null>(null);
+
   const confirmBooking = useMutation({
     mutationFn: () =>
       bookingApi.confirmBooking({
@@ -945,12 +947,19 @@ function ConfirmStep({
         specialInstructions: data.specialInstructions,
       }),
     onSuccess: (response) => {
+      setError(null);
       // Si se creó usuario, guardar tokens automáticamente
       if (response.data.authToken) {
         localStorage.setItem('token', response.data.authToken.accessToken);
         localStorage.setItem('refreshToken', response.data.authToken.refreshToken);
       }
       onSuccess(response.data);
+    },
+    onError: (err: Error & { response?: { data?: { message?: string } } }) => {
+      const message = err.response?.data?.message 
+        || err.message 
+        || 'Something went wrong. Please try again.';
+      setError(message);
     },
   });
 
@@ -1026,11 +1035,24 @@ function ConfirmStep({
           <CreditCard className="h-5 w-5 text-gray-400" />
           <span>Payment will be collected after service completion</span>
         </div>
+
+        {/* Error message */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+            <svg className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <p className="text-sm font-medium text-red-800">Booking failed</p>
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex justify-between mt-8">
         <Button variant="outline" onClick={onBack}>Back</Button>
-        <Button onClick={() => confirmBooking.mutate()} loading={confirmBooking.isPending}>
+        <Button onClick={() => { setError(null); confirmBooking.mutate(); }} loading={confirmBooking.isPending}>
           Confirm Booking
         </Button>
       </div>
