@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Calendar, Clock, MapPin, Star, CreditCard, X, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, MapPin, CreditCard, X, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '@/lib/api';
 
@@ -20,10 +20,10 @@ interface CustomerStats {
   completedBookings: number;
   totalSpent: number;
   nextBooking: string | null;
-  loyaltyPoints: number;
 }
 
 const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
+  Draft: { label: 'Draft', color: 'text-gray-700', bgColor: 'bg-gray-100' },
   Pending: { label: 'Pending', color: 'text-yellow-700', bgColor: 'bg-yellow-100' },
   Confirmed: { label: 'Confirmed', color: 'text-blue-700', bgColor: 'bg-blue-100' },
   InProgress: { label: 'In Progress', color: 'text-purple-700', bgColor: 'bg-purple-100' },
@@ -56,7 +56,7 @@ export function UserDashboardPage() {
       ]);
 
       const upcoming = ordersRes.data.items.filter(
-        (o) => o.status === 'Pending' || o.status === 'Confirmed'
+        (o) => o.status === 'Draft' || o.status === 'Pending' || o.status === 'Confirmed'
       );
       setUpcomingBookings(upcoming);
       setStats(statsRes.data);
@@ -170,17 +170,6 @@ export function UserDashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
-                <Star className="w-6 h-6 text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Loyalty Points</p>
-                <p className="text-2xl font-bold text-gray-900">{stats?.loyaltyPoints ?? 0}</p>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Upcoming Bookings */}
