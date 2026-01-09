@@ -225,6 +225,115 @@ public class CustomerController : ControllerBase
 
         return NoContent();
     }
+
+    /// <summary>
+    /// Reschedules an order to a new date/time (only if confirmed)
+    /// </summary>
+    [HttpPost("my-orders/{id}/reschedule")]
+    public async Task<IActionResult> RescheduleOrder(int id, [FromBody] RescheduleRequest request)
+    {
+        var userId = GetUserId();
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        var order = await _context.ServiceOrders
+            .Include(o => o.Meetings)
+            .FirstOrDefaultAsync(o => o.Id == id && o.CustomerId == userId && !o.IsDeleted);
+
+        if (order == null)
+            return NotFound();
+
+        if (order.OrderStatus != OrderStatus.Confirmed)
+            return BadRequest("Only confirmed orders can be rescheduled");
+
+        // Parse new date and time
+        if (!DateOnly.TryParse(request.NewDate, out var newDate))
+            return BadRequest("Invalid date format");
+
+        if (!TimeOnly.TryParse(request.NewTime, out var newTime))
+            return BadRequest("Invalid time format");
+
+        // Check if date is in the future
+        var newDateTime = newDate.ToDateTime(newTime);
+        if (newDateTime <= DateTime.Now)
+            return BadRequest("New date/time must be in the future");
+
+        // Update all meetings for this order
+        foreach (var meeting in order.Meetings)
+        {
+            var originalDuration = meeting.ScheduledEnd - meeting.ScheduledStart;
+            meeting.ScheduledStart = newDateTime;
+            meeting.ScheduledEnd = newDateTime.Add(originalDuration);
+        }
+
+        order.SpecialInstructions = string.IsNullOrEmpty(order.SpecialInstructions)
+            ? $"Rescheduled by customer to {newDate:MMM d, yyyy} at {newTime:hh:mm tt}"
+            : $"{order.SpecialInstructions}\n\nRescheduled by customer to {newDate:MMM d, yyyy} at {newTime:hh:mm tt}";
+
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Order {OrderId} rescheduled by customer {UserId} to {NewDate} {NewTime}", 
+            id, userId, request.NewDate, request.NewTime);
+
+        return Ok(new { message = "Booking rescheduled successfully" });
+    }
+
+    /// <summary>
+    /// Gets the customer's profile
+    /// </summary>
+    [HttpGet("profile")]
+    public async Task<ActionResult<CustomerProfileDto>> GetProfile()
+    {
+        var userId = GetUserId();
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+            return NotFound();
+
+        return Ok(new CustomerProfileDto
+        {
+            FirstName = user.FirstName ?? "",
+            LastName = user.LastName ?? "",
+            Email = user.Email ?? "",
+            Phone = user.PhoneNumber ?? "",
+            Address = user.Address ?? "",
+            City = user.City ?? "",
+            State = user.State ?? "",
+            ZipCode = user.ZipCode ?? ""
+        });
+    }
+
+    /// <summary>
+    /// Updates the customer's profile
+    /// </summary>
+    [HttpPut("profile")]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
+    {
+        var userId = GetUserId();
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+            return NotFound();
+
+        // Update fields
+        user.FirstName = request.FirstName;
+        user.LastName = request.LastName;
+        user.PhoneNumber = request.Phone;
+        user.Address = request.Address;
+        user.City = request.City;
+        user.State = request.State;
+        user.ZipCode = request.ZipCode;
+
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Profile updated for user {UserId}", userId);
+
+        return Ok(new { message = "Profile updated successfully" });
+    }
 }
 
 #region DTOs
@@ -291,6 +400,35 @@ public class CustomerStatsDto
 public class CustomerCancelRequest
 {
     public string Reason { get; set; } = string.Empty;
+}
+
+public class RescheduleRequest
+{
+    public string NewDate { get; set; } = string.Empty;
+    public string NewTime { get; set; } = string.Empty;
+}
+
+public class CustomerProfileDto
+{
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public string Address { get; set; } = string.Empty;
+    public string City { get; set; } = string.Empty;
+    public string State { get; set; } = string.Empty;
+    public string ZipCode { get; set; } = string.Empty;
+}
+
+public class UpdateProfileRequest
+{
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string Phone { get; set; } = string.Empty;
+    public string Address { get; set; } = string.Empty;
+    public string City { get; set; } = string.Empty;
+    public string State { get; set; } = string.Empty;
+    public string ZipCode { get; set; } = string.Empty;
 }
 
 #endregion
