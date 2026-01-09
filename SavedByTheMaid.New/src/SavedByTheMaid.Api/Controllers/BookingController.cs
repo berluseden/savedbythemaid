@@ -742,65 +742,67 @@ public class BookingController : ControllerBase
                 
                 if (existingUser != null)
                 {
-                    // Usuario existe pero no está logueado - debería loguearse
-                    return BadRequest(new { 
-                        message = "Este email ya está registrado. Por favor inicia sesión para continuar.",
-                        requireLogin = true
-                    });
+                    // Usuario existe - usar su ID para la orden pero NO generar token
+                    // El usuario puede iniciar sesión después para ver sus bookings
+                    customerId = existingUser.Id;
+                    isNewUser = false;
+                    _logger.LogInformation("Booking creado para usuario existente (no logueado): {Email}", request.ContactEmail);
+                    // No retornar error - permitir booking como guest, asociado a su cuenta
                 }
-
-                // Validar que se proporcionó contraseña para crear cuenta
-                if (string.IsNullOrWhiteSpace(request.Password))
+                else if (string.IsNullOrWhiteSpace(request.Password))
                 {
-                    return BadRequest(new { message = "Se requiere una contraseña para crear tu cuenta." });
+                    // Email nuevo pero sin contraseña - solicitar
+                    return BadRequest(new { message = "Please create a password for your account." });
                 }
-
-                // Crear nuevo usuario
-                var newUser = new ApplicationUser
+                else
                 {
-                    Id = Guid.NewGuid().ToString(),
-                    UserName = request.ContactEmail,
-                    NormalizedUserName = request.ContactEmail.ToUpperInvariant(),
-                    Email = request.ContactEmail,
-                    NormalizedEmail = request.ContactEmail.ToUpperInvariant(),
-                    EmailConfirmed = false,
-                    PhoneNumber = request.ContactPhone,
-                    SecurityStamp = Guid.NewGuid().ToString(),
-                    FirstName = request.ContactName?.Split(' ').FirstOrDefault(),
-                    LastName = request.ContactName?.Split(' ').Skip(1).FirstOrDefault()
-                };
-
-                newUser.PasswordHash = _passwordHasher.HashPassword(newUser, request.Password);
-                _context.Users.Add(newUser);
-
-                // Asignar rol Customer
-                var customerRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == Roles.Customer);
-                if (customerRole != null)
-                {
-                    _context.UserRoles.Add(new IdentityUserRole<string>
+                    // Email NUEVO - crear usuario
+                    var newUser = new ApplicationUser
                     {
-                        UserId = newUser.Id,
-                        RoleId = customerRole.Id
-                    });
+                        Id = Guid.NewGuid().ToString(),
+                        UserName = request.ContactEmail,
+                        NormalizedUserName = request.ContactEmail.ToUpperInvariant(),
+                        Email = request.ContactEmail,
+                        NormalizedEmail = request.ContactEmail.ToUpperInvariant(),
+                        EmailConfirmed = false,
+                        PhoneNumber = request.ContactPhone,
+                        SecurityStamp = Guid.NewGuid().ToString(),
+                        FirstName = request.ContactName?.Split(' ').FirstOrDefault(),
+                        LastName = request.ContactName?.Split(' ').Skip(1).FirstOrDefault()
+                    };
+
+                    newUser.PasswordHash = _passwordHasher.HashPassword(newUser, request.Password);
+                    _context.Users.Add(newUser);
+
+                    // Asignar rol Customer
+                    var customerRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == Roles.Customer);
+                    if (customerRole != null)
+                    {
+                        _context.UserRoles.Add(new IdentityUserRole<string>
+                        {
+                            UserId = newUser.Id,
+                            RoleId = customerRole.Id
+                        });
+                    }
+
+                    customerId = newUser.Id;
+                    isNewUser = true;
+
+                    // Generar tokens JWT para auto-login
+                    var roles = new[] { Roles.Customer };
+                    var accessToken = _jwtService.GenerateAccessToken(newUser.Id, newUser.Email!, roles);
+                    var refreshToken = _jwtService.GenerateRefreshToken();
+
+                    authToken = new AuthToken
+                    {
+                        AccessToken = accessToken,
+                        RefreshToken = refreshToken,
+                        ExpiresAt = DateTime.UtcNow.AddHours(24),
+                        IsNewUser = true
+                    };
+
+                    _logger.LogInformation("Usuario creado automáticamente durante booking: {Email}", request.ContactEmail);
                 }
-
-                customerId = newUser.Id;
-                isNewUser = true;
-
-                // Generar tokens JWT para auto-login
-                var roles = new[] { Roles.Customer };
-                var accessToken = _jwtService.GenerateAccessToken(newUser.Id, newUser.Email!, roles);
-                var refreshToken = _jwtService.GenerateRefreshToken();
-
-                authToken = new AuthToken
-                {
-                    AccessToken = accessToken,
-                    RefreshToken = refreshToken,
-                    ExpiresAt = DateTime.UtcNow.AddHours(24),
-                    IsNewUser = true
-                };
-
-                _logger.LogInformation("Usuario creado automáticamente durante booking: {Email}", request.ContactEmail);
             }
 
             // Crear orden con pricing validado

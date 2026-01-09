@@ -760,6 +760,7 @@ function ContactStep({
 }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -794,8 +795,8 @@ function ContactStep({
       const response = await api.get<{ email: string; exists: boolean }>(`/auth/check-email?email=${encodeURIComponent(data.email)}`);
       
       if (response.data.exists) {
-        // Email existe, mostrar error - debe loguearse
-        setErrors({ email: 'This email is already registered. Please login first or use a different email.' });
+        // Email existe - mostrar modal con opciones
+        setShowLoginModal(true);
       } else {
         // Email nuevo, mostrar modal para crear password
         setShowPasswordModal(true);
@@ -874,7 +875,53 @@ function ContactStep({
           </div>
         </div>
       </Modal>
+{/* Modal cuando el email ya está registrado */}
+      <Modal 
+        isOpen={showLoginModal} 
+        onClose={() => setShowLoginModal(false)}
+        title="Account Already Exists"
+        showCloseButton={true}
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600">
+            The email <strong>{data.email}</strong> is already registered in our system.
+          </p>
+          
+          <p className="text-gray-600 text-sm">
+            You can either login to your existing account, or continue booking as a guest 
+            (you can login later to see your bookings).
+          </p>
+          
+          <div className="flex flex-col gap-3 pt-2">
+            <Button 
+              onClick={() => {
+                setShowLoginModal(false);
+                window.location.href = `/login?redirect=/booking&email=${encodeURIComponent(data.email)}`;
+              }} 
+              className="w-full"
+            >
+              Login to My Account
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowLoginModal(false);
+                // Continuar sin password - backend asociará el booking a la cuenta existente
+                onNext();
+              }} 
+              className="w-full"
+            >
+              Continue as Guest
+            </Button>
+          </div>
+          
+          <p className="text-xs text-gray-500 text-center">
+            If you continue as guest, a confirmation email will be sent to {data.email}
+          </p>
+        </div>
+      </Modal>
 
+      
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <Input
