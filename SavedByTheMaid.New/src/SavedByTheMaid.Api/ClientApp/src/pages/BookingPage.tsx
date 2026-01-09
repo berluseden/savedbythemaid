@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Home, Sparkles, Calendar, User, CreditCard, CheckCircle } from 'lucide-react';
-import { Button, Input, Card, CardContent, Spinner } from '@/components/ui';
+import { Button, Input, Card, CardContent, Spinner, Modal } from '@/components/ui';
 import api, { bookingApi, type ServiceType, type CleaningPlace, type EstimateResponse, type BookingConfirmation } from '@/lib/api';
 import { cn, formatCurrency } from '@/lib/utils';
 
@@ -759,28 +759,14 @@ function ContactStep({
   onBack: () => void;
 }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [emailExists, setEmailExists] = useState<boolean | null>(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [checkingEmail, setCheckingEmail] = useState(false);
 
-  const checkEmail = async (email: string) => {
-    if (!email || !/\S+@\S+\.\S+/.test(email)) {
-      setEmailExists(null);
-      return;
-    }
-
-    setCheckingEmail(true);
-    try {
-      const response = await api.get<{ email: string; exists: boolean }>(`/auth/check-email?email=${encodeURIComponent(email)}`);
-      setEmailExists(response.data.exists);
-    } catch (err) {
-      console.error('Error checking email:', err);
-      setEmailExists(null);
-    } finally {
-      setCheckingEmail(false);
-    }
-  };
-
-  const validate = () => {
+  const checkEmailAndProceed = async () => {
+    // Validar campos básicos primero
     const newErrors: Record<string, string> = {};
     if (!data.firstName) newErrors.firstName = 'First name is required';
     if (!data.lastName) newErrors.lastName = 'Last name is required';
@@ -790,29 +776,104 @@ function ContactStep({
     if (!data.city) newErrors.city = 'City is required';
     if (!data.state) newErrors.state = 'State is required';
     
-    // Validar password solo si el email no existe
-    if (emailExists === false && (!data.password || data.password.length < 8)) {
-      newErrors.password = 'Password must be at least 8 characters';
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+    setErrors({});
+
+    // Si ya tiene password, continuar
+    if (data.password) {
+      onNext();
+      return;
     }
 
-    if (emailExists === true) {
-      newErrors.email = 'This email is already registered. Please login to continue.';
+    // Verificar si email existe
+    setCheckingEmail(true);
+    try {
+      const response = await api.get<{ email: string; exists: boolean }>(`/auth/check-email?email=${encodeURIComponent(data.email)}`);
+      
+      if (response.data.exists) {
+        // Email existe, mostrar error - debe loguearse
+        setErrors({ email: 'This email is already registered. Please login first or use a different email.' });
+      } else {
+        // Email nuevo, mostrar modal para crear password
+        setShowPasswordModal(true);
+      }
+    } catch (err) {
+      console.error('Error checking email:', err);
+      // Si falla la verificación, continuar sin password (backend lo manejará)
+      onNext();
+    } finally {
+      setCheckingEmail(false);
     }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
 
-  const handleNext = () => {
-    if (validate()) {
-      onNext();
+  const handleCreatePassword = () => {
+    if (password.length < 8) {
+      setPasswordError('Password must be at least 8 characters');
+      return;
     }
+    if (password !== confirmPassword) {
+      setPasswordError('Passwords do not match');
+      return;
+    }
+    
+    // Guardar password y continuar
+    onChange({ password });
+    setShowPasswordModal(false);
+    onNext();
   };
 
   return (
     <div>
       <h2 className="text-2xl font-bold text-gray-900 mb-2">Contact Information</h2>
       <p className="text-gray-600 mb-8">Tell us where to send the cleaning crew.</p>
+
+      {/* Modal para crear contraseña */}
+      <Modal 
+        isOpen={showPasswordModal} 
+        onClose={() => setShowPasswordModal(false)}
+        title="Create Your Account"
+        showCloseButton={false}
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600 text-sm">
+            Create a password to track your bookings, manage appointments, and get exclusive offers.
+          </p>
+          
+          <Input
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => { setPassword(e.target.value); setPasswordError(''); }}
+            placeholder="Minimum 8 characters"
+            error={passwordError && password.length < 8 ? passwordError : undefined}
+          />
+          
+          <Input
+            label="Confirm Password"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => { setConfirmPassword(e.target.value); setPasswordError(''); }}
+            placeholder="Re-enter your password"
+            error={passwordError && password !== confirmPassword ? passwordError : undefined}
+          />
+
+          {passwordError && (
+            <p className="text-sm text-red-500">{passwordError}</p>
+          )}
+          
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" onClick={() => setShowPasswordModal(false)} className="flex-1">
+              Cancel
+            </Button>
+            <Button onClick={handleCreatePassword} className="flex-1">
+              Create Account & Continue
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
@@ -835,30 +896,16 @@ function ContactStep({
             type="email"
             value={data.email}
             onChange={(e) => {
-              onChange({ email: e.target.value });
-              setEmailExists(null);
+              onChange({ email: e.target.value, password: undefined });
               setErrors(prev => ({ ...prev, email: '' }));
             }}
-            onBlur={(e) => checkEmail(e.target.value)}
             error={errors.email}
           />
           {checkingEmail && <p className="text-sm text-gray-500 mt-1">Checking email...</p>}
-          {emailExists === false && (
-            <p className="text-sm text-green-600 mt-1">✓ Email available - we'll create your account</p>
+          {data.password && (
+            <p className="text-sm text-green-600 mt-1">✓ Account will be created with this email</p>
           )}
         </div>
-        
-        {/* Password field - solo mostrar si email es nuevo */}
-        {emailExists === false && (
-          <Input
-            label="Create Password (min. 8 characters)"
-            type="password"
-            value={data.password}
-            onChange={(e) => onChange({ password: e.target.value })}
-            error={errors.password}
-            placeholder="Create a password for your account"
-          />
-        )}
 
         <Input
           label="Phone"
@@ -902,7 +949,9 @@ function ContactStep({
 
       <div className="flex justify-between mt-8">
         <Button variant="outline" onClick={onBack}>Back</Button>
-        <Button onClick={handleNext}>Review Booking</Button>
+        <Button onClick={checkEmailAndProceed} loading={checkingEmail}>
+          Review Booking
+        </Button>
       </div>
     </div>
   );
