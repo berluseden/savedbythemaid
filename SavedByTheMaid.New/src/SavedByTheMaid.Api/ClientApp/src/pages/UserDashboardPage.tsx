@@ -23,8 +23,6 @@ interface CustomerStats {
 }
 
 const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
-  Draft: { label: 'Draft', color: 'text-gray-700', bgColor: 'bg-gray-100' },
-  Pending: { label: 'Pending', color: 'text-yellow-700', bgColor: 'bg-yellow-100' },
   Confirmed: { label: 'Confirmed', color: 'text-blue-700', bgColor: 'bg-blue-100' },
   InProgress: { label: 'In Progress', color: 'text-purple-700', bgColor: 'bg-purple-100' },
   Completed: { label: 'Completed', color: 'text-green-700', bgColor: 'bg-green-100' },
@@ -56,7 +54,7 @@ export function UserDashboardPage() {
       ]);
 
       const upcoming = ordersRes.data.items.filter(
-        (o) => o.status === 'Draft' || o.status === 'Pending' || o.status === 'Confirmed'
+        (o) => o.status === 'Confirmed' || o.status === 'InProgress'
       );
       setUpcomingBookings(upcoming);
       setStats(statsRes.data);

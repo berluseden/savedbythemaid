@@ -828,7 +828,7 @@ public class BookingController : ControllerBase
                 Tax = 0, // No tax in MVP
                 Discount = calculatedDiscount,
                 Total = calculatedTotal,
-                OrderStatus = OrderStatus.Pending, // Pending until admin confirms
+                OrderStatus = OrderStatus.Confirmed, // Auto-confirmed for customer visibility
                 RecurrenceType = request.RecurrenceType,
                 RecurrenceEndDate = request.RecurrenceEndDate,
                 Source = OrderSource.Website,

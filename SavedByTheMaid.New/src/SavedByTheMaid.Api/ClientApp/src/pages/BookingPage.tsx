@@ -758,7 +758,7 @@ function ContactStep({
   onChange: (data: Partial<BookingData>) => void;
   onNext: () => void;
   onBack: () => void;
-}}) {
+}) {
   const { login } = useAuth();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPasswordModal, setShowPasswordModal] = useState(false);
