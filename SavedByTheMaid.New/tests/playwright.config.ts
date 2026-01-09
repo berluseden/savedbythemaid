@@ -52,7 +52,20 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { 
+        ...devices['Desktop Chrome'],
+        // Reducir uso de memoria para evitar crashes
+        launchOptions: {
+          args: [
+            '--disable-gpu',
+            '--disable-dev-shm-usage',
+            '--disable-setuid-sandbox',
+            '--no-sandbox',
+            '--disable-extensions',
+            '--single-process',
+          ]
+        }
+      },
     },
 
     {
@@ -77,7 +90,7 @@ export default defineConfig({
   ],
 
   /* Run your local dev server before starting the tests */
-  webServer: {
+  webServer: process.env.SKIP_WEBSERVER ? undefined : {
     command: 'cd src/SavedByTheMaid.Api && dotnet run',
     url: 'http://localhost:5221/health',
     reuseExistingServer: !process.env.CI,
