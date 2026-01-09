@@ -48,7 +48,10 @@ public class DataSeeder
             // 7. Employees de ejemplo
             await SeedEmployeesAsync();
 
-            // 8. Recurrence Discounts
+            // 8. Employee Schedules y Service Areas
+            await SeedEmployeeSchedulesAsync();
+
+            // 9. Recurrence Discounts
             await SeedRecurrenceDiscountsAsync();
 
             _logger.LogInformation("Seed de datos maestros completado exitosamente");
@@ -523,6 +526,71 @@ public class DataSeeder
         }
 
         await _context.SaveChangesAsync();
+    }
+
+    private async Task SeedEmployeeSchedulesAsync()
+    {
+        _logger.LogInformation("Configurando horarios y áreas de servicio para empleados...");
+
+        var employees = await _context.Employees
+            .Include(e => e.Schedules)
+            .Include(e => e.ServiceAreas)
+            .Where(e => !e.IsDeleted)
+            .ToListAsync();
+
+        if (!employees.Any())
+        {
+            _logger.LogWarning("No hay empleados para configurar horarios");
+            return;
+        }
+
+        // Obtener áreas de servicio (asumiendo que ya existen del seed anterior)
+        var miamiArea = await _context.ServiceAreas.FirstOrDefaultAsync(sa => sa.Name.Contains("Miami"));
+        var fortLauderdaleArea = await _context.ServiceAreas.FirstOrDefaultAsync(sa => sa.Name.Contains("Fort Lauderdale"));
+
+        foreach (var employee in employees)
+        {
+            // Crear horarios para lunes a viernes (8am - 5pm)
+            for (int day = 1; day <= 5; day++) // Monday = 1, Friday = 5
+            {
+                var schedule = employee.Schedules.FirstOrDefault(s => s.DayOfWeek == (DayOfWeek)day);
+                if (schedule == null)
+                {
+                    employee.Schedules.Add(new EmployeeSchedule
+                    {
+                        DayOfWeek = (DayOfWeek)day,
+                        StartTime = new TimeSpan(8, 0, 0),  // 8:00 AM
+                        EndTime = new TimeSpan(17, 0, 0),   // 5:00 PM
+                        IsAvailable = true
+                    });
+                }
+            }
+
+            // Asignar áreas de servicio
+            if (miamiArea != null && !employee.ServiceAreas.Any(sa => sa.ServiceAreaId == miamiArea.Id))
+            {
+                employee.ServiceAreas.Add(new EmployeeServiceArea
+                {
+                    ServiceAreaId = miamiArea.Id,
+                    IsDeleted = false
+                });
+            }
+
+            if (fortLauderdaleArea != null && !employee.ServiceAreas.Any(sa => sa.ServiceAreaId == fortLauderdaleArea.Id))
+            {
+                employee.ServiceAreas.Add(new EmployeeServiceArea
+                {
+                    ServiceAreaId = fortLauderdaleArea.Id,
+                    IsDeleted = false
+                });
+            }
+
+            _logger.LogInformation("Configurado horario y áreas para: {Name}", 
+                $"{employee.FirstName} {employee.LastName}");
+        }
+
+        await _context.SaveChangesAsync();
+        _logger.LogInformation("Horarios y áreas de servicio configurados exitosamente");
     }
 
     private async Task SeedRecurrenceDiscountsAsync()
