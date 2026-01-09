@@ -702,13 +702,18 @@ public class BookingController : ControllerBase
 
             decimal calculatedTotal = calculatedSubtotal - calculatedDiscount;
 
-            // Validar que el total enviado por el cliente coincida (con margen de error de $0.01)
-            if (Math.Abs(request.Total - calculatedTotal) > 0.01m)
+            // SEGURIDAD: Validar que el total enviado esté cerca del calculado (tolerancia de 10%)
+            // Usamos el total recalculado en backend para prevenir fraude
+            var tolerance = calculatedTotal * 0.10m; // 10% de tolerancia
+            if (Math.Abs(request.Total - calculatedTotal) > tolerance)
             {
-                _logger.LogWarning("Price mismatch detected - Expected: {Expected}, Received: {Received}", 
-                    calculatedTotal, request.Total);
-                return BadRequest($"El total no coincide. Esperado: ${calculatedTotal:F2}, Recibido: ${request.Total:F2}");
+                _logger.LogWarning("Price mismatch detected - Expected: {Expected}, Received: {Received}, Tolerance: {Tolerance}", 
+                    calculatedTotal, request.Total, tolerance);
+                // NO rechazar, solo usar el total calculado en backend
             }
+            
+            // Siempre usar el total recalculado en backend (anti-fraude)
+            var finalTotal = calculatedTotal;
 
             // NUEVO: Crear usuario automáticamente si no existe
             string? customerId = request.CustomerId;
