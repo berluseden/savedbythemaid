@@ -651,8 +651,23 @@ public class BookingController : ControllerBase
             if (serviceType == null)
                 return BadRequest("Tipo de servicio no válido");
 
+            // Precio base del servicio
             decimal calculatedSubtotal = serviceType.Price;
             int calculatedMinutes = serviceType.EstimatedMinutes;
+
+            // Agregar precio por habitaciones extras (bedroom - 1 porque la primera está incluida)
+            if (request.Bedrooms > 1)
+            {
+                calculatedSubtotal += (request.Bedrooms - 1) * serviceType.PricePerBedroom;
+                calculatedMinutes += (request.Bedrooms - 1) * serviceType.MinutesPerBedroom;
+            }
+
+            // Agregar precio por baños extras (bathroom - 1 porque el primero está incluido)
+            if (request.Bathrooms > 1)
+            {
+                calculatedSubtotal += (request.Bathrooms - 1) * serviceType.PricePerBathroom;
+                calculatedMinutes += (request.Bathrooms - 1) * serviceType.MinutesPerBathroom;
+            }
 
             // Agregar servicios adicionales
             if (request.AdditionalServiceIds?.Any() == true)
