@@ -532,19 +532,19 @@ public class DataSeeder
             new RecurrenceDiscount
             {
                 RecurrenceType = RecurrenceType.Weekly,
-                DiscountPercent = 15.0m,
+                DiscountPercent = 0.15m, // 15%
                 IsActive = true
             },
             new RecurrenceDiscount
             {
                 RecurrenceType = RecurrenceType.BiWeekly,
-                DiscountPercent = 10.0m,
+                DiscountPercent = 0.10m, // 10%
                 IsActive = true
             },
             new RecurrenceDiscount
             {
                 RecurrenceType = RecurrenceType.Monthly,
-                DiscountPercent = 5.0m,
+                DiscountPercent = 0.05m, // 5%
                 IsActive = true
             }
         };
