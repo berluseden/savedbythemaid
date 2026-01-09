@@ -544,9 +544,10 @@ public class DataSeeder
             return;
         }
 
-        // Obtener áreas de servicio (asumiendo que ya existen del seed anterior)
-        var miamiArea = await _context.ServiceAreas.FirstOrDefaultAsync(sa => sa.Name.Contains("Miami"));
-        var fortLauderdaleArea = await _context.ServiceAreas.FirstOrDefaultAsync(sa => sa.Name.Contains("Fort Lauderdale"));
+        // Obtener todas las áreas de servicio activas
+        var serviceAreas = await _context.ServiceAreas
+            .Where(sa => !sa.IsDeleted)
+            .ToListAsync();
 
         foreach (var employee in employees)
         {
@@ -566,27 +567,21 @@ public class DataSeeder
                 }
             }
 
-            // Asignar áreas de servicio
-            if (miamiArea != null && !employee.ServiceAreas.Any(sa => sa.ServiceAreaId == miamiArea.Id))
+            // Asignar TODAS las áreas de servicio a cada empleada
+            foreach (var area in serviceAreas)
             {
-                employee.ServiceAreas.Add(new EmployeeServiceArea
+                if (!employee.ServiceAreas.Any(sa => sa.ServiceAreaId == area.Id))
                 {
-                    ServiceAreaId = miamiArea.Id,
-                    IsDeleted = false
-                });
+                    employee.ServiceAreas.Add(new EmployeeServiceArea
+                    {
+                        ServiceAreaId = area.Id,
+                        IsDeleted = false
+                    });
+                }
             }
 
-            if (fortLauderdaleArea != null && !employee.ServiceAreas.Any(sa => sa.ServiceAreaId == fortLauderdaleArea.Id))
-            {
-                employee.ServiceAreas.Add(new EmployeeServiceArea
-                {
-                    ServiceAreaId = fortLauderdaleArea.Id,
-                    IsDeleted = false
-                });
-            }
-
-            _logger.LogInformation("Configurado horario y áreas para: {Name}", 
-                $"{employee.FirstName} {employee.LastName}");
+            _logger.LogInformation("Configurado horario y {Count} áreas para: {Name}", 
+                serviceAreas.Count, $"{employee.FirstName} {employee.LastName}");
         }
 
         await _context.SaveChangesAsync();
