@@ -34,6 +34,9 @@ sleep 15
 echo "✅ Estado del frontend:"
 docker compose ps frontend
 
+# Obtener IP externa
+EXTERNAL_IP=$(curl -s ifconfig.me)
+
 echo ""
 echo "✅ Actualización completada!"
-echo "🌐 Frontend: http://35.243.209.204:3000"
+echo "🌐 Frontend: http://${EXTERNAL_IP}:3000"

@@ -432,7 +432,71 @@ Deberías ver el status cambiar de `(unhealthy)` a `(healthy)` después de ~30 s
 sudo systemctl start docker
 sudo systemctl enable docker
 ```
+### Error: "Request failed with status code 500" en Login
 
+**Causa:** La base de datos no está inicializada (tablas no creadas).
+
+```bash
+# Ver logs de la API
+docker compose logs api --tail=50 | grep -i "error\|exception"
+
+# Buscar: "Table 'SavedByTheMaidNew.AspNetUsers' doesn't exist"
+```
+
+**Solución:**
+
+La aplicación ahora utiliza `EnsureCreated()` automáticamente si no hay migraciones. Solo reinicia la API:
+
+```bash
+docker compose restart api
+
+# Esperar 30 segundos y verificar logs
+docker compose logs api --tail=20
+```
+
+Si ves "Esquema de base de datos creado exitosamente", el problema está resuelto.
+
+### Error: Timeout al acceder desde navegador + UFW bloqueando
+
+**Síntoma:** `curl` falla con timeout, logs muestran `[UFW BLOCK]`
+
+```bash
+# Ver logs del sistema
+gcloud compute instances get-serial-port-output instancia-gratis-ubuntu --zone=us-central1-a | grep UFW
+```
+
+**Solución:**
+
+```bash
+# Configurar UFW para permitir los puertos necesarios
+sudo ufw allow 22/tcp
+sudo ufw allow 3000/tcp
+sudo ufw allow 5000/tcp
+sudo ufw --force enable
+
+# Verificar reglas
+sudo ufw status numbered
+```
+
+**Configuración permanente** (usar startup-script de GCP):
+
+```bash
+gcloud compute instances add-metadata instancia-gratis-ubuntu \
+  --zone=us-central1-a \
+  --metadata=startup-script='#!/bin/bash
+sudo ufw allow 22/tcp
+sudo ufw allow 3000/tcp
+sudo ufw allow 5000/tcp
+sudo ufw --force enable
+'
+```
+
+Luego reinicia la VM para que aplique:
+
+```bash
+gcloud compute instances stop instancia-gratis-ubuntu --zone=us-central1-a
+gcloud compute instances start instancia-gratis-ubuntu --zone=us-central1-a
+```
 ### Error: "Port already in use"
 
 ```bash
@@ -479,6 +543,37 @@ cat /app/logs/savedbythemaid-$(date +%Y%m%d).log
 - [ ] Backup automático configurado (opcional)
 - [ ] HTTPS configurado (opcional)
 
+## 📘 Arquitectura de Red Frontend-Backend
+
+### Cómo funciona el proxy en producción:
+
+```
+Usuario → Frontend (nginx:80) → /api/* → Backend API (api:5000)
+   ↓                  ↓                           ↓
+Navegador      Contenedor nginx          Contenedor .NET
+```
+
+**Flujo de una petición:**
+1. Usuario navega a `http://<IP-GCP>:3000`
+2. Nginx sirve el SPA de React (archivos estáticos)
+3. React hace fetch a `/api/auth/login` (ruta relativa)
+4. Nginx intercepta `/api/*` y hace proxy a `http://api:5000/api/auth/login`
+5. Dentro de Docker network, `api` resuelve al contenedor de la API
+6. La API procesa y responde
+
+**Por qué funciona:**
+- ✅ Frontend usa `baseURL: '/api'` (ruta relativa)
+- ✅ Nginx proxy sin barra final preserva la ruta: `/api/auth/login` → `http://api:5000/api/auth/login`
+- ✅ La API tiene controladores con `[Route("api/[controller]")]`
+- ✅ No necesita CORS porque desde la perspectiva del navegador, todo es el mismo origen (puerto 3000)
+
+### Variables de entorno:
+
+**VITE_API_URL no se usa en producción** porque:
+- Solo afecta al proxy de desarrollo de Vite
+- En producción, nginx usa configuración estática
+- El frontend buildeado no contiene referencias a variables de entorno de API
+
 ## 🆘 Soporte
 
 Si encuentras problemas:
@@ -488,3 +583,4 @@ Si encuentras problemas:
 3. Comprueba conectividad: `curl http://localhost:5000/health`
 4. Revisa firewall: `sudo ufw status`
 5. Verifica recursos: `docker stats`
+6. Prueba el proxy de nginx: `curl http://localhost:3000/api/health`

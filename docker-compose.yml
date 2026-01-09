@@ -63,8 +63,7 @@ services:
       - api
     networks:
       - savedbythemaid-network
-    environment:
-      - VITE_API_URL=http://localhost:5000
+    # Nota: No necesita VITE_API_URL porque nginx hace proxy a /api/ → http://api:5000
 
 volumes:
   mysql_data:
