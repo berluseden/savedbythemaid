@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { MapPin, Home, Sparkles, Calendar, User, CreditCard, CheckCircle } from 'lucide-react';
 import { Button, Input, Card, CardContent, Spinner, Modal } from '@/components/ui';
 import api, { bookingApi, type ServiceType, type CleaningPlace, type EstimateResponse, type BookingConfirmation } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn, formatCurrency } from '@/lib/utils';
 
 type BookingStep = 'zipcode' | 'service' | 'details' | 'schedule' | 'contact' | 'confirm';
@@ -757,7 +758,8 @@ function ContactStep({
   onChange: (data: Partial<BookingData>) => void;
   onNext: () => void;
   onBack: () => void;
-}) {
+}}) {
+  const { login } = useAuth();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -765,6 +767,9 @@ function ContactStep({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [checkingEmail, setCheckingEmail] = useState(false);
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const checkEmailAndProceed = async () => {
     // Validar campos básicos primero
@@ -826,6 +831,29 @@ function ContactStep({
     onNext();
   };
 
+  const handleLogin = async () => {
+    if (!loginPassword) {
+      setLoginError('Please enter your password');
+      return;
+    }
+    
+    setIsLoggingIn(true);
+    setLoginError('');
+    
+    try {
+      await login(data.email, loginPassword);
+      setShowLoginModal(false);
+      setLoginPassword('');
+      // Usuario autenticado, continuar al siguiente paso
+      onNext();
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Invalid password. Please try again.';
+      setLoginError(errorMessage);
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
   return (
     <div>
       <h2 className="text-2xl font-bold text-gray-900 mb-2">Contact Information</h2>
@@ -878,41 +906,57 @@ function ContactStep({
 {/* Modal cuando el email ya está registrado */}
       <Modal 
         isOpen={showLoginModal} 
-        onClose={() => setShowLoginModal(false)}
-        title="Account Already Exists"
+        onClose={() => { setShowLoginModal(false); setLoginPassword(''); setLoginError(''); }}
+        title="Welcome Back!"
         showCloseButton={true}
       >
         <div className="space-y-4">
           <p className="text-gray-600">
-            The email <strong>{data.email}</strong> is already registered in our system.
+            The email <strong>{data.email}</strong> is already registered. Please enter your password to continue.
           </p>
           
-          <p className="text-gray-600 text-sm">
-            You can either login to your existing account, or continue booking as a guest 
-            (you can login later to see your bookings).
-          </p>
+          <Input
+            label="Password"
+            type="password"
+            value={loginPassword}
+            onChange={(e) => { setLoginPassword(e.target.value); setLoginError(''); }}
+            placeholder="Enter your password"
+            error={loginError}
+            onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+          />
+          
+          {loginError && (
+            <p className="text-sm text-red-500">{loginError}</p>
+          )}
           
           <div className="flex flex-col gap-3 pt-2">
             <Button 
-              onClick={() => {
-                setShowLoginModal(false);
-                window.location.href = `/login?redirect=/booking&email=${encodeURIComponent(data.email)}`;
-              }} 
+              onClick={handleLogin}
+              loading={isLoggingIn}
               className="w-full"
             >
-              Login to My Account
+              Login & Continue
             </Button>
             <Button 
               variant="outline" 
               onClick={() => {
                 setShowLoginModal(false);
+                setLoginPassword('');
+                setLoginError('');
                 // Continuar sin password - backend asociará el booking a la cuenta existente
                 onNext();
               }} 
               className="w-full"
+              disabled={isLoggingIn}
             >
               Continue as Guest
             </Button>
+          </div>
+          
+          <div className="text-center">
+            <Link to="/forgot-password" className="text-sm text-sky-600 hover:text-sky-700">
+              Forgot your password?
+            </Link>
           </div>
           
           <p className="text-xs text-gray-500 text-center">

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Calendar, Clock, MapPin, CreditCard, X, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, MapPin, CreditCard, X, AlertCircle, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '@/lib/api';
 
@@ -259,7 +259,7 @@ export function UserDashboardPage() {
             to="/services"
             className="bg-white border border-gray-200 rounded-xl p-6 text-center hover:bg-gray-50 transition-colors"
           >
-            <Star className="w-8 h-8 mx-auto mb-2 text-gray-600" />
+            <Sparkles className="w-8 h-8 mx-auto mb-2 text-gray-600" />
             <p className="font-semibold text-gray-900">View Services</p>
           </Link>
           <Link
