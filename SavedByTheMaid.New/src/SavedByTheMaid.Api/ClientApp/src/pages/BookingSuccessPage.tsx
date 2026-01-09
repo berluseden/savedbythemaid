@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
 import { CheckCircle, Calendar, MapPin, ArrowRight, Clock, DollarSign, Copy, Check } from 'lucide-react';
 import { Button, Card } from '@/components/ui';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface BookingConfirmation {
   orderId: number;
@@ -12,6 +13,12 @@ interface BookingConfirmation {
   total: number;
   orderStatus: string;
   message: string;
+  authToken?: {
+    accessToken: string;
+    refreshToken: string;
+    expiresAt: string;
+    isNewUser: boolean;
+  };
 }
 
 interface BookingData {
@@ -30,6 +37,7 @@ interface EstimateResponse {
 
 export default function BookingSuccessPage() {
   const location = useLocation();
+  const { refreshUser, isAuthenticated } = useAuth();
   const { confirmation, bookingData, estimate } = (location.state || {}) as {
     confirmation?: BookingConfirmation;
     bookingData?: BookingData;
@@ -37,6 +45,14 @@ export default function BookingSuccessPage() {
   };
 
   const [copied, setCopied] = useState(false);
+
+  // Refrescar el contexto de auth si hay token guardado (usuario recién creado)
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token && !isAuthenticated) {
+      refreshUser();
+    }
+  }, [refreshUser, isAuthenticated]);
 
   const copyConfirmation = () => {
     if (confirmation?.confirmationNumber) {
