@@ -77,7 +77,7 @@ function App() {
               path="/profile"
               element={
                 <ProtectedRoute>
-                  <ProfilePage />
+                  <PublicLayout><ProfilePage /></PublicLayout>
                 </ProtectedRoute>
               }
             />
@@ -173,7 +173,7 @@ function PlaceholderPage({ title }: { title: string }) {
     <div className="flex items-center justify-center min-h-[60vh]">
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-900 mb-4">{title}</h1>
-        <p className="text-gray-600">Esta página estará disponible pronto.</p>
+        <p className="text-gray-600">This page will be available soon.</p>
       </div>
     </div>
   );

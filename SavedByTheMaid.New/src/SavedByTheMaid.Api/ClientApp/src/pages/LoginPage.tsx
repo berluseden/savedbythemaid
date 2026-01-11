@@ -28,7 +28,7 @@ export function LoginPage() {
       const destination = from !== '/' ? from : redirectPath;
       navigate(destination, { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al iniciar sesión');
+      setError(err instanceof Error ? err.message : 'Invalid email or password');
     }
   };
 
@@ -41,7 +41,7 @@ export function LoginPage() {
             <Sparkles className="h-10 w-10 text-sky-500" />
             <span className="text-2xl font-bold text-gray-900">SavedByTheMaid</span>
           </Link>
-          <p className="mt-2 text-gray-600">Inicia sesión en tu cuenta</p>
+          <p className="mt-2 text-gray-600">Sign in to your account</p>
         </div>
 
         {/* Card */}
@@ -56,7 +56,7 @@ export function LoginPage() {
             {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Correo electrónico
+                Email
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -75,7 +75,7 @@ export function LoginPage() {
             {/* Password */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Contraseña
+                Password
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -107,10 +107,10 @@ export function LoginPage() {
                   onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
                   className="w-4 h-4 text-sky-500 border-gray-300 rounded focus:ring-sky-500"
                 />
-                <span className="text-sm text-gray-600">Recordarme</span>
+                <span className="text-sm text-gray-600">Remember me</span>
               </label>
               <Link to="/forgot-password" className="text-sm text-sky-600 hover:text-sky-700">
-                ¿Olvidaste tu contraseña?
+                Forgot password?
               </Link>
             </div>
 
@@ -123,19 +123,19 @@ export function LoginPage() {
               {isLoading ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Iniciando sesión...
+                  Signing in...
                 </>
               ) : (
-                'Iniciar Sesión'
+                'Sign In'
               )}
             </button>
           </form>
 
           {/* Register Link */}
           <p className="mt-6 text-center text-sm text-gray-600">
-            ¿No tienes cuenta?{' '}
+            Don't have an account?{' '}
             <Link to="/register" className="text-sky-600 hover:text-sky-700 font-medium">
-              Regístrate gratis
+              Sign up for free
             </Link>
           </p>
         </div>

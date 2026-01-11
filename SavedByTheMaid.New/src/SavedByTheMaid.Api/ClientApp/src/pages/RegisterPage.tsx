@@ -20,11 +20,11 @@ export function RegisterPage() {
   const [error, setError] = useState('');
 
   const passwordRequirements = [
-    { text: 'Al menos 8 caracteres', met: formData.password.length >= 8 },
-    { text: 'Una letra mayúscula', met: /[A-Z]/.test(formData.password) },
-    { text: 'Una letra minúscula', met: /[a-z]/.test(formData.password) },
-    { text: 'Un número', met: /\d/.test(formData.password) },
-    { text: 'Un carácter especial', met: /[!@#$%^&*(),.?":{}|<>]/.test(formData.password) },
+    { text: 'At least 8 characters', met: formData.password.length >= 8 },
+    { text: 'One uppercase letter', met: /[A-Z]/.test(formData.password) },
+    { text: 'One lowercase letter', met: /[a-z]/.test(formData.password) },
+    { text: 'One number', met: /\d/.test(formData.password) },
+    { text: 'One special character', met: /[!@#$%^&*(),.?":{}|<>]/.test(formData.password) },
   ];
 
   const allRequirementsMet = passwordRequirements.every(req => req.met);
@@ -35,17 +35,17 @@ export function RegisterPage() {
     setError('');
 
     if (!allRequirementsMet) {
-      setError('La contraseña no cumple con los requisitos');
+      setError('Password does not meet the requirements');
       return;
     }
 
     if (!passwordsMatch) {
-      setError('Las contraseñas no coinciden');
+      setError('Passwords do not match');
       return;
     }
 
     if (!formData.acceptTerms) {
-      setError('Debes aceptar los términos y condiciones');
+      setError('You must accept the terms and conditions');
       return;
     }
 
@@ -59,7 +59,7 @@ export function RegisterPage() {
       });
       navigate('/');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al crear la cuenta');
+      setError(err instanceof Error ? err.message : 'Failed to create account');
     }
   };
 
@@ -72,7 +72,7 @@ export function RegisterPage() {
             <Sparkles className="h-10 w-10 text-sky-500" />
             <span className="text-2xl font-bold text-gray-900">SavedByTheMaid</span>
           </Link>
-          <p className="mt-2 text-gray-600">Crea tu cuenta gratis</p>
+          <p className="mt-2 text-gray-600">Create your free account</p>
         </div>
 
         {/* Card */}
@@ -88,7 +88,7 @@ export function RegisterPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre
+                  First Name
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -98,14 +98,14 @@ export function RegisterPage() {
                     value={formData.firstName}
                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
-                    placeholder="Juan"
+                    placeholder="John"
                     required
                   />
                 </div>
               </div>
               <div>
                 <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
-                  Apellido
+                  Last Name
                 </label>
                 <input
                   type="text"
@@ -113,7 +113,7 @@ export function RegisterPage() {
                   value={formData.lastName}
                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
-                  placeholder="Pérez"
+                  placeholder="Doe"
                   required
                 />
               </div>
@@ -122,7 +122,7 @@ export function RegisterPage() {
             {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Correo electrónico
+                Email
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -132,7 +132,7 @@ export function RegisterPage() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
-                  placeholder="tu@email.com"
+                  placeholder="you@email.com"
                   required
                 />
               </div>
@@ -141,7 +141,7 @@ export function RegisterPage() {
             {/* Phone */}
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                Teléfono
+                Phone
               </label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -160,7 +160,7 @@ export function RegisterPage() {
             {/* Password */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Contraseña
+                Password
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -198,7 +198,7 @@ export function RegisterPage() {
             {/* Confirm Password */}
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                Confirmar contraseña
+                Confirm Password
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -234,13 +234,13 @@ export function RegisterPage() {
                 className="w-4 h-4 mt-0.5 text-sky-500 border-gray-300 rounded focus:ring-sky-500"
               />
               <span className="text-sm text-gray-600">
-                Acepto los{' '}
+                I agree to the{' '}
                 <Link to="/terms" className="text-sky-600 hover:underline">
-                  términos de servicio
+                  terms of service
                 </Link>{' '}
-                y la{' '}
+                and{' '}
                 <Link to="/privacy" className="text-sky-600 hover:underline">
-                  política de privacidad
+                  privacy policy
                 </Link>
               </span>
             </label>
@@ -254,19 +254,19 @@ export function RegisterPage() {
               {isLoading ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Creando cuenta...
+                  Creating account...
                 </>
               ) : (
-                'Crear Cuenta'
+                'Create Account'
               )}
             </button>
           </form>
 
           {/* Login Link */}
           <p className="mt-6 text-center text-sm text-gray-600">
-            ¿Ya tienes cuenta?{' '}
+            Already have an account?{' '}
             <Link to="/login" className="text-sky-600 hover:text-sky-700 font-medium">
-              Inicia sesión
+              Sign in
             </Link>
           </p>
         </div>

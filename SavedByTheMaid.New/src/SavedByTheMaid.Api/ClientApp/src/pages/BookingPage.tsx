@@ -925,6 +925,10 @@ function ContactStep({
             onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
           />
           
+          <a href="/forgot-password" className="text-sm text-sky-600 hover:text-sky-700">
+            Forgot your password?
+          </a>
+          
           {loginError && (
             <p className="text-sm text-red-500">{loginError}</p>
           )}
