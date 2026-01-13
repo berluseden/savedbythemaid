@@ -27,7 +27,7 @@ export function Header() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <img src="/logo-ecomaid.svg" alt="ecoMaid" className="h-10" />
+            <img src="/logo-ecomaid.svg" alt="ecoMaid" className="h-12 w-auto" />
           </Link>
 
           {/* Navigation */}

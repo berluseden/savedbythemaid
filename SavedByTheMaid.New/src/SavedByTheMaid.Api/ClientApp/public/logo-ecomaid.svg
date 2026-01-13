@@ -1,34 +1,43 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 400" fill="none">
-  <!-- eco text with yellow background -->
-  <path d="M40 100 L380 100 L380 300 L40 300 Z" fill="#FFD700"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 50" fill="none">
+  <!-- Yellow background for "eco" -->
+  <rect x="2" y="8" width="60" height="34" rx="4" fill="#FFD700"/>
   
-  <!-- eco letters in white/outline -->
-  <text x="60" y="260" font-family="Arial, sans-serif" font-size="160" font-weight="bold" fill="white" stroke="#00205B" stroke-width="4">eco</text>
+  <!-- "eco" text simulation with shapes -->
+  <g transform="translate(10, 15)">
+    <!-- e -->
+    <path d="M2 15 C2 10 6 8 10 8 C14 8 18 10 18 15 L8 15 C8 18 10 20 14 20 C16 20 17 19 18 18 L19 20 C17 22 15 23 11 23 C5 23 2 20 2 15 Z M8 13 L16 13 C16 10 13 9 10 9 C7 9 6 10 8 13 Z" fill="white" stroke="#00205B" stroke-width="1.5"/>
+    
+    <!-- c -->
+    <path d="M22 15 C22 10 26 8 30 8 C33 8 35 9 37 11 L35 13 C34 11 32 10 30 10 C27 10 25 12 25 15 C25 18 27 21 30 21 C32 21 34 20 35 18 L37 20 C35 22 33 23 30 23 C26 23 22 20 22 15 Z" fill="white" stroke="#00205B" stroke-width="1.5"/>
+    
+    <!-- o -->
+    <circle cx="47" cy="15" r="7.5" fill="white" stroke="#00205B" stroke-width="1.5"/>
+    <circle cx="47" cy="15" r="4.5" fill="none" stroke="#00205B" stroke-width="1.5"/>
+  </g>
   
-  <!-- 911 small text -->
-  <text x="270" y="290" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#00205B">911</text>
+  <!-- Small "911" -->
+  <text x="52" y="40" font-family="Arial, sans-serif" font-size="6" font-weight="bold" fill="#00205B">911</text>
   
   <!-- Leaf inside first 'e' -->
-  <ellipse cx="125" cy="190" rx="18" ry="28" fill="#90EE90" transform="rotate(-30 125 190)"/>
-  <path d="M125 175 Q130 190 125 205" stroke="#228B22" stroke-width="2" fill="none"/>
+  <ellipse cx="19" cy="27" rx="3" ry="5" fill="#90EE90" transform="rotate(-30 19 27)"/>
+  <path d="M19 23 Q20 27 19 31" stroke="#228B22" stroke-width="0.5" fill="none"/>
   
-  <!-- Maid text in navy blue -->
-  <text x="400" y="280" font-family="Arial, sans-serif" font-size="180" font-weight="bold" fill="#00205B">Maid</text>
+  <!-- "Maid" text -->
+  <text x="68" y="35" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#00205B" letter-spacing="-1">Maid</text>
   
   <!-- Bubbles -->
-  <circle cx="800" cy="120" r="28" fill="#00205B"/>
-  <circle cx="800" cy="120" r="24" fill="#00205B" opacity="0.3"/>
-  <ellipse cx="790" cy="105" rx="8" ry="12" fill="white" opacity="0.6"/>
-  
-  <circle cx="860" cy="140" r="22" fill="#00205B"/>
-  <circle cx="860" cy="140" r="18" fill="#00205B" opacity="0.3"/>
-  <ellipse cx="852" cy="128" rx="6" ry="9" fill="white" opacity="0.6"/>
-  
-  <circle cx="820" cy="180" r="32" fill="#00205B"/>
-  <circle cx="820" cy="180" r="28" fill="#00205B" opacity="0.3"/>
-  <ellipse cx="808" cy="162" rx="10" ry="14" fill="white" opacity="0.6"/>
-  
-  <!-- Small sparkle -->
-  <path d="M770 150 L775 155 L770 160 L765 155 Z" fill="#FFD700"/>
-  <path d="M770 145 L770 165 M760 155 L780 155" stroke="#FFD700" stroke-width="2"/>
+  <g transform="translate(145, 15)">
+    <circle cx="8" cy="5" r="4" fill="#00205B"/>
+    <ellipse cx="6" cy="3" rx="1.5" ry="2" fill="white" opacity="0.6"/>
+    
+    <circle cx="18" cy="8" r="3" fill="#00205B"/>
+    <ellipse cx="16.5" cy="6.5" rx="1" ry="1.5" fill="white" opacity="0.6"/>
+    
+    <circle cx="12" cy="16" r="5" fill="#00205B"/>
+    <ellipse cx="10" cy="13" rx="1.8" ry="2.5" fill="white" opacity="0.6"/>
+    
+    <!-- Sparkle -->
+    <path d="M0 10 L1 11 L0 12 L-1 11 Z" fill="#FFD700"/>
+    <path d="M0 9 L0 13 M-2 11 L2 11" stroke="#FFD700" stroke-width="0.5"/>
+  </g>
 </svg>
