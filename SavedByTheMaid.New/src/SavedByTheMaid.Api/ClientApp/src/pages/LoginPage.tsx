@@ -33,13 +33,13 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 to-blue-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#FFE44D]/5 to-blue-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2">
-            <Sparkles className="h-10 w-10 text-sky-500" />
-            <span className="text-2xl font-bold text-gray-900">SavedByTheMaid</span>
+            <Sparkles className="h-10 w-10 text-[#00205B]" />
+            <span className="text-2xl font-bold text-gray-900">ecoMaid</span>
           </Link>
           <p className="mt-2 text-gray-600">Sign in to your account</p>
         </div>
@@ -65,7 +65,7 @@ export function LoginPage() {
                   id="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent transition-all"
                   placeholder="tu@email.com"
                   required
                 />
@@ -84,7 +84,7 @@ export function LoginPage() {
                   id="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent transition-all"
                   placeholder="••••••••"
                   required
                 />
@@ -105,11 +105,11 @@ export function LoginPage() {
                   type="checkbox"
                   checked={formData.rememberMe}
                   onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
-                  className="w-4 h-4 text-sky-500 border-gray-300 rounded focus:ring-sky-500"
+                  className="w-4 h-4 text-[#00205B] border-gray-300 rounded focus:ring-[#00205B]"
                 />
                 <span className="text-sm text-gray-600">Remember me</span>
               </label>
-              <Link to="/forgot-password" className="text-sm text-sky-600 hover:text-sky-700">
+              <Link to="/forgot-password" className="text-sm text-[#00205B] hover:text-[#001440]">
                 Forgot password?
               </Link>
             </div>
@@ -118,7 +118,7 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 px-4 bg-sky-500 hover:bg-sky-600 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 bg-[#00205B] hover:bg-[#001440] text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>
@@ -134,7 +134,7 @@ export function LoginPage() {
           {/* Register Link */}
           <p className="mt-6 text-center text-sm text-gray-600">
             Don't have an account?{' '}
-            <Link to="/register" className="text-sky-600 hover:text-sky-700 font-medium">
+            <Link to="/register" className="text-[#00205B] hover:text-[#001440] font-medium">
               Sign up for free
             </Link>
           </p>

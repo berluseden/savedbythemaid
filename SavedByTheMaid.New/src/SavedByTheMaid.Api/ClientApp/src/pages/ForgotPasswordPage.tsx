@@ -27,12 +27,12 @@ export function ForgotPasswordPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-sky-50 to-blue-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-[#FFE44D]/5 to-blue-100 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <Link to="/" className="inline-flex items-center gap-2">
-              <Sparkles className="h-10 w-10 text-sky-500" />
-              <span className="text-2xl font-bold text-gray-900">SavedByTheMaid</span>
+              <Sparkles className="h-10 w-10 text-[#00205B]" />
+              <span className="text-2xl font-bold text-gray-900">ecoMaid</span>
             </Link>
           </div>
 
@@ -47,7 +47,7 @@ export function ForgotPasswordPage() {
             </p>
             <Link
               to="/login"
-              className="inline-flex items-center gap-2 text-sky-600 hover:text-sky-700 font-medium"
+              className="inline-flex items-center gap-2 text-[#00205B] hover:text-[#001440] font-medium"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Login
@@ -59,12 +59,12 @@ export function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 to-blue-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#FFE44D]/5 to-blue-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2">
-            <Sparkles className="h-10 w-10 text-sky-500" />
+            <Sparkles className="h-10 w-10 text-[#00205B]" />
             <span className="text-2xl font-bold text-gray-900">SavedByTheMaid</span>
           </Link>
           <p className="mt-2 text-gray-600">Reset your password</p>
@@ -99,7 +99,7 @@ export function ForgotPasswordPage() {
                   id="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent transition-all"
                   placeholder="you@example.com"
                   required
                 />
@@ -109,7 +109,7 @@ export function ForgotPasswordPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 px-4 bg-sky-500 hover:bg-sky-600 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 bg-[#00205B] hover:bg-[#001440] text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>
@@ -125,7 +125,7 @@ export function ForgotPasswordPage() {
           <div className="mt-6 text-center">
             <Link
               to="/login"
-              className="inline-flex items-center gap-2 text-sm text-sky-600 hover:text-sky-700 font-medium"
+              className="inline-flex items-center gap-2 text-sm text-[#00205B] hover:text-[#001440] font-medium"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Login

@@ -115,7 +115,7 @@ export function AdminPricingPage() {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#00205B] border-t-transparent rounded-full animate-spin" />
         </div>
       </AdminLayout>
     );
@@ -139,7 +139,7 @@ export function AdminPricingPage() {
                 onClick={() => setActiveTab(tab.id as any)}
                 className={`flex items-center gap-2 pb-4 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === tab.id
-                    ? 'border-sky-500 text-sky-600'
+                    ? 'border-[#00205B] text-[#00205B]'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
@@ -188,7 +188,7 @@ export function AdminPricingPage() {
                         <td className="py-4 px-4 text-gray-600">{item.minUnits}</td>
                         <td className="py-4 px-4 text-gray-600">{item.maxUnits}</td>
                         <td className="py-4 px-4 text-right">
-                          <button className="p-2 text-gray-400 hover:text-sky-500 hover:bg-sky-50 rounded-lg">
+                          <button className="p-2 text-gray-400 hover:text-[#00205B] hover:bg-[#FFE44D]/10 rounded-lg">
                             <Edit2 className="h-4 w-4" />
                           </button>
                         </td>
@@ -231,7 +231,7 @@ export function AdminPricingPage() {
                           {item.minSqFt.toLocaleString()} - {item.maxSqFt > 10000 ? '∞' : item.maxSqFt.toLocaleString()}
                         </td>
                         <td className="py-4 px-4">
-                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-sky-50 text-sky-700 rounded font-medium">
+                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-[#FFE44D]/10 text-[#001440] rounded font-medium">
                             <Percent className="h-3 w-3" />
                             {(item.multiplier * 100).toFixed(0)}%
                           </span>
@@ -240,7 +240,7 @@ export function AdminPricingPage() {
                           {formatCurrency(100 * item.multiplier)}
                         </td>
                         <td className="py-4 px-4 text-right">
-                          <button className="p-2 text-gray-400 hover:text-sky-500 hover:bg-sky-50 rounded-lg">
+                          <button className="p-2 text-gray-400 hover:text-[#00205B] hover:bg-[#FFE44D]/10 rounded-lg">
                             <Edit2 className="h-4 w-4" />
                           </button>
                         </td>
@@ -260,7 +260,7 @@ export function AdminPricingPage() {
                   <h2 className="text-lg font-semibold text-gray-900">Servicios Adicionales</h2>
                   <p className="text-sm text-gray-600">Extras que los clientes pueden agregar</p>
                 </div>
-                <button className="inline-flex items-center gap-2 px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors">
+                <button className="inline-flex items-center gap-2 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] transition-colors">
                   <Plus className="h-4 w-4" />
                   Agregar Servicio
                 </button>
@@ -298,7 +298,7 @@ export function AdminPricingPage() {
                           }`}
                         />
                       </button>
-                      <button className="p-2 text-gray-400 hover:text-sky-500 hover:bg-sky-50 rounded-lg">
+                      <button className="p-2 text-gray-400 hover:text-[#00205B] hover:bg-[#FFE44D]/10 rounded-lg">
                         <Edit2 className="h-4 w-4" />
                       </button>
                       <button className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
@@ -319,7 +319,7 @@ export function AdminPricingPage() {
                   <h2 className="text-lg font-semibold text-gray-900">Precios por Zona</h2>
                   <p className="text-sm text-gray-600">Ajustes de precio según la ubicación</p>
                 </div>
-                <button className="inline-flex items-center gap-2 px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors">
+                <button className="inline-flex items-center gap-2 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] transition-colors">
                   <Plus className="h-4 w-4" />
                   Agregar Zona
                 </button>
@@ -363,7 +363,7 @@ export function AdminPricingPage() {
                           </span>
                         </td>
                         <td className="py-4 px-4 text-right">
-                          <button className="p-2 text-gray-400 hover:text-sky-500 hover:bg-sky-50 rounded-lg">
+                          <button className="p-2 text-gray-400 hover:text-[#00205B] hover:bg-[#FFE44D]/10 rounded-lg">
                             <Edit2 className="h-4 w-4" />
                           </button>
                           <button className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
@@ -380,7 +380,7 @@ export function AdminPricingPage() {
         </div>
 
         {/* Quick Summary */}
-        <div className="bg-gradient-to-r from-sky-500 to-blue-600 rounded-xl p-6 text-white">
+        <div className="bg-gradient-to-r from-[#FFE44D]/50 to-blue-600 rounded-xl p-6 text-white">
           <h3 className="text-lg font-semibold mb-2">💡 Cómo se calcula el precio</h3>
           <p className="text-sky-100 text-sm">
             Precio Final = (Precio Base del Servicio + Precio por Habitaciones + Precio por Baños) × Multiplicador de Tamaño × Multiplicador de Zona + Servicios Adicionales

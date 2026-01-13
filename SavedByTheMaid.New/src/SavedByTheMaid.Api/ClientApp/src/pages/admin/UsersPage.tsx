@@ -271,7 +271,7 @@ export function AdminUsersPage() {
             </button>
             <button
               onClick={() => handleOpenUserModal()}
-              className="inline-flex items-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#00205B] px-4 py-2 text-sm font-medium text-white hover:bg-[#001440]"
             >
               <Plus className="h-4 w-4" />
               Nuevo Usuario
@@ -283,8 +283,8 @@ export function AdminUsersPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
           <div className="rounded-lg border border-gray-200 bg-white p-4">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-sky-100 p-2">
-                <User className="h-5 w-5 text-sky-600" />
+              <div className="rounded-lg bg-[#FFE44D]/20 p-2">
+                <User className="h-5 w-5 text-[#00205B]" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-gray-900">{users.length}</p>
@@ -340,13 +340,13 @@ export function AdminUsersPage() {
               placeholder="Buscar por nombre o email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-[#00205B] focus:outline-none focus:ring-1 focus:ring-[#00205B]"
             />
           </div>
           <select
             value={filterRole}
             onChange={(e) => setFilterRole(e.target.value)}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#00205B] focus:outline-none focus:ring-1 focus:ring-[#00205B]"
           >
             <option value="all">Todos los roles</option>
             {roles.map((role) => (
@@ -358,7 +358,7 @@ export function AdminUsersPage() {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#00205B] focus:outline-none focus:ring-1 focus:ring-[#00205B]"
           >
             <option value="all">Todos los estados</option>
             <option value="active">Activos</option>
@@ -369,7 +369,7 @@ export function AdminUsersPage() {
         {/* Users Table */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-sky-500 border-t-transparent" />
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#00205B] border-t-transparent" />
           </div>
         ) : filteredUsers.length === 0 ? (
           <div className="rounded-lg border border-gray-200 bg-white p-12 text-center">
@@ -410,7 +410,7 @@ export function AdminUsersPage() {
                   <tr key={user.id} className="hover:bg-gray-50">
                     <td className="whitespace-nowrap px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-100 text-sky-600 font-semibold">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FFE44D]/20 text-[#00205B] font-semibold">
                           {(user.firstName?.[0] || user.email[0]).toUpperCase()}
                         </div>
                         <div>
@@ -550,7 +550,7 @@ export function AdminUsersPage() {
                           firstName: e.target.value,
                         })
                       }
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#00205B] focus:outline-none focus:ring-1 focus:ring-[#00205B]"
                     />
                   </div>
                   <div>
@@ -566,7 +566,7 @@ export function AdminUsersPage() {
                           lastName: e.target.value,
                         })
                       }
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#00205B] focus:outline-none focus:ring-1 focus:ring-[#00205B]"
                     />
                   </div>
                 </div>
@@ -586,7 +586,7 @@ export function AdminUsersPage() {
                       })
                     }
                     disabled={!!editingUser}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 disabled:bg-gray-100"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#00205B] focus:outline-none focus:ring-1 focus:ring-[#00205B] disabled:bg-gray-100"
                   />
                 </div>
 
@@ -605,7 +605,7 @@ export function AdminUsersPage() {
                         })
                       }
                       placeholder="Mínimo 8 caracteres"
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#00205B] focus:outline-none focus:ring-1 focus:ring-[#00205B]"
                     />
                     <p className="mt-1 text-xs text-gray-500">
                       Debe contener mayúscula, minúscula, número y símbolo
@@ -626,7 +626,7 @@ export function AdminUsersPage() {
                         phoneNumber: e.target.value,
                       })
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#00205B] focus:outline-none focus:ring-1 focus:ring-[#00205B]"
                   />
                 </div>
 
@@ -664,7 +664,7 @@ export function AdminUsersPage() {
                           isActive: e.target.checked,
                         })
                       }
-                      className="h-4 w-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
+                      className="h-4 w-4 rounded border-gray-300 text-[#00205B] focus:ring-[#00205B]"
                     />
                     <label htmlFor="isActive" className="text-sm text-gray-700">
                       Usuario activo
@@ -682,7 +682,7 @@ export function AdminUsersPage() {
                   </button>
                   <button
                     type="submit"
-                    className="rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600"
+                    className="rounded-lg bg-[#00205B] px-4 py-2 text-sm font-medium text-white hover:bg-[#001440]"
                   >
                     {editingUser ? 'Guardar Cambios' : 'Crear Usuario'}
                   </button>
@@ -725,7 +725,7 @@ export function AdminUsersPage() {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Mínimo 8 caracteres"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#00205B] focus:outline-none focus:ring-1 focus:ring-[#00205B]"
                   />
                   <p className="mt-1 text-xs text-gray-500">
                     Debe contener mayúscula, minúscula, número y símbolo
@@ -742,7 +742,7 @@ export function AdminUsersPage() {
                   </button>
                   <button
                     type="submit"
-                    className="rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600"
+                    className="rounded-lg bg-[#00205B] px-4 py-2 text-sm font-medium text-white hover:bg-[#001440]"
                   >
                     Cambiar
                   </button>
@@ -816,11 +816,11 @@ export function AdminUsersPage() {
                       setRoleError('');
                     }}
                     placeholder="Nombre del rol"
-                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#00205B] focus:outline-none focus:ring-1 focus:ring-[#00205B]"
                   />
                   <button
                     type="submit"
-                    className="rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600"
+                    className="rounded-lg bg-[#00205B] px-4 py-2 text-sm font-medium text-white hover:bg-[#001440]"
                   >
                     Crear
                   </button>

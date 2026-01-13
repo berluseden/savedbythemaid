@@ -164,7 +164,7 @@ export function AdminServicesPage() {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#00205B] border-t-transparent rounded-full animate-spin" />
         </div>
       </AdminLayout>
     );
@@ -181,7 +181,7 @@ export function AdminServicesPage() {
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] transition-colors"
           >
             <Plus className="h-5 w-5" />
             Nuevo Servicio
@@ -203,7 +203,7 @@ export function AdminServicesPage() {
             placeholder="Buscar servicios..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
           />
         </div>
 
@@ -221,7 +221,7 @@ export function AdminServicesPage() {
           </div>
           <div className="bg-white rounded-lg p-4 border">
             <p className="text-sm text-gray-500">Precio promedio</p>
-            <p className="text-2xl font-bold text-sky-600">
+            <p className="text-2xl font-bold text-[#00205B]">
               {services.length > 0 
                 ? formatCurrency(services.reduce((acc, s) => acc + s.price, 0) / services.length)
                 : '$0'}
@@ -353,7 +353,7 @@ export function AdminServicesPage() {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                   required
                 />
               </div>
@@ -365,7 +365,7 @@ export function AdminServicesPage() {
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                   rows={3}
                 />
               </div>
@@ -383,7 +383,7 @@ export function AdminServicesPage() {
                       min="0"
                       value={formData.price}
                       onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                       required
                     />
                     <p className="text-xs text-gray-500 mt-1">Incluye 1 recámara + 1 baño</p>
@@ -399,7 +399,7 @@ export function AdminServicesPage() {
                       min="0"
                       value={formData.pricePerBedroom}
                       onChange={(e) => setFormData({ ...formData, pricePerBedroom: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                     />
                   </div>
 
@@ -413,7 +413,7 @@ export function AdminServicesPage() {
                       min="0"
                       value={formData.pricePerBathroom}
                       onChange={(e) => setFormData({ ...formData, pricePerBathroom: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -432,7 +432,7 @@ export function AdminServicesPage() {
                       step="15"
                       value={formData.estimatedMinutes}
                       onChange={(e) => setFormData({ ...formData, estimatedMinutes: parseInt(e.target.value) || 60 })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                     />
                   </div>
 
@@ -446,7 +446,7 @@ export function AdminServicesPage() {
                       step="5"
                       value={formData.minutesPerBedroom}
                       onChange={(e) => setFormData({ ...formData, minutesPerBedroom: parseInt(e.target.value) || 0 })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                     />
                   </div>
 
@@ -460,7 +460,7 @@ export function AdminServicesPage() {
                       step="5"
                       value={formData.minutesPerBathroom}
                       onChange={(e) => setFormData({ ...formData, minutesPerBathroom: parseInt(e.target.value) || 0 })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -476,7 +476,7 @@ export function AdminServicesPage() {
                     min="0"
                     value={formData.displayOrder}
                     onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 0 })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                   />
                 </div>
                 <div className="flex items-end">
@@ -485,7 +485,7 @@ export function AdminServicesPage() {
                       type="checkbox"
                       checked={formData.isActive}
                       onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                      className="w-4 h-4 text-sky-500 border-gray-300 rounded focus:ring-sky-500"
+                      className="w-4 h-4 text-[#00205B] border-gray-300 rounded focus:ring-[#00205B]"
                     />
                     <span className="text-sm text-gray-700">Servicio activo</span>
                   </label>
@@ -503,7 +503,7 @@ export function AdminServicesPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] transition-colors disabled:opacity-50"
                 >
                   {saving ? 'Guardando...' : editingService ? 'Guardar Cambios' : 'Crear Servicio'}
                 </button>

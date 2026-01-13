@@ -33,7 +33,7 @@ export default function ContactPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-sky-500 to-sky-600 text-white py-16">
+      <section className="bg-gradient-to-br from-[#FFE44D]/50 to-sky-600 text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">Contact Us</h1>
           <p className="text-xl text-sky-100 max-w-2xl mx-auto">
@@ -57,8 +57,8 @@ export default function ContactPage() {
 
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-sky-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Phone className="w-5 h-5 text-sky-600" />
+                  <div className="w-12 h-12 bg-[#FFE44D]/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Phone className="w-5 h-5 text-[#00205B]" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">Phone</h3>
@@ -68,19 +68,19 @@ export default function ContactPage() {
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-sky-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Mail className="w-5 h-5 text-sky-600" />
+                  <div className="w-12 h-12 bg-[#FFE44D]/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Mail className="w-5 h-5 text-[#00205B]" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">Email</h3>
-                    <p className="text-gray-600">hello@savedbythemaid.com</p>
+                    <p className="text-gray-600">hello@ecomaid.com</p>
                     <p className="text-sm text-gray-500">We reply within 24 hours</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-sky-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <MapPin className="w-5 h-5 text-sky-600" />
+                  <div className="w-12 h-12 bg-[#FFE44D]/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <MapPin className="w-5 h-5 text-[#00205B]" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">Office</h3>
@@ -90,8 +90,8 @@ export default function ContactPage() {
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-sky-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Clock className="w-5 h-5 text-sky-600" />
+                  <div className="w-12 h-12 bg-[#FFE44D]/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Clock className="w-5 h-5 text-[#00205B]" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">Business Hours</h3>
@@ -116,7 +116,7 @@ export default function ContactPage() {
                     </p>
                     <button
                       onClick={() => setIsSubmitted(false)}
-                      className="text-sky-600 font-medium hover:text-sky-700"
+                      className="text-[#00205B] font-medium hover:text-[#001440]"
                     >
                       Send another message
                     </button>
@@ -136,7 +136,7 @@ export default function ContactPage() {
                           required
                           value={formData.name}
                           onChange={handleChange}
-                          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#00205B] focus:border-[#00205B]"
                           placeholder="John Doe"
                         />
                       </div>
@@ -150,7 +150,7 @@ export default function ContactPage() {
                           required
                           value={formData.email}
                           onChange={handleChange}
-                          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#00205B] focus:border-[#00205B]"
                           placeholder="john@example.com"
                         />
                       </div>
@@ -166,7 +166,7 @@ export default function ContactPage() {
                           name="phone"
                           value={formData.phone}
                           onChange={handleChange}
-                          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#00205B] focus:border-[#00205B]"
                           placeholder="(555) 123-4567"
                         />
                       </div>
@@ -179,7 +179,7 @@ export default function ContactPage() {
                           required
                           value={formData.subject}
                           onChange={handleChange}
-                          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#00205B] focus:border-[#00205B]"
                         >
                           <option value="">Select a subject</option>
                           <option value="general">General Inquiry</option>
@@ -202,7 +202,7 @@ export default function ContactPage() {
                         rows={5}
                         value={formData.message}
                         onChange={handleChange}
-                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 resize-none"
+                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#00205B] focus:border-[#00205B] resize-none"
                         placeholder="How can we help you?"
                       />
                     </div>
@@ -210,7 +210,7 @@ export default function ContactPage() {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full flex items-center justify-center gap-2 bg-sky-500 text-white py-3 px-6 rounded-lg font-medium hover:bg-sky-600 disabled:bg-sky-300 transition-colors"
+                      className="w-full flex items-center justify-center gap-2 bg-[#00205B] text-white py-3 px-6 rounded-lg font-medium hover:bg-[#001440] disabled:bg-[#00205B]/50 transition-colors"
                     >
                       {isSubmitting ? (
                         <>

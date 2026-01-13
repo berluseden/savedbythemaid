@@ -209,7 +209,7 @@ export function AdminCleaningPlacesPage() {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#00205B] border-t-transparent rounded-full animate-spin" />
         </div>
       </AdminLayout>
     );
@@ -226,7 +226,7 @@ export function AdminCleaningPlacesPage() {
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] transition-colors"
           >
             <Plus className="h-5 w-5" />
             Nuevo Tipo
@@ -248,7 +248,7 @@ export function AdminCleaningPlacesPage() {
             placeholder="Buscar tipos de inmueble..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
           />
         </div>
 
@@ -266,7 +266,7 @@ export function AdminCleaningPlacesPage() {
           </div>
           <div className="bg-white rounded-lg p-4 border">
             <p className="text-sm text-gray-500">Total Habitaciones</p>
-            <p className="text-2xl font-bold text-sky-600">
+            <p className="text-2xl font-bold text-[#00205B]">
               {places.reduce((acc, p) => acc + p.rooms.length, 0)}
             </p>
           </div>
@@ -295,8 +295,8 @@ export function AdminCleaningPlacesPage() {
                       <ChevronRight className="h-5 w-5" />
                     )}
                   </button>
-                  <div className="w-10 h-10 bg-sky-100 rounded-lg flex items-center justify-center">
-                    <Home className="h-5 w-5 text-sky-600" />
+                  <div className="w-10 h-10 bg-[#FFE44D]/20 rounded-lg flex items-center justify-center">
+                    <Home className="h-5 w-5 text-[#00205B]" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">{place.name}</h3>
@@ -313,14 +313,14 @@ export function AdminCleaningPlacesPage() {
                   </span>
                   <button
                     onClick={() => handleAddRoom(place.id)}
-                    className="p-2 text-gray-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg"
+                    className="p-2 text-gray-400 hover:text-[#00205B] hover:bg-[#FFE44D]/10 rounded-lg"
                     title="Agregar habitación"
                   >
                     <Plus className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleEditPlace(place)}
-                    className="p-2 text-gray-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg"
+                    className="p-2 text-gray-400 hover:text-[#00205B] hover:bg-[#FFE44D]/10 rounded-lg"
                     title="Editar"
                   >
                     <Edit2 className="h-4 w-4" />
@@ -370,7 +370,7 @@ export function AdminCleaningPlacesPage() {
                           </span>
                           <button
                             onClick={() => handleEditRoom(place.id, room)}
-                            className="p-1 text-gray-400 hover:text-sky-600"
+                            className="p-1 text-gray-400 hover:text-[#00205B]"
                           >
                             <Edit2 className="h-4 w-4" />
                           </button>
@@ -392,7 +392,7 @@ export function AdminCleaningPlacesPage() {
                   No hay habitaciones configuradas.{' '}
                   <button
                     onClick={() => handleAddRoom(place.id)}
-                    className="text-sky-600 hover:underline"
+                    className="text-[#00205B] hover:underline"
                   >
                     Agregar una
                   </button>
@@ -461,7 +461,7 @@ export function AdminCleaningPlacesPage() {
                   type="text"
                   value={placeForm.name}
                   onChange={(e) => setPlaceForm({ ...placeForm, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                   required
                 />
               </div>
@@ -471,7 +471,7 @@ export function AdminCleaningPlacesPage() {
                 <textarea
                   value={placeForm.description}
                   onChange={(e) => setPlaceForm({ ...placeForm, description: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                   rows={3}
                 />
               </div>
@@ -482,7 +482,7 @@ export function AdminCleaningPlacesPage() {
                     type="checkbox"
                     checked={placeForm.isActive}
                     onChange={(e) => setPlaceForm({ ...placeForm, isActive: e.target.checked })}
-                    className="w-4 h-4 text-sky-500 border-gray-300 rounded focus:ring-sky-500"
+                    className="w-4 h-4 text-[#00205B] border-gray-300 rounded focus:ring-[#00205B]"
                   />
                   <span className="text-sm text-gray-700">Activo</span>
                 </label>
@@ -499,7 +499,7 @@ export function AdminCleaningPlacesPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] disabled:opacity-50"
                 >
                   {saving ? 'Guardando...' : editingPlace ? 'Guardar' : 'Crear'}
                 </button>
@@ -529,7 +529,7 @@ export function AdminCleaningPlacesPage() {
                   type="text"
                   value={roomForm.name}
                   onChange={(e) => setRoomForm({ ...roomForm, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                   required
                 />
               </div>
@@ -539,7 +539,7 @@ export function AdminCleaningPlacesPage() {
                 <textarea
                   value={roomForm.description}
                   onChange={(e) => setRoomForm({ ...roomForm, description: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                   rows={2}
                 />
               </div>
@@ -553,7 +553,7 @@ export function AdminCleaningPlacesPage() {
                     step="5"
                     value={roomForm.baseMinutes}
                     onChange={(e) => setRoomForm({ ...roomForm, baseMinutes: parseInt(e.target.value) || 15 })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -564,7 +564,7 @@ export function AdminCleaningPlacesPage() {
                     step="0.01"
                     value={roomForm.basePrice}
                     onChange={(e) => setRoomForm({ ...roomForm, basePrice: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -574,7 +574,7 @@ export function AdminCleaningPlacesPage() {
                     min="0"
                     value={roomForm.displayOrder}
                     onChange={(e) => setRoomForm({ ...roomForm, displayOrder: parseInt(e.target.value) || 0 })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                   />
                 </div>
               </div>
@@ -585,7 +585,7 @@ export function AdminCleaningPlacesPage() {
                     type="checkbox"
                     checked={roomForm.isActive}
                     onChange={(e) => setRoomForm({ ...roomForm, isActive: e.target.checked })}
-                    className="w-4 h-4 text-sky-500 border-gray-300 rounded focus:ring-sky-500"
+                    className="w-4 h-4 text-[#00205B] border-gray-300 rounded focus:ring-[#00205B]"
                   />
                   <span className="text-sm text-gray-700">Activo</span>
                 </label>
@@ -602,7 +602,7 @@ export function AdminCleaningPlacesPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] disabled:opacity-50"
                 >
                   {saving ? 'Guardando...' : editingRoom ? 'Guardar' : 'Crear'}
                 </button>

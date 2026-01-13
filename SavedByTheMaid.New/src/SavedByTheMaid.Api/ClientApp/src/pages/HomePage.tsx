@@ -37,7 +37,7 @@ export default function HomePage() {
       name: 'John D.',
       location: 'Brooklyn, NY',
       rating: 5,
-      text: 'Professional, punctual, and thorough. SavedByTheMaid truly saved my weekend!',
+      text: 'Profesionales, puntuales y meticulosos. ¡ecoMaid realmente salvó mi fin de semana!',
     },
     {
       name: 'Emily R.',
@@ -50,18 +50,18 @@ export default function HomePage() {
   return (
     <div>
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-sky-50 to-white">
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#FFE44D]/5 to-white">
         <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-8 items-center">
             <div className="space-y-8">
-              <div className="inline-flex items-center rounded-full bg-sky-100 px-4 py-1.5 text-sm font-medium text-sky-700">
+              <div className="inline-flex items-center rounded-full bg-[#FFE44D]/20 px-4 py-1.5 text-sm font-medium text-[#001440]">
                 <Sparkles className="mr-2 h-4 w-4" />
                 Professional Cleaning Services
               </div>
               
               <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
                 A Clean Home,{' '}
-                <span className="text-sky-500">Without the Work</span>
+                <span className="text-[#00205B]">Without the Work</span>
               </h1>
               
               <p className="text-lg text-gray-600 max-w-lg">
@@ -96,8 +96,8 @@ export default function HomePage() {
 
             {/* Hero Image Placeholder */}
             <div className="relative">
-              <div className="aspect-square rounded-2xl bg-gradient-to-br from-sky-100 to-sky-200 flex items-center justify-center">
-                <Sparkles className="h-32 w-32 text-sky-500 opacity-50" />
+              <div className="aspect-square rounded-2xl bg-gradient-to-br from-[#FFE44D]/20 to-[#FFE44D]/30 flex items-center justify-center">
+                <Sparkles className="h-32 w-32 text-[#00205B] opacity-50" />
               </div>
               
               {/* Floating card */}
@@ -122,7 +122,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
-              Why Choose SavedByTheMaid?
+              ¿Por qué elegir ecoMaid?
             </h2>
             <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
               We make professional cleaning easy, affordable, and stress-free.
@@ -132,8 +132,8 @@ export default function HomePage() {
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
             {features.map((feature) => (
               <Card key={feature.title} className="p-6 text-center">
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-sky-100">
-                  <feature.icon className="h-7 w-7 text-sky-600" />
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-[#FFE44D]/20">
+                  <feature.icon className="h-7 w-7 text-[#00205B]" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900">{feature.title}</h3>
                 <p className="mt-2 text-sm text-gray-600">{feature.description}</p>
@@ -162,7 +162,7 @@ export default function HomePage() {
               { step: '3', title: 'Relax & Enjoy', description: 'Come home to a sparkling clean space. It\'s that simple!' },
             ].map((item) => (
               <div key={item.step} className="relative text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-sky-500 text-2xl font-bold text-white">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#00205B] text-2xl font-bold text-white">
                   {item.step}
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900">{item.title}</h3>
@@ -211,7 +211,7 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-sky-500">
+      <section className="py-20 bg-[#00205B]">
         <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-white sm:text-4xl">
             Ready for a Cleaner Home?
@@ -221,7 +221,7 @@ export default function HomePage() {
           </p>
           <div className="mt-8">
             <Link to="/booking">
-              <Button size="lg" variant="secondary" className="bg-white text-sky-600 hover:bg-sky-50">
+              <Button size="lg" variant="secondary" className="bg-white text-[#00205B] hover:bg-[#FFE44D]/10">
                 Book Now - It's Free to Schedule
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>

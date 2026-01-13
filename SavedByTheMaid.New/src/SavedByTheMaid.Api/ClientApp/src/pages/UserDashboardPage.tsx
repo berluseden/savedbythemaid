@@ -153,7 +153,7 @@ export function UserDashboardPage() {
   if (isLoading) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="text-center">
-        <div className="w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <div className="w-8 h-8 border-4 border-[#00205B] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
         <p className="text-gray-600">Loading your dashboard...</p>
       </div>
     </div>
@@ -182,7 +182,7 @@ export function UserDashboardPage() {
             </div>
             {showActions && booking.status === 'Confirmed' && (
               <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                <button onClick={() => openRescheduleModal(booking)} className="px-3 py-1 text-sm text-sky-600 border border-sky-300 rounded-lg hover:bg-sky-50">Reschedule</button>
+                <button onClick={() => openRescheduleModal(booking)} className="px-3 py-1 text-sm text-[#00205B] border border-[#FFE44D] rounded-lg hover:bg-[#FFE44D]/10">Reschedule</button>
                 <button onClick={() => openCancelModal(booking.id)} className="px-3 py-1 text-sm text-red-600 border border-red-300 rounded-lg hover:bg-red-50">Cancel</button>
               </div>
             )}
@@ -217,7 +217,7 @@ export function UserDashboardPage() {
           </div>
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-sky-100 rounded-xl flex items-center justify-center"><CreditCard className="w-6 h-6 text-sky-600" /></div>
+              <div className="w-12 h-12 bg-[#FFE44D]/20 rounded-xl flex items-center justify-center"><CreditCard className="w-6 h-6 text-[#00205B]" /></div>
               <div><p className="text-sm text-gray-500">Total Spent</p><p className="text-2xl font-bold text-gray-900">${stats?.totalSpent?.toFixed(2) ?? '0.00'}</p></div>
             </div>
           </div>
@@ -231,10 +231,10 @@ export function UserDashboardPage() {
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="border-b border-gray-200 flex">
-            <button onClick={() => setActiveTab('upcoming')} className={`flex-1 px-6 py-4 text-sm font-medium flex items-center justify-center gap-2 ${activeTab === 'upcoming' ? 'text-sky-600 border-b-2 border-sky-600 bg-sky-50' : 'text-gray-500 hover:text-gray-700'}`}>
+            <button onClick={() => setActiveTab('upcoming')} className={`flex-1 px-6 py-4 text-sm font-medium flex items-center justify-center gap-2 ${activeTab === 'upcoming' ? 'text-[#00205B] border-b-2 border-[#00205B] bg-[#FFE44D]/10' : 'text-gray-500 hover:text-gray-700'}`}>
               <CalendarDays className="w-4 h-4" />Upcoming ({upcomingBookings.length})
             </button>
-            <button onClick={() => setActiveTab('history')} className={`flex-1 px-6 py-4 text-sm font-medium flex items-center justify-center gap-2 ${activeTab === 'history' ? 'text-sky-600 border-b-2 border-sky-600 bg-sky-50' : 'text-gray-500 hover:text-gray-700'}`}>
+            <button onClick={() => setActiveTab('history')} className={`flex-1 px-6 py-4 text-sm font-medium flex items-center justify-center gap-2 ${activeTab === 'history' ? 'text-[#00205B] border-b-2 border-[#00205B] bg-[#FFE44D]/10' : 'text-gray-500 hover:text-gray-700'}`}>
               <History className="w-4 h-4" />History ({pastBookings.length})
             </button>
           </div>
@@ -242,7 +242,7 @@ export function UserDashboardPage() {
           {activeTab === 'upcoming' && (upcomingBookings.length === 0 ? (
             <div className="p-8 text-center">
               <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-4" /><p className="text-gray-500 mb-4">No upcoming bookings</p>
-              <Link to="/booking" className="inline-flex items-center px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600">Book Your First Cleaning</Link>
+              <Link to="/booking" className="inline-flex items-center px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440]">Book Your First Cleaning</Link>
             </div>
           ) : <div className="divide-y divide-gray-200">{upcomingBookings.map(b => renderBookingCard(b, true))}</div>)}
 
@@ -252,7 +252,7 @@ export function UserDashboardPage() {
         </div>
 
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Link to="/booking" className="bg-sky-500 text-white rounded-xl p-6 text-center hover:bg-sky-600"><Calendar className="w-8 h-8 mx-auto mb-2" /><p className="font-semibold">Book Cleaning</p></Link>
+          <Link to="/booking" className="bg-[#00205B] text-white rounded-xl p-6 text-center hover:bg-[#001440]"><Calendar className="w-8 h-8 mx-auto mb-2" /><p className="font-semibold">Book Cleaning</p></Link>
           <Link to="/profile" className="bg-white border border-gray-200 rounded-xl p-6 text-center hover:bg-gray-50"><Sparkles className="w-8 h-8 mx-auto mb-2 text-gray-600" /><p className="font-semibold text-gray-900">My Profile</p></Link>
           <Link to="/contact" className="bg-white border border-gray-200 rounded-xl p-6 text-center hover:bg-gray-50"><MapPin className="w-8 h-8 mx-auto mb-2 text-gray-600" /><p className="font-semibold text-gray-900">Contact Support</p></Link>
         </div>
@@ -271,26 +271,26 @@ export function UserDashboardPage() {
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusConfig[selectedBooking.status]?.color} ${statusConfig[selectedBooking.status]?.bgColor}`}>{statusConfig[selectedBooking.status]?.label}</span>
               </div>
               <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                <div className="flex items-center gap-3"><Sparkles className="w-5 h-5 text-sky-500" /><div><p className="text-sm text-gray-500">Service</p><p className="font-medium text-gray-900">{selectedBooking.serviceTypeName}</p></div></div>
-                <div className="flex items-center gap-3"><Home className="w-5 h-5 text-sky-500" /><div><p className="text-sm text-gray-500">Property</p><p className="font-medium text-gray-900">{selectedBooking.cleaningPlaceName}</p></div></div>
+                <div className="flex items-center gap-3"><Sparkles className="w-5 h-5 text-[#00205B]" /><div><p className="text-sm text-gray-500">Service</p><p className="font-medium text-gray-900">{selectedBooking.serviceTypeName}</p></div></div>
+                <div className="flex items-center gap-3"><Home className="w-5 h-5 text-[#00205B]" /><div><p className="text-sm text-gray-500">Property</p><p className="font-medium text-gray-900">{selectedBooking.cleaningPlaceName}</p></div></div>
               </div>
               <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                <div className="flex items-center gap-3"><Calendar className="w-5 h-5 text-sky-500" /><div><p className="text-sm text-gray-500">Date</p><p className="font-medium text-gray-900">{formatFullDate(selectedBooking.scheduledDate)}</p></div></div>
-                <div className="flex items-center gap-3"><Clock className="w-5 h-5 text-sky-500" /><div><p className="text-sm text-gray-500">Time</p><p className="font-medium text-gray-900">{formatTime(selectedBooking.scheduledTime)} ({selectedBooking.estimatedDuration} min)</p></div></div>
+                <div className="flex items-center gap-3"><Calendar className="w-5 h-5 text-[#00205B]" /><div><p className="text-sm text-gray-500">Date</p><p className="font-medium text-gray-900">{formatFullDate(selectedBooking.scheduledDate)}</p></div></div>
+                <div className="flex items-center gap-3"><Clock className="w-5 h-5 text-[#00205B]" /><div><p className="text-sm text-gray-500">Time</p><p className="font-medium text-gray-900">{formatTime(selectedBooking.scheduledTime)} ({selectedBooking.estimatedDuration} min)</p></div></div>
               </div>
               <div className="bg-gray-50 rounded-lg p-4">
-                <div className="flex items-start gap-3"><MapPin className="w-5 h-5 text-sky-500 mt-0.5" /><div><p className="text-sm text-gray-500">Address</p><p className="font-medium text-gray-900">{selectedBooking.address}</p>{selectedBooking.city && <p className="text-gray-600">{selectedBooking.city}, {selectedBooking.zipCode}</p>}</div></div>
+                <div className="flex items-start gap-3"><MapPin className="w-5 h-5 text-[#00205B] mt-0.5" /><div><p className="text-sm text-gray-500">Address</p><p className="font-medium text-gray-900">{selectedBooking.address}</p>{selectedBooking.city && <p className="text-gray-600">{selectedBooking.city}, {selectedBooking.zipCode}</p>}</div></div>
               </div>
               {selectedBooking.specialInstructions && (
-                <div className="bg-gray-50 rounded-lg p-4"><div className="flex items-start gap-3"><FileText className="w-5 h-5 text-sky-500 mt-0.5" /><div><p className="text-sm text-gray-500">Special Instructions</p><p className="font-medium text-gray-900">{selectedBooking.specialInstructions}</p></div></div></div>
+                <div className="bg-gray-50 rounded-lg p-4"><div className="flex items-start gap-3"><FileText className="w-5 h-5 text-[#00205B] mt-0.5" /><div><p className="text-sm text-gray-500">Special Instructions</p><p className="font-medium text-gray-900">{selectedBooking.specialInstructions}</p></div></div></div>
               )}
               <div className="border-t border-gray-200 pt-4 flex items-center justify-between">
                 <span className="text-lg font-semibold text-gray-900">Total</span>
-                <span className="text-2xl font-bold text-sky-600">${selectedBooking.totalAmount?.toFixed(2)}</span>
+                <span className="text-2xl font-bold text-[#00205B]">${selectedBooking.totalAmount?.toFixed(2)}</span>
               </div>
               {selectedBooking.status === 'Confirmed' && (
                 <div className="flex gap-3">
-                  <button onClick={() => { setShowDetailModal(false); openRescheduleModal(selectedBooking); }} className="flex-1 px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600">Reschedule</button>
+                  <button onClick={() => { setShowDetailModal(false); openRescheduleModal(selectedBooking); }} className="flex-1 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440]">Reschedule</button>
                   <button onClick={() => { setShowDetailModal(false); openCancelModal(selectedBooking.id); }} className="flex-1 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50">Cancel</button>
                 </div>
               )}
@@ -310,21 +310,21 @@ export function UserDashboardPage() {
               <p className="text-gray-600">Select a new date and time for your appointment.</p>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">New Date</label>
-                <input type="date" value={rescheduleDate} min={getMinDate()} onChange={(e) => { setRescheduleDate(e.target.value); setRescheduleTime(''); fetchAvailableSlots(e.target.value); }} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500" />
+                <input type="date" value={rescheduleDate} min={getMinDate()} onChange={(e) => { setRescheduleDate(e.target.value); setRescheduleTime(''); fetchAvailableSlots(e.target.value); }} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B]" />
               </div>
               {rescheduleDate && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">New Time</label>
-                  {isLoadingSlots ? <div className="text-center py-4"><div className="w-6 h-6 border-2 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto" /></div>
+                  {isLoadingSlots ? <div className="text-center py-4"><div className="w-6 h-6 border-2 border-[#00205B] border-t-transparent rounded-full animate-spin mx-auto" /></div>
                   : availableSlots.length === 0 ? <p className="text-sm text-gray-500 py-4 text-center">No times available. Try another date.</p>
                   : <div className="grid grid-cols-3 gap-2">{availableSlots.filter(s => s.available).map(slot => (
-                    <button key={slot.time} onClick={() => setRescheduleTime(slot.time)} className={`p-2 text-sm rounded-lg border ${rescheduleTime === slot.time ? 'border-sky-500 bg-sky-50 text-sky-700' : 'border-gray-200 hover:border-gray-300'}`}>{slot.formattedTime}</button>
+                    <button key={slot.time} onClick={() => setRescheduleTime(slot.time)} className={`p-2 text-sm rounded-lg border ${rescheduleTime === slot.time ? 'border-[#00205B] bg-[#FFE44D]/10 text-[#001440]' : 'border-gray-200 hover:border-gray-300'}`}>{slot.formattedTime}</button>
                   ))}</div>}
                 </div>
               )}
               <div className="flex gap-3 pt-2">
                 <button onClick={() => setShowRescheduleModal(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
-                <button onClick={handleReschedule} disabled={!rescheduleDate || !rescheduleTime || isRescheduling} className="flex-1 px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 disabled:opacity-50">{isRescheduling ? 'Rescheduling...' : 'Confirm'}</button>
+                <button onClick={handleReschedule} disabled={!rescheduleDate || !rescheduleTime || isRescheduling} className="flex-1 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] disabled:opacity-50">{isRescheduling ? 'Rescheduling...' : 'Confirm'}</button>
               </div>
             </div>
           </div>

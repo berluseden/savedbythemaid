@@ -6,7 +6,7 @@ const team = [
     name: 'Sarah Johnson',
     role: 'Founder & CEO',
     image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop',
-    bio: 'Founded SavedByTheMaid with a vision to make professional cleaning accessible to everyone.',
+    bio: 'Fundó ecoMaid con la visión de hacer accesible la limpieza profesional para todos.',
   },
   {
     name: 'Michael Chen',
@@ -58,9 +58,9 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-sky-500 to-sky-600 text-white py-20">
+      <section className="bg-gradient-to-br from-[#FFE44D]/50 to-sky-600 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">About SavedByTheMaid</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">Sobre ecoMaid</h1>
           <p className="text-xl text-sky-100 max-w-3xl mx-auto">
             We're on a mission to give people back their time by providing exceptional,
             reliable cleaning services they can trust.
@@ -76,7 +76,7 @@ export default function AboutPage() {
               <h2 className="text-3xl font-bold text-gray-900 mb-6">Our Story</h2>
               <div className="space-y-4 text-gray-600">
                 <p>
-                  SavedByTheMaid was born from a simple observation: people were spending precious
+                  ecoMaid nació de una simple observación: las personas pasaban valioso
                   weekend hours cleaning instead of enjoying time with family and friends. We knew
                   there had to be a better way.
                 </p>
@@ -98,7 +98,7 @@ export default function AboutPage() {
                 alt="Professional cleaner at work"
                 className="rounded-2xl shadow-lg"
               />
-              <div className="absolute -bottom-6 -left-6 bg-sky-500 text-white p-6 rounded-xl shadow-lg">
+              <div className="absolute -bottom-6 -left-6 bg-[#00205B] text-white p-6 rounded-xl shadow-lg">
                 <div className="text-4xl font-bold">5+</div>
                 <div className="text-sky-100">Years of Excellence</div>
               </div>
@@ -120,8 +120,8 @@ export default function AboutPage() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {values.map((value, idx) => (
               <div key={idx} className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                <div className="w-12 h-12 bg-sky-100 rounded-xl flex items-center justify-center mb-4">
-                  <value.icon className="w-6 h-6 text-sky-600" />
+                <div className="w-12 h-12 bg-[#FFE44D]/20 rounded-xl flex items-center justify-center mb-4">
+                  <value.icon className="w-6 h-6 text-[#00205B]" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">{value.title}</h3>
                 <p className="text-gray-600 text-sm">{value.description}</p>
@@ -132,7 +132,7 @@ export default function AboutPage() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-sky-500">
+      <section className="py-16 bg-[#00205B]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center text-white">
             <div>
@@ -164,7 +164,7 @@ export default function AboutPage() {
           </div>
 
           <div className="relative">
-            <div className="absolute left-1/2 transform -translate-x-1/2 w-0.5 h-full bg-sky-200" />
+            <div className="absolute left-1/2 transform -translate-x-1/2 w-0.5 h-full bg-[#FFE44D]/30" />
             <div className="space-y-8">
               {milestones.map((milestone, idx) => (
                 <div
@@ -173,12 +173,12 @@ export default function AboutPage() {
                 >
                   <div className={`flex-1 ${idx % 2 === 0 ? 'text-right' : 'text-left'}`}>
                     <div className="bg-gray-50 rounded-lg p-4 inline-block">
-                      <div className="text-sky-600 font-bold">{milestone.year}</div>
+                      <div className="text-[#00205B] font-bold">{milestone.year}</div>
                       <div className="font-semibold text-gray-900">{milestone.title}</div>
                       <div className="text-sm text-gray-600">{milestone.description}</div>
                     </div>
                   </div>
-                  <div className="relative z-10 w-4 h-4 bg-sky-500 rounded-full border-4 border-white shadow" />
+                  <div className="relative z-10 w-4 h-4 bg-[#00205B] rounded-full border-4 border-white shadow" />
                   <div className="flex-1" />
                 </div>
               ))}
@@ -192,7 +192,7 @@ export default function AboutPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Meet Our Leadership</h2>
-            <p className="text-gray-600">The passionate people behind SavedByTheMaid</p>
+            <p className="text-gray-600">El equipo apasionado detrás de ecoMaid</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
@@ -205,7 +205,7 @@ export default function AboutPage() {
                 />
                 <div className="p-6">
                   <h3 className="text-lg font-semibold text-gray-900">{member.name}</h3>
-                  <p className="text-sky-600 text-sm mb-3">{member.role}</p>
+                  <p className="text-[#00205B] text-sm mb-3">{member.role}</p>
                   <p className="text-gray-600 text-sm">{member.bio}</p>
                 </div>
               </div>
@@ -215,16 +215,16 @@ export default function AboutPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-br from-sky-500 to-sky-600">
+      <section className="py-16 bg-gradient-to-br from-[#FFE44D]/50 to-sky-600">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold text-white mb-4">Ready to Experience the Difference?</h2>
           <p className="text-sky-100 mb-8">
-            Join thousands of happy customers who've discovered the SavedByTheMaid difference.
+            Únete a miles de clientes satisfechos que han descubierto la diferencia ecoMaid.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               to="/booking"
-              className="inline-flex items-center justify-center gap-2 bg-white text-sky-600 px-8 py-4 rounded-xl font-semibold hover:bg-gray-100 transition-colors"
+              className="inline-flex items-center justify-center gap-2 bg-white text-[#00205B] px-8 py-4 rounded-xl font-semibold hover:bg-gray-100 transition-colors"
             >
               <Sparkles className="w-5 h-5" />
               Book Your First Cleaning

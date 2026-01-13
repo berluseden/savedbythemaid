@@ -1,9 +1,21 @@
 @import "tailwindcss";
 
-/* Custom CSS Variables */
+/* Custom CSS Variables - ecoMaid Palette */
 @theme {
-  --color-brand: #0ea5e9;
-  --color-brand-dark: #0284c7;
+  /* Navy Blue (Logo principal) */
+  --color-brand: #00205B;
+  --color-brand-dark: #001440;
+  --color-brand-light: #003080;
+  
+  /* Yellow (Highlight del logo) */
+  --color-accent: #FFD700;
+  --color-accent-dark: #E5C100;
+  --color-accent-light: #FFE44D;
+  
+  /* Green (Hoja del logo) */
+  --color-eco: #90EE90;
+  --color-eco-dark: #228B22;
+  
   --color-success: #22c55e;
   --color-warning: #f59e0b;
   --color-error: #ef4444;

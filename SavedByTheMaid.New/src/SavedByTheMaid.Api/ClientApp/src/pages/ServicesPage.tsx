@@ -99,7 +99,7 @@ export default function ServicesPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-sky-500 to-sky-600 text-white py-16">
+      <section className="bg-gradient-to-br from-[#FFE44D]/50 to-sky-600 text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">Our Cleaning Services</h1>
           <p className="text-xl text-sky-100 max-w-2xl mx-auto">
@@ -117,17 +117,17 @@ export default function ServicesPage() {
               <div
                 key={service.id}
                 className={`relative bg-white rounded-2xl shadow-sm border ${
-                  service.popular ? 'border-sky-500 ring-2 ring-sky-500' : 'border-gray-200'
+                  service.popular ? 'border-[#00205B] ring-2 ring-[#00205B]' : 'border-gray-200'
                 } p-6 hover:shadow-lg transition-shadow`}
               >
                 {service.popular && (
-                  <div className="absolute -top-3 left-6 bg-sky-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                  <div className="absolute -top-3 left-6 bg-[#00205B] text-white text-xs font-semibold px-3 py-1 rounded-full">
                     Most Popular
                   </div>
                 )}
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-sky-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <service.icon className="w-6 h-6 text-sky-600" />
+                  <div className="w-12 h-12 bg-[#FFE44D]/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <service.icon className="w-6 h-6 text-[#00205B]" />
                   </div>
                   <div className="flex-1">
                     <h3 className="text-xl font-semibold text-gray-900">{service.name}</h3>
@@ -159,7 +159,7 @@ export default function ServicesPage() {
                     to="/booking"
                     className={`block w-full text-center py-3 rounded-lg font-medium transition-colors ${
                       service.popular
-                        ? 'bg-sky-500 text-white hover:bg-sky-600'
+                        ? 'bg-[#00205B] text-white hover:bg-[#001440]'
                         : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
                     }`}
                   >
@@ -176,15 +176,15 @@ export default function ServicesPage() {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900">Why Choose SavedByTheMaid?</h2>
+            <h2 className="text-3xl font-bold text-gray-900">¿Por qué elegir ecoMaid?</h2>
             <p className="text-gray-600 mt-2">We're committed to delivering exceptional cleaning services</p>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {benefits.map((benefit, idx) => (
               <div key={idx} className="text-center">
-                <div className="w-14 h-14 bg-sky-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <benefit.icon className="w-7 h-7 text-sky-600" />
+                <div className="w-14 h-14 bg-[#FFE44D]/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <benefit.icon className="w-7 h-7 text-[#00205B]" />
                 </div>
                 <h3 className="font-semibold text-gray-900 mb-2">{benefit.title}</h3>
                 <p className="text-sm text-gray-600">{benefit.description}</p>
@@ -195,7 +195,7 @@ export default function ServicesPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-br from-sky-500 to-sky-600">
+      <section className="py-16 bg-gradient-to-br from-[#FFE44D]/50 to-sky-600">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold text-white mb-4">Ready to Get Started?</h2>
           <p className="text-sky-100 mb-8">
@@ -203,7 +203,7 @@ export default function ServicesPage() {
           </p>
           <Link
             to="/booking"
-            className="inline-flex items-center gap-2 bg-white text-sky-600 px-8 py-4 rounded-xl font-semibold hover:bg-gray-100 transition-colors"
+            className="inline-flex items-center gap-2 bg-white text-[#00205B] px-8 py-4 rounded-xl font-semibold hover:bg-gray-100 transition-colors"
           >
             <Sparkles className="w-5 h-5" />
             Book Your Cleaning Now

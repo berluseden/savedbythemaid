@@ -125,7 +125,7 @@ export function AdminDashboardPage() {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#00205B] border-t-transparent rounded-full animate-spin" />
         </div>
       </AdminLayout>
     );
@@ -149,8 +149,8 @@ export function AdminDashboardPage() {
                 <p className="text-sm text-gray-500">Reservas Totales</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.totalBookings}</p>
               </div>
-              <div className="w-12 h-12 bg-sky-100 rounded-lg flex items-center justify-center">
-                <Calendar className="h-6 w-6 text-sky-600" />
+              <div className="w-12 h-12 bg-[#FFE44D]/20 rounded-lg flex items-center justify-center">
+                <Calendar className="h-6 w-6 text-[#00205B]" />
               </div>
             </div>
             <div className="mt-4 flex items-center gap-2">
@@ -235,7 +235,7 @@ export function AdminDashboardPage() {
             <div className="p-6 border-b">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-gray-900">Reservas Recientes</h2>
-                <a href="/admin/bookings" className="text-sm text-sky-600 hover:text-sky-700">
+                <a href="/admin/bookings" className="text-sm text-[#00205B] hover:text-[#001440]">
                   Ver todas →
                 </a>
               </div>
@@ -288,7 +288,7 @@ export function AdminDashboardPage() {
               <div className="space-y-3">
                 <a
                   href="/admin/bookings/new"
-                  className="flex items-center gap-3 p-3 bg-sky-50 text-sky-700 rounded-lg hover:bg-sky-100 transition-colors"
+                  className="flex items-center gap-3 p-3 bg-[#FFE44D]/10 text-[#001440] rounded-lg hover:bg-[#FFE44D]/20 transition-colors"
                 >
                   <Calendar className="h-5 w-5" />
                   <span className="font-medium">Nueva Reserva</span>

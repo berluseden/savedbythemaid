@@ -27,8 +27,7 @@ export function Header() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <Sparkles className="h-8 w-8 text-sky-500" />
-            <span className="text-xl font-bold text-gray-900">SavedByTheMaid</span>
+            <img src="/logo-ecomaid.svg" alt="ecoMaid" className="h-10" />
           </Link>
 
           {/* Navigation */}
@@ -42,7 +41,7 @@ export function Header() {
                   className={cn(
                     'flex items-center space-x-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                     isActive
-                      ? 'bg-sky-50 text-sky-600'
+                      ? 'bg-[#FFE44D]/10 text-[#00205B]'
                       : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                   )}
                 >
@@ -61,7 +60,7 @@ export function Header() {
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
                 >
-                  <div className="w-8 h-8 bg-sky-500 rounded-full flex items-center justify-center text-white font-medium">
+                  <div className="w-8 h-8 bg-[#00205B] rounded-full flex items-center justify-center text-white font-medium">
                     {user.firstName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
                   </div>
                   <span className="hidden sm:inline">
@@ -118,7 +117,7 @@ export function Header() {
                 </Link>
                 <Link
                   to="/booking"
-                  className="rounded-lg bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600 transition-colors"
+                  className="rounded-lg bg-[#00205B] px-4 py-2 text-sm font-medium text-white hover:bg-[#001440] transition-colors"
                 >
                   Book Now
                 </Link>
@@ -139,11 +138,10 @@ export function Footer() {
           {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <Sparkles className="h-6 w-6 text-sky-500" />
-              <span className="text-lg font-bold text-gray-900">SavedByTheMaid</span>
+              <img src="/logo-ecomaid.svg" alt="ecoMaid" className="h-8" />
             </div>
             <p className="text-sm text-gray-600">
-              Professional cleaning services for your home and office. Book online in minutes.
+              Servicios profesionales de limpieza para tu hogar y oficina. Reserva en línea en minutos.
             </p>
           </div>
 
@@ -172,7 +170,7 @@ export function Footer() {
             <h3 className="text-sm font-semibold text-gray-900">Contact</h3>
             <ul className="mt-4 space-y-2">
               <li className="text-sm text-gray-600">📞 (555) 123-4567</li>
-              <li className="text-sm text-gray-600">📧 hello@savedbythemaid.com</li>
+              <li className="text-sm text-gray-600">📧 hello@ecomaid.com</li>
               <li className="text-sm text-gray-600">📍 New York, NY</li>
             </ul>
           </div>
@@ -180,7 +178,7 @@ export function Footer() {
 
         <div className="mt-8 border-t border-gray-200 pt-8">
           <p className="text-center text-sm text-gray-500">
-            © {new Date().getFullYear()} SavedByTheMaid. All rights reserved.
+            © {new Date().getFullYear()} ecoMaid. Todos los derechos reservados.
           </p>
         </div>
       </div>

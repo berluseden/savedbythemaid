@@ -106,7 +106,7 @@ export function ProfilePage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="w-8 h-8 border-4 border-[#00205B] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gray-600">Loading profile...</p>
         </div>
       </div>
@@ -118,7 +118,7 @@ export function ProfilePage() {
       <div className="max-w-3xl mx-auto px-4">
         {/* Back to Dashboard */}
         <div className="mb-6">
-          <Link to="/dashboard" className="text-sky-600 hover:text-sky-700 flex items-center gap-1">
+          <Link to="/dashboard" className="text-[#00205B] hover:text-[#001440] flex items-center gap-1">
             ← Back to Dashboard
           </Link>
         </div>
@@ -144,7 +144,7 @@ export function ProfilePage() {
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           {/* Header */}
-          <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-sky-500 to-sky-600">
+          <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-[#FFE44D]/50 to-sky-600">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
                 <User className="w-8 h-8 text-white" />
@@ -158,7 +158,7 @@ export function ProfilePage() {
               {!isEditing && (
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="ml-auto px-4 py-2 bg-white text-sky-600 rounded-lg hover:bg-sky-50 transition-colors font-medium"
+                  className="ml-auto px-4 py-2 bg-white text-[#00205B] rounded-lg hover:bg-[#FFE44D]/10 transition-colors font-medium"
                 >
                   Edit Profile
                 </button>
@@ -170,7 +170,7 @@ export function ProfilePage() {
             {/* Personal Information */}
             <section>
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <User className="w-5 h-5 text-sky-500" />
+                <User className="w-5 h-5 text-[#00205B]" />
                 Personal Information
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -183,7 +183,7 @@ export function ProfilePage() {
                       type="text"
                       value={editForm.firstName}
                       onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                     />
                   ) : (
                     <p className="text-gray-900 py-2">{profile.firstName || '-'}</p>
@@ -199,7 +199,7 @@ export function ProfilePage() {
                       type="text"
                       value={editForm.lastName}
                       onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                     />
                   ) : (
                     <p className="text-gray-900 py-2">{profile.lastName || '-'}</p>
@@ -226,7 +226,7 @@ export function ProfilePage() {
                       value={editForm.phone}
                       onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
                       placeholder="(555) 123-4567"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                     />
                   ) : (
                     <p className="text-gray-900 py-2">{profile.phone || 'Not specified'}</p>
@@ -238,7 +238,7 @@ export function ProfilePage() {
             {/* Address */}
             <section>
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-sky-500" />
+                <MapPin className="w-5 h-5 text-[#00205B]" />
                 Address
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -252,7 +252,7 @@ export function ProfilePage() {
                       value={editForm.address}
                       onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
                       placeholder="123 Main St, Apt 4B"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                     />
                   ) : (
                     <p className="text-gray-900 py-2">{profile.address || 'Not specified'}</p>
@@ -268,7 +268,7 @@ export function ProfilePage() {
                       type="text"
                       value={editForm.city}
                       onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                     />
                   ) : (
                     <p className="text-gray-900 py-2">{profile.city || 'Not specified'}</p>
@@ -284,7 +284,7 @@ export function ProfilePage() {
                       type="text"
                       value={editForm.state}
                       onChange={(e) => setEditForm({ ...editForm, state: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                     />
                   ) : (
                     <p className="text-gray-900 py-2">{profile.state || 'Not specified'}</p>
@@ -300,7 +300,7 @@ export function ProfilePage() {
                       type="text"
                       value={editForm.zipCode}
                       onChange={(e) => setEditForm({ ...editForm, zipCode: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                     />
                   ) : (
                     <p className="text-gray-900 py-2">{profile.zipCode || 'Not specified'}</p>
@@ -323,7 +323,7 @@ export function ProfilePage() {
                 <button
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="px-6 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors flex items-center gap-2 disabled:opacity-50"
+                  className="px-6 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] transition-colors flex items-center gap-2 disabled:opacity-50"
                 >
                   <Save className="w-4 h-4" />
                   {isSaving ? 'Saving...' : 'Save Changes'}
