@@ -26,27 +26,6 @@ export default function HomePage() {
     },
   ];
 
-  const testimonials = [
-    {
-      name: 'Sarah M.',
-      location: 'Manhattan, NY',
-      rating: 5,
-      text: 'Amazing service! My apartment has never looked this clean. Will definitely book again.',
-    },
-    {
-      name: 'John D.',
-      location: 'Brooklyn, NY',
-      rating: 5,
-      text: 'Profesionales, puntuales y meticulosos. ¡ecoMaid realmente salvó mi fin de semana!',
-    },
-    {
-      name: 'Emily R.',
-      location: 'Queens, NY',
-      rating: 5,
-      text: 'The booking process was so easy and the cleaners were fantastic. Highly recommend!',
-    },
-  ];
-
   return (
     <div>
       {/* Hero Section */}
@@ -97,7 +76,31 @@ export default function HomePage() {
             {/* Hero Image Placeholder */}
             <div className="relative">
               <div className="aspect-square rounded-2xl bg-gradient-to-br from-[#FFE44D]/20 to-[#FFE44D]/30 flex items-center justify-center">
-                <Sparkles className="h-32 w-32 text-[#00205B] opacity-50" />
+                {/* 3 Bubbles like favicon */}
+                <svg viewBox="0 0 100 100" fill="none" className="h-40 w-40">
+                  {/* Large bubble (bottom right) */}
+                  <circle cx="58" cy="65" r="24" fill="#00205B"/>
+                  <ellipse cx="50" cy="55" rx="7" ry="10" fill="white" opacity="0.35"/>
+                  
+                  {/* Medium bubble (top right) */}
+                  <circle cx="72" cy="32" r="16" fill="#00205B"/>
+                  <ellipse cx="66" cy="26" rx="5" ry="7" fill="white" opacity="0.35"/>
+                  
+                  {/* Small bubble (top left) */}
+                  <circle cx="38" cy="28" r="12" fill="#00205B"/>
+                  <ellipse cx="34" cy="24" rx="4" ry="5" fill="white" opacity="0.35"/>
+                  
+                  {/* Yellow sparkle */}
+                  <g transform="translate(18, 50)">
+                    <path d="M0 -6 L0 6 M-6 0 L6 0" stroke="#F7C52D" strokeWidth="2.5" strokeLinecap="round"/>
+                    <path d="M-4 -4 L4 4 M4 -4 L-4 4" stroke="#F7C52D" strokeWidth="1.5" strokeLinecap="round"/>
+                  </g>
+                  
+                  {/* Small sparkle */}
+                  <g transform="translate(28, 78)">
+                    <path d="M0 -3 L0 3 M-3 0 L3 0" stroke="#F7C52D" strokeWidth="1.5" strokeLinecap="round"/>
+                  </g>
+                </svg>
               </div>
               
               {/* Floating card */}
@@ -178,34 +181,6 @@ export default function HomePage() {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="py-20 bg-white">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
-              What Our Customers Say
-            </h2>
-          </div>
-
-          <div className="grid gap-8 md:grid-cols-3">
-            {testimonials.map((testimonial) => (
-              <Card key={testimonial.name} className="p-6">
-                <div className="flex gap-1 mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
-                <p className="text-gray-600 mb-4">"{testimonial.text}"</p>
-                <div>
-                  <p className="font-semibold text-gray-900">{testimonial.name}</p>
-                  <p className="text-sm text-gray-500">{testimonial.location}</p>
-                </div>
-              </Card>
-            ))}
           </div>
         </div>
       </section>

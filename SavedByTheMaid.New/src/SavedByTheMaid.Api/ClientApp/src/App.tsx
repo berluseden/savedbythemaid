@@ -21,7 +21,6 @@ import { ProfilePage } from '@/pages/ProfilePage';
 import { NotFoundPage, ServerErrorPage } from '@/pages/ErrorPage';
 import ServicesPage from '@/pages/ServicesPage';
 import ContactPage from '@/pages/ContactPage';
-import AboutPage from '@/pages/AboutPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -55,7 +54,6 @@ function App() {
             <Route path="/booking/success" element={<PublicLayout><BookingSuccessPage /></PublicLayout>} />
             <Route path="/services" element={<PublicLayout><ServicesPage /></PublicLayout>} />
             <Route path="/contact" element={<PublicLayout><ContactPage /></PublicLayout>} />
-            <Route path="/about" element={<PublicLayout><AboutPage /></PublicLayout>} />
             
             {/* Auth routes (no header/footer) */}
             <Route path="/login" element={<LoginPage />} />

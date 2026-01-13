@@ -26,8 +26,8 @@ export function Header() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <img src="/logo-ecomaid.svg" alt="ecoMaid" className="h-12 w-auto" />
+          <Link to="/" className="flex items-center space-x-2 transition-transform hover:scale-105">
+            <img src="/logo-ecomaid.svg" alt="ecoMaid" className="h-14 w-auto drop-shadow-sm hover:drop-shadow-md transition-all" />
           </Link>
 
           {/* Navigation */}
@@ -160,7 +160,6 @@ export function Footer() {
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Company</h3>
             <ul className="mt-4 space-y-2">
-              <li><Link to="/about" className="text-sm text-gray-600 hover:text-gray-900">About Us</Link></li>
               <li><Link to="/contact" className="text-sm text-gray-600 hover:text-gray-900">Contact</Link></li>
             </ul>
           </div>

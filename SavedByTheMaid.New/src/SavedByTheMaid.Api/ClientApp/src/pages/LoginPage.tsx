@@ -38,7 +38,18 @@ export function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2">
-            <Sparkles className="h-10 w-10 text-[#00205B]" />
+            {/* 3 Bubbles icon */}
+            <svg viewBox="0 0 100 100" fill="none" className="h-10 w-10">
+              <circle cx="58" cy="65" r="24" fill="#00205B"/>
+              <ellipse cx="50" cy="55" rx="7" ry="10" fill="white" opacity="0.35"/>
+              <circle cx="72" cy="32" r="16" fill="#00205B"/>
+              <ellipse cx="66" cy="26" rx="5" ry="7" fill="white" opacity="0.35"/>
+              <circle cx="38" cy="28" r="12" fill="#00205B"/>
+              <ellipse cx="34" cy="24" rx="4" ry="5" fill="white" opacity="0.35"/>
+              <g transform="translate(18, 50)">
+                <path d="M0 -6 L0 6 M-6 0 L6 0" stroke="#F7C52D" strokeWidth="2.5" strokeLinecap="round"/>
+              </g>
+            </svg>
             <span className="text-2xl font-bold text-gray-900">ecoMaid</span>
           </Link>
           <p className="mt-2 text-gray-600">Sign in to your account</p>
