@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 200">
-  <!-- Cápsula amarilla (recortada para que NO sobre amarillo vacío después de la "o") -->
+  <!-- Cápsula amarilla -->
   <rect x="50" y="50" width="240" height="100" rx="50" ry="50" fill="#FFD700"/>
 
   <!-- Texto eco (relleno blanco + contorno azul) -->
@@ -20,25 +20,16 @@
         font-weight="bold"
         fill="#00008B">911</text>
 
-  <!-- Maid (pegado a la "o" / sin espacio amarillo vacío) -->
+  <!-- Maid -->
   <g fill="#00008B" font-family="serif" font-weight="bold">
-    <!-- Antes: x=310; ahora: x=285 para pegarse al final de la cápsula -->
     <text x="285" y="130" font-size="100">Maid</text>
 
-    <!-- Burbujas (más arriba para dejar espacio con las letras) -->
+    <!-- Burbujas -->
     <circle cx="450" cy="25" r="15"/>
     <circle cx="485" cy="35" r="10"/>
     <circle cx="465" cy="60" r="18"/>
 
     <!-- Estrella -->
-    <path d="M 420 45
-             L 425 35
-             L 430 45
-             L 440 50
-             L 430 55
-             L 425 65
-             L 420 55
-             L 410 50 Z"
-          fill="#FFD700"/>
+    <path d="M 420 45 L 425 35 L 430 45 L 440 50 L 430 55 L 425 65 L 420 55 L 410 50 Z" fill="#FFD700"/>
   </g>
 </svg>
