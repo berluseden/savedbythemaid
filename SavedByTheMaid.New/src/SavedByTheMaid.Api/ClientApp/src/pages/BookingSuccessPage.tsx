@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { CheckCircle, Calendar, MapPin, ArrowRight, Clock, DollarSign, Copy, Check } from 'lucide-react';
 import { Button, Card } from '@/components/ui';
 import { useState, useEffect } from 'react';

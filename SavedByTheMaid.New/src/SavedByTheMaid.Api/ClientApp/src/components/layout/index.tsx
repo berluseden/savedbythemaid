@@ -141,7 +141,7 @@ export function Footer() {
               <img src="/logo-ecomaid.svg" alt="ecoMaid" className="h-8" />
             </div>
             <p className="text-sm text-gray-600">
-              Servicios profesionales de limpieza para tu hogar y oficina. Reserva en línea en minutos.
+              Professional cleaning services for your home and office. Book online in minutes.
             </p>
           </div>
 
@@ -177,7 +177,7 @@ export function Footer() {
 
         <div className="mt-8 border-t border-gray-200 pt-8">
           <p className="text-center text-sm text-gray-500">
-            © {new Date().getFullYear()} ecoMaid. Todos los derechos reservados.
+            © {new Date().getFullYear()} ecoMaid. All rights reserved.
           </p>
         </div>
       </div>

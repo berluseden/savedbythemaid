@@ -17,6 +17,7 @@ import { AdminServiceAreasPage } from '@/pages/admin/ServiceAreasPage';
 import { AdminUsersPage } from '@/pages/admin/UsersPage';
 import { AdminCleaningPlacesPage } from '@/pages/admin/CleaningPlacesPage';
 import { AdminAdditionalServicesPage } from '@/pages/admin/AdditionalServicesPage';
+import { AdminPricingPage } from '@/pages/admin/PricingPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { NotFoundPage, ServerErrorPage } from '@/pages/ErrorPage';
 import ServicesPage from '@/pages/ServicesPage';
@@ -146,10 +147,10 @@ function App() {
               }
             />
             <Route
-              path="/admin/settings"
+              path="/admin/pricing"
               element={
                 <ProtectedRoute requiredRoles={['Admin']}>
-                  <PlaceholderPage title="Configuración" />
+                  <AdminPricingPage />
                 </ProtectedRoute>
               }
             />
@@ -163,17 +164,6 @@ function App() {
         </BrowserRouter>
       </AuthProvider>
     </QueryClientProvider>
-  );
-}
-
-function PlaceholderPage({ title }: { title: string }) {
-  return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">{title}</h1>
-        <p className="text-gray-600">This page will be available soon.</p>
-      </div>
-    </div>
   );
 }
 

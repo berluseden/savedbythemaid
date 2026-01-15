@@ -759,7 +759,7 @@ function ContactStep({
   onNext: () => void;
   onBack: () => void;
 }) {
-  const { login } = useAuth();
+  const { login, user, isAuthenticated } = useAuth();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -770,6 +770,20 @@ function ContactStep({
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  // Pre-fill data if user is logged in
+  useState(() => {
+    if (isAuthenticated && user) {
+      const updates: Partial<BookingData> = {};
+      if (!data.firstName && user.firstName) updates.firstName = user.firstName;
+      if (!data.lastName && user.lastName) updates.lastName = user.lastName;
+      if (!data.email && user.email) updates.email = user.email;
+      if (!data.phone && user.phone) updates.phone = user.phone;
+      if (Object.keys(updates).length > 0) {
+        onChange(updates);
+      }
+    }
+  });
 
   const checkEmailAndProceed = async () => {
     // Validar campos básicos primero
@@ -787,6 +801,12 @@ function ContactStep({
       return;
     }
     setErrors({});
+
+    // Si el usuario ya está logueado, continuar directamente
+    if (isAuthenticated) {
+      onNext();
+      return;
+    }
 
     // Si ya tiene password, continuar
     if (data.password) {

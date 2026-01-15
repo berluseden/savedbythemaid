@@ -8,13 +8,13 @@ import {
   LogOut,
   Sparkles,
   ChevronDown,
-  Bell,
   Menu,
   X,
   MapPin,
   Shield,
   Home,
   PlusCircle,
+  DollarSign,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -24,13 +24,14 @@ interface AdminLayoutProps {
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-  { name: 'Reservas', href: '/admin/bookings', icon: Calendar },
-  { name: 'Empleados', href: '/admin/employees', icon: Users },
-  { name: 'Servicios', href: '/admin/services', icon: Briefcase },
-  { name: 'Tipos de Inmueble', href: '/admin/cleaning-places', icon: Home },
-  { name: 'Servicios Adicionales', href: '/admin/additional-services', icon: PlusCircle },
-  { name: 'Zonas de Servicio', href: '/admin/service-areas', icon: MapPin },
-  { name: 'Usuarios', href: '/admin/users', icon: Shield },
+  { name: 'Bookings', href: '/admin/bookings', icon: Calendar },
+  { name: 'Employees', href: '/admin/employees', icon: Users },
+  { name: 'Services', href: '/admin/services', icon: Briefcase },
+  { name: 'Pricing', href: '/admin/pricing', icon: DollarSign },
+  { name: 'Property Types', href: '/admin/cleaning-places', icon: Home },
+  { name: 'Additional Services', href: '/admin/additional-services', icon: PlusCircle },
+  { name: 'Service Areas', href: '/admin/service-areas', icon: MapPin },
+  { name: 'Users', href: '/admin/users', icon: Shield },
 ];
 
 export function AdminLayout({ children }: AdminLayoutProps) {
@@ -103,7 +104,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             className="flex items-center gap-3 w-full px-4 py-3 text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-lg transition-colors"
           >
             <LogOut className="h-5 w-5" />
-            <span className="font-medium">Cerrar Sesión</span>
+            <span className="font-medium">Sign Out</span>
           </button>
         </div>
       </aside>
@@ -132,12 +133,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
             {/* Right side */}
             <div className="flex items-center gap-4">
-              {/* Notifications */}
-              <button className="relative p-2 text-gray-500 hover:text-gray-700">
-                <Bell className="h-6 w-6" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-              </button>
-
               {/* User menu */}
               <div className="relative">
                 <button
@@ -172,13 +167,13 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                           className="block px-3 py-2 text-gray-700 hover:bg-gray-50 rounded"
                           onClick={() => setUserMenuOpen(false)}
                         >
-                          Mi Perfil
+                          My Profile
                         </Link>
                         <button
                           onClick={handleLogout}
                           className="w-full text-left px-3 py-2 text-gray-700 hover:bg-gray-50 rounded"
                         >
-                          Cerrar Sesión
+                          Sign Out
                         </button>
                       </div>
                     </div>
