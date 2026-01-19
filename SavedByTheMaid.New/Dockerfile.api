@@ -2,27 +2,17 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Copy all project files in correct structure
-COPY src/SavedByTheMaid.Domain/SavedByTheMaid.Domain.csproj src/SavedByTheMaid.Domain/
-COPY src/SavedByTheMaid.Application/SavedByTheMaid.Application.csproj src/SavedByTheMaid.Application/
-COPY src/SavedByTheMaid.Infrastructure/SavedByTheMaid.Infrastructure.csproj src/SavedByTheMaid.Infrastructure/
-COPY src/SavedByTheMaid.Api/SavedByTheMaid.Api.csproj src/SavedByTheMaid.Api/
-
-# Restore dependencies for Api project (will restore all dependencies)
-WORKDIR /src/src/SavedByTheMaid.Api
-RUN dotnet restore
-
-# Copy all source code
-WORKDIR /src
+# Copy everything first (simpler, avoids csproj cache issues)
 COPY src/ src/
 
-# Build
+# Restore and build
 WORKDIR /src/src/SavedByTheMaid.Api
-RUN dotnet build SavedByTheMaid.Api.csproj -c Release -o /app/build --no-restore
+RUN dotnet restore
+RUN dotnet build SavedByTheMaid.Api.csproj -c Release -o /app/build
 
 # Publish stage
 FROM build AS publish
-RUN dotnet publish SavedByTheMaid.Api.csproj -c Release -o /app/publish --no-restore /p:UseAppHost=false
+RUN dotnet publish SavedByTheMaid.Api.csproj -c Release -o /app/publish /p:UseAppHost=false
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final

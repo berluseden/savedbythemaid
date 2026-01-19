@@ -27,6 +27,9 @@ public class DataSeeder
 
         try
         {
+            // 0. Crear tablas adicionales si no existen (SlotOccupancy, StatusHistory)
+            await EnsureAdditionalTablesAsync();
+
             // 1. Limpiar duplicados
             await CleanDuplicatesAsync();
 
@@ -61,6 +64,86 @@ public class DataSeeder
             _logger.LogError(ex, "Error durante el seed de datos");
             throw;
         }
+    }
+
+    /// <summary>
+    /// Crea tablas adicionales (SlotOccupancy, StatusHistory) si no existen.
+    /// Esto es idempotente y seguro para ejecutar múltiples veces.
+    /// </summary>
+    private async Task EnsureAdditionalTablesAsync()
+    {
+        _logger.LogInformation("Verificando tablas adicionales...");
+
+        // SlotOccupancies - Anti-colisión
+        await _context.Database.ExecuteSqlRawAsync(@"
+            CREATE TABLE IF NOT EXISTS SlotOccupancies (
+                Id INT AUTO_INCREMENT PRIMARY KEY,
+                EmployeeId INT NOT NULL,
+                SlotStart DATETIME(6) NOT NULL,
+                SlotEnd DATETIME(6) NOT NULL,
+                OccupancyType INT NOT NULL DEFAULT 0,
+                ReferenceId INT NOT NULL,
+                ExpiresAt DATETIME(6) NULL,
+                CreatedAt DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+                UpdatedAt DATETIME(6) NULL,
+                CreatedByUserId VARCHAR(255) NULL,
+                UpdatedByUserId VARCHAR(255) NULL,
+                IsDeleted TINYINT(1) NOT NULL DEFAULT 0,
+                CONSTRAINT FK_SlotOccupancies_Employees 
+                    FOREIGN KEY (EmployeeId) REFERENCES Employees(Id) ON DELETE CASCADE,
+                INDEX IX_SlotOccupancies_ExpiresAt_OccupancyType (ExpiresAt, OccupancyType),
+                INDEX IX_SlotOccupancies_OccupancyType_ReferenceId (OccupancyType, ReferenceId),
+                UNIQUE INDEX IX_SlotOccupancies_AntiCollision (EmployeeId, SlotStart, IsDeleted)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        ");
+
+        // OrderStatusHistories - Auditoría de órdenes
+        await _context.Database.ExecuteSqlRawAsync(@"
+            CREATE TABLE IF NOT EXISTS OrderStatusHistories (
+                Id INT AUTO_INCREMENT PRIMARY KEY,
+                ServiceOrderId INT NOT NULL,
+                FromStatus INT NULL,
+                ToStatus INT NOT NULL,
+                ChangedById VARCHAR(255) NULL,
+                ChangedAt DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+                ReasonCode VARCHAR(50) NULL,
+                Notes TEXT NULL,
+                CreatedAt DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+                UpdatedAt DATETIME(6) NULL,
+                CreatedByUserId VARCHAR(255) NULL,
+                UpdatedByUserId VARCHAR(255) NULL,
+                IsDeleted TINYINT(1) NOT NULL DEFAULT 0,
+                CONSTRAINT FK_OrderStatusHistories_ServiceOrders 
+                    FOREIGN KEY (ServiceOrderId) REFERENCES ServiceOrders(Id) ON DELETE CASCADE,
+                INDEX IX_OrderStatusHistories_ServiceOrderId (ServiceOrderId),
+                INDEX IX_OrderStatusHistories_ChangedAt (ChangedAt)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        ");
+
+        // MeetStatusHistories - Auditoría de citas
+        await _context.Database.ExecuteSqlRawAsync(@"
+            CREATE TABLE IF NOT EXISTS MeetStatusHistories (
+                Id INT AUTO_INCREMENT PRIMARY KEY,
+                ServiceMeetId INT NOT NULL,
+                FromStatus INT NULL,
+                ToStatus INT NOT NULL,
+                ChangedById VARCHAR(255) NULL,
+                ChangedAt DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+                ReasonCode VARCHAR(50) NULL,
+                Notes TEXT NULL,
+                CreatedAt DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+                UpdatedAt DATETIME(6) NULL,
+                CreatedByUserId VARCHAR(255) NULL,
+                UpdatedByUserId VARCHAR(255) NULL,
+                IsDeleted TINYINT(1) NOT NULL DEFAULT 0,
+                CONSTRAINT FK_MeetStatusHistories_ServiceMeets 
+                    FOREIGN KEY (ServiceMeetId) REFERENCES ServiceMeets(Id) ON DELETE CASCADE,
+                INDEX IX_MeetStatusHistories_ServiceMeetId (ServiceMeetId),
+                INDEX IX_MeetStatusHistories_ChangedAt (ChangedAt)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        ");
+
+        _logger.LogInformation("Tablas adicionales verificadas/creadas");
     }
 
     private async Task CleanDuplicatesAsync()
