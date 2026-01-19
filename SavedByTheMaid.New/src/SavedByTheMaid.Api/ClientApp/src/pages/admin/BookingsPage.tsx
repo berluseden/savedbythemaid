@@ -19,7 +19,7 @@ import {
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import api from '../../lib/api';
 
-type OrderStatus = 'Pending' | 'Confirmed' | 'InProgress' | 'Completed' | 'Cancelled';
+type OrderStatus = 'PendingReview' | 'Draft' | 'Confirmed' | 'InProgress' | 'Completed' | 'Cancelled' | 'NoShow';
 type PaymentStatus = 'Pending' | 'Authorized' | 'Paid' | 'Refunded' | 'Failed';
 type MeetStatus = 'Scheduled' | 'Assigned' | 'OnTheWay' | 'InProgress' | 'Completed' | 'Cancelled' | 'Rescheduled' | 'NoShow';
 
@@ -61,11 +61,13 @@ interface Employee {
 }
 
 const statusConfig: Record<OrderStatus, { label: string; color: string; bgColor: string }> = {
-  Pending: { label: 'Pendiente', color: 'text-yellow-700', bgColor: 'bg-yellow-100' },
+  PendingReview: { label: 'Por Aprobar', color: 'text-orange-700', bgColor: 'bg-orange-100' },
+  Draft: { label: 'Borrador', color: 'text-gray-700', bgColor: 'bg-gray-100' },
   Confirmed: { label: 'Confirmada', color: 'text-blue-700', bgColor: 'bg-blue-100' },
   InProgress: { label: 'En Progreso', color: 'text-purple-700', bgColor: 'bg-purple-100' },
   Completed: { label: 'Completada', color: 'text-green-700', bgColor: 'bg-green-100' },
   Cancelled: { label: 'Cancelada', color: 'text-red-700', bgColor: 'bg-red-100' },
+  NoShow: { label: 'No Presentó', color: 'text-red-700', bgColor: 'bg-red-200' },
 };
 
 const meetStatusConfig: Record<MeetStatus, { label: string; color: string; bgColor: string }> = {
@@ -357,19 +359,19 @@ export function AdminBookingsPage() {
                         >
                           <Eye className="h-4 w-4" />
                         </button>
-                        {booking.orderStatus === 'Pending' && (
+                        {(booking.orderStatus === 'PendingReview' || booking.orderStatus === 'Draft') && (
                           <>
                             <button
                               onClick={() => updateBookingStatus(booking.id, 'Confirmed')}
                               className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg"
-                              title="Confirmar"
+                              title="Aprobar y Confirmar"
                             >
                               <CheckCircle className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => cancelOrder(booking.id)}
                               className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                              title="Cancelar"
+                              title="Rechazar"
                             >
                               <XCircle className="h-4 w-4" />
                             </button>

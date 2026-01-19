@@ -5,7 +5,8 @@ using SavedByTheMaid.Domain.Enums;
 namespace SavedByTheMaid.Api.BackgroundServices;
 
 /// <summary>
-/// Background service que limpia soft reserves expirados cada 5 minutos
+/// Background service que limpia soft reserves y slot occupancies expirados cada 5 minutos.
+/// Garantiza que los slots temporales se liberen automáticamente si el cliente no completa el checkout.
 /// </summary>
 public class SoftReserveCleanupService : BackgroundService
 {
@@ -53,13 +54,29 @@ public class SoftReserveCleanupService : BackgroundService
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
         var now = DateTime.UtcNow;
-        var affected = await context.Database.ExecuteSqlAsync(
-            $"UPDATE SoftReserves SET Status = {(int)SoftReserveStatus.Expired}, UpdatedAt = {now} WHERE ExpiresAt < {now} AND Status = {(int)SoftReserveStatus.Active}",
+        var softReserveType = (int)OccupancyType.SoftReserve;
+        var expiredStatus = (int)SoftReserveStatus.Expired;
+        var activeStatus = (int)SoftReserveStatus.Active;
+
+        // 1. Eliminar SlotOccupancy expirados (SoftReserve con ExpiresAt < now)
+        // Esto libera los slots para que otros usuarios puedan reservarlos
+        var slotsDeleted = await context.Database.ExecuteSqlAsync(
+            $"DELETE FROM SlotOccupancies WHERE OccupancyType = {softReserveType} AND ExpiresAt IS NOT NULL AND ExpiresAt < {now}",
             cancellationToken);
 
-        if (affected > 0)
+        if (slotsDeleted > 0)
         {
-            _logger.LogInformation("Marked {Count} soft reserves as expired", affected);
+            _logger.LogInformation("Deleted {Count} expired slot occupancies", slotsDeleted);
+        }
+
+        // 2. Marcar SoftReserves como expirados
+        var reservesExpired = await context.Database.ExecuteSqlAsync(
+            $"UPDATE SoftReserves SET Status = {expiredStatus}, UpdatedAt = {now} WHERE ExpiresAt < {now} AND Status = {activeStatus}",
+            cancellationToken);
+
+        if (reservesExpired > 0)
+        {
+            _logger.LogInformation("Marked {Count} soft reserves as expired", reservesExpired);
         }
     }
 }

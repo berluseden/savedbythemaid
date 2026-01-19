@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SavedByTheMaid.Api.Auth;
+using SavedByTheMaid.Api.Services;
 using SavedByTheMaid.Infrastructure.Data;
 using SavedByTheMaid.Domain.Entities;
 using SavedByTheMaid.Domain.Enums;
@@ -15,11 +16,16 @@ public class AdminOrdersController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<AdminOrdersController> _logger;
+    private readonly ISchedulingService _schedulingService;
 
-    public AdminOrdersController(ApplicationDbContext context, ILogger<AdminOrdersController> logger)
+    public AdminOrdersController(
+        ApplicationDbContext context, 
+        ILogger<AdminOrdersController> logger,
+        ISchedulingService schedulingService)
     {
         _context = context;
         _logger = logger;
+        _schedulingService = schedulingService;
     }
 
     [HttpGet]
@@ -100,10 +106,13 @@ public class AdminOrdersController : ControllerBase
         var currentStatus = order.OrderStatus;
         var newStatus = request.OrderStatus;
 
-        // Definir transiciones válidas
+        // Definir transiciones válidas (incluye PendingReview)
         var validTransitions = new Dictionary<OrderStatus, OrderStatus[]>
         {
+            [OrderStatus.PendingReview] = new[] { OrderStatus.Confirmed, OrderStatus.Cancelled },
+            #pragma warning disable CS0618
             [OrderStatus.Draft] = new[] { OrderStatus.Confirmed, OrderStatus.Cancelled },
+            #pragma warning restore CS0618
             [OrderStatus.Confirmed] = new[] { OrderStatus.InProgress, OrderStatus.Cancelled, OrderStatus.NoShow },
             [OrderStatus.InProgress] = new[] { OrderStatus.Completed, OrderStatus.Cancelled },
             [OrderStatus.Completed] = Array.Empty<OrderStatus>(), // Estado final
@@ -254,28 +263,206 @@ public class AdminOrdersController : ControllerBase
         if (employee == null || !employee.IsActive) 
             return BadRequest("Empleada no válida o inactiva");
 
-        meet.AssignedEmployeeId = request.EmployeeId;
-        meet.Status = MeetStatus.Assigned;
+        // Verificar conflictos para el nuevo empleado
+        var conflict = await _schedulingService.CheckConflictsAsync(
+            request.EmployeeId,
+            meet.ScheduledStart,
+            meet.ScheduledEnd,
+            excludeMeetingId: null // No excluimos nada porque es un empleado diferente
+        );
 
-        await _context.SaveChangesAsync();
-        return NoContent();
+        if (conflict != null)
+        {
+            _logger.LogWarning(
+                "Conflicto al asignar empleado {EmployeeId} al meeting {MeetingId}: {ConflictType}",
+                request.EmployeeId, id, conflict.Type);
+
+            return Conflict(new SchedulingConflictResponse
+            {
+                Error = "SCHEDULING_CONFLICT",
+                Message = conflict.Message,
+                Conflict = conflict
+            });
+        }
+
+        // Usar transacción para garantizar consistencia
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            // Si ya había un empleado asignado, transferir los slots
+            if (meet.AssignedEmployeeId.HasValue && meet.AssignedEmployeeId.Value != request.EmployeeId)
+            {
+                await _schedulingService.TransferSlotsAsync(
+                    meet.Id,
+                    OccupancyType.Meeting,
+                    request.EmployeeId);
+            }
+            else if (!meet.AssignedEmployeeId.HasValue)
+            {
+                // Primera asignación - crear slots nuevos
+                await _schedulingService.AcquireSlotsAsync(
+                    request.EmployeeId,
+                    meet.ScheduledStart,
+                    meet.ScheduledEnd,
+                    OccupancyType.Meeting,
+                    meet.Id);
+            }
+
+            meet.AssignedEmployeeId = request.EmployeeId;
+            meet.Status = MeetStatus.Assigned;
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            _logger.LogInformation(
+                "Empleado {EmployeeId} asignado exitosamente al meeting {MeetingId}",
+                request.EmployeeId, id);
+
+            return NoContent();
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            await transaction.RollbackAsync();
+            _logger.LogWarning(ex, 
+                "Violación de constraint único al asignar empleado {EmployeeId} al meeting {MeetingId}",
+                request.EmployeeId, id);
+
+            return Conflict(new SchedulingConflictResponse
+            {
+                Error = "SLOT_ALREADY_TAKEN",
+                Message = "El horario fue reservado por otra operación concurrente. Por favor, intente de nuevo.",
+                Conflict = new SchedulingConflict
+                {
+                    Type = ConflictType.ExistingBooking,
+                    Message = "Conflicto de concurrencia detectado",
+                    EmployeeId = request.EmployeeId
+                }
+            });
+        }
     }
 
     [HttpPost("meetings/{id}/reschedule")]
     public async Task<IActionResult> RescheduleMeeting(int id, RescheduleMeetingRequest request)
     {
-        var meet = await _context.ServiceMeets.FindAsync(id);
-        if (meet == null || meet.IsDeleted) return NotFound();
+        var meet = await _context.ServiceMeets
+            .Include(m => m.AssignedEmployee)
+            .FirstOrDefaultAsync(m => m.Id == id && !m.IsDeleted);
+            
+        if (meet == null) return NotFound();
 
-        meet.ScheduledStart = request.NewStart;
-        meet.ScheduledEnd = request.NewStart.AddMinutes(meet.EstimatedDurationMinutes);
-        meet.Status = MeetStatus.Rescheduled;
+        var newEnd = request.NewStart.AddMinutes(meet.EstimatedDurationMinutes);
 
-        if (request.NewEmployeeId.HasValue)
-            meet.AssignedEmployeeId = request.NewEmployeeId;
+        // Determinar el empleado para la verificación de conflictos
+        var employeeIdToCheck = request.NewEmployeeId ?? meet.AssignedEmployeeId;
+        
+        if (!employeeIdToCheck.HasValue)
+        {
+            return BadRequest("El meeting no tiene empleado asignado y no se proporcionó uno nuevo");
+        }
 
-        await _context.SaveChangesAsync();
-        return NoContent();
+        // Verificar conflictos para el nuevo horario
+        // Si es el mismo empleado, excluimos el meeting actual
+        var excludeMeetingId = (request.NewEmployeeId == null || request.NewEmployeeId == meet.AssignedEmployeeId)
+            ? meet.Id
+            : (int?)null;
+
+        var conflict = await _schedulingService.CheckConflictsAsync(
+            employeeIdToCheck.Value,
+            request.NewStart,
+            newEnd,
+            excludeMeetingId);
+
+        if (conflict != null)
+        {
+            _logger.LogWarning(
+                "Conflicto al reprogramar meeting {MeetingId} para {NewStart}: {ConflictType}",
+                id, request.NewStart, conflict.Type);
+
+            return Conflict(new SchedulingConflictResponse
+            {
+                Error = "SCHEDULING_CONFLICT",
+                Message = conflict.Message,
+                Conflict = conflict
+            });
+        }
+
+        // Usar transacción para garantizar consistencia
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            // Liberar slots del horario anterior
+            if (meet.AssignedEmployeeId.HasValue)
+            {
+                await _schedulingService.ReleaseSlotsAsync(meet.Id, OccupancyType.Meeting);
+            }
+
+            // Actualizar el meeting
+            var oldStart = meet.ScheduledStart;
+            var oldEnd = meet.ScheduledEnd;
+            var oldEmployeeId = meet.AssignedEmployeeId;
+
+            meet.ScheduledStart = request.NewStart;
+            meet.ScheduledEnd = newEnd;
+            meet.Status = MeetStatus.Rescheduled;
+
+            if (request.NewEmployeeId.HasValue)
+            {
+                meet.AssignedEmployeeId = request.NewEmployeeId;
+            }
+
+            // Adquirir slots para el nuevo horario
+            await _schedulingService.AcquireSlotsAsync(
+                employeeIdToCheck.Value,
+                request.NewStart,
+                newEnd,
+                OccupancyType.Meeting,
+                meet.Id);
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            _logger.LogInformation(
+                "Meeting {MeetingId} reprogramado: {OldStart} -> {NewStart}, empleado: {OldEmployee} -> {NewEmployee}",
+                id, oldStart, request.NewStart, oldEmployeeId, meet.AssignedEmployeeId);
+
+            return NoContent();
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            await transaction.RollbackAsync();
+            _logger.LogWarning(ex, 
+                "Violación de constraint único al reprogramar meeting {MeetingId}",
+                id);
+
+            return Conflict(new SchedulingConflictResponse
+            {
+                Error = "SLOT_ALREADY_TAKEN",
+                Message = "El nuevo horario fue reservado por otra operación concurrente. Por favor, intente de nuevo.",
+                Conflict = new SchedulingConflict
+                {
+                    Type = ConflictType.ExistingBooking,
+                    Message = "Conflicto de concurrencia detectado",
+                    EmployeeId = employeeIdToCheck.Value,
+                    ConflictStart = request.NewStart,
+                    ConflictEnd = newEnd
+                }
+            });
+        }
+    }
+
+    /// <summary>
+    /// Detecta si una excepción de base de datos es por violación de constraint único.
+    /// </summary>
+    private static bool IsUniqueConstraintViolation(DbUpdateException ex)
+    {
+        // PostgreSQL: código 23505 = unique_violation
+        // SQL Server: código 2601 o 2627 = unique constraint/index violation
+        var innerMessage = ex.InnerException?.Message?.ToLowerInvariant() ?? "";
+        return innerMessage.Contains("unique") || 
+               innerMessage.Contains("duplicate") ||
+               innerMessage.Contains("23505") ||
+               innerMessage.Contains("2601") ||
+               innerMessage.Contains("2627");
     }
 
     [HttpPost("meetings/{id}/adjustment")]
@@ -417,5 +604,26 @@ public record UpdateMeetingStatusRequest(MeetStatus Status, string? Notes = null
 public record AssignEmployeeRequest(int EmployeeId);
 public record RescheduleMeetingRequest(DateTime NewStart, int? NewEmployeeId = null);
 public record AdjustmentRequest(decimal Amount, string Reason);
+
+/// <summary>
+/// Respuesta de conflicto de programación (HTTP 409)
+/// </summary>
+public record SchedulingConflictResponse
+{
+    /// <summary>
+    /// Código de error para uso programático
+    /// </summary>
+    public string Error { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Mensaje descriptivo del conflicto
+    /// </summary>
+    public string Message { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Detalles completos del conflicto
+    /// </summary>
+    public SchedulingConflict? Conflict { get; init; }
+}
 
 #endregion

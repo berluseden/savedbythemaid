@@ -46,6 +46,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // Reservas Temporales
     public DbSet<SoftReserve> SoftReserves => Set<SoftReserve>();
 
+    // Modelo de Ocupación Anti-Colisión
+    public DbSet<SlotOccupancy> SlotOccupancies => Set<SlotOccupancy>();
+
+    // Historial de Estados (Auditoría)
+    public DbSet<OrderStatusHistory> OrderStatusHistories => Set<OrderStatusHistory>();
+    public DbSet<MeetStatusHistory> MeetStatusHistories => Set<MeetStatusHistory>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -70,6 +77,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<ServiceOrderItem>().HasQueryFilter(e => !e.IsDeleted);
         builder.Entity<ServiceOrderRoom>().HasQueryFilter(e => !e.IsDeleted);
         builder.Entity<ServiceMeet>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<SlotOccupancy>().HasQueryFilter(e => !e.IsDeleted);
 
         // ========== ÍNDICES ==========
 
@@ -108,6 +116,20 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<SoftReserve>()
             .HasIndex(s => s.SessionId);
 
+        // SlotOccupancy - índice UNIQUE compuesto para anti-colisión (elimina double-booking a nivel DB)
+        builder.Entity<SlotOccupancy>()
+            .HasIndex(so => new { so.EmployeeId, so.SlotStart })
+            .IsUnique()
+            .HasFilter("\"IsDeleted\" = false"); // Permite reutilizar slots de ocupaciones eliminadas
+
+        // SlotOccupancy - índice para limpieza de expirados
+        builder.Entity<SlotOccupancy>()
+            .HasIndex(so => new { so.ExpiresAt, so.OccupancyType });
+
+        // SlotOccupancy - índice para búsqueda por referencia
+        builder.Entity<SlotOccupancy>()
+            .HasIndex(so => new { so.OccupancyType, so.ReferenceId });
+
         // EmployeeSchedule - índice para búsqueda de disponibilidad
         builder.Entity<EmployeeSchedule>()
             .HasIndex(es => new { es.EmployeeId, es.DayOfWeek });
@@ -135,6 +157,22 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasIndex(so => new { so.OrderStatus, so.CreatedAt })
             .IsDescending();
 
+        // OrderStatusHistory - índices para auditoría
+        builder.Entity<OrderStatusHistory>()
+            .HasIndex(h => h.ServiceOrderId);
+
+        builder.Entity<OrderStatusHistory>()
+            .HasIndex(h => h.ChangedAt)
+            .IsDescending();
+
+        // MeetStatusHistory - índices para auditoría
+        builder.Entity<MeetStatusHistory>()
+            .HasIndex(h => h.ServiceMeetId);
+
+        builder.Entity<MeetStatusHistory>()
+            .HasIndex(h => h.ChangedAt)
+            .IsDescending();
+
         // ========== RELACIONES ==========
 
         // Employee -> Meetings (muchos)
@@ -158,6 +196,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasForeignKey(eq => eq.EmployeeId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        // Employee -> SlotOccupancies (modelo anti-colisión)
+        builder.Entity<SlotOccupancy>()
+            .HasOne(so => so.Employee)
+            .WithMany()
+            .HasForeignKey(so => so.EmployeeId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         // ServiceOrder -> Customer
         builder.Entity<ServiceOrder>()
             .HasOne(o => o.Customer)
@@ -177,6 +222,34 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasOne(m => m.ServiceArea)
             .WithMany()
             .HasForeignKey(m => m.ServiceAreaId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // OrderStatusHistory -> ServiceOrder
+        builder.Entity<OrderStatusHistory>()
+            .HasOne(h => h.ServiceOrder)
+            .WithMany()
+            .HasForeignKey(h => h.ServiceOrderId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // OrderStatusHistory -> ChangedBy
+        builder.Entity<OrderStatusHistory>()
+            .HasOne(h => h.ChangedBy)
+            .WithMany()
+            .HasForeignKey(h => h.ChangedById)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // MeetStatusHistory -> ServiceMeet
+        builder.Entity<MeetStatusHistory>()
+            .HasOne(h => h.ServiceMeet)
+            .WithMany()
+            .HasForeignKey(h => h.ServiceMeetId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // MeetStatusHistory -> ChangedBy
+        builder.Entity<MeetStatusHistory>()
+            .HasOne(h => h.ChangedBy)
+            .WithMany()
+            .HasForeignKey(h => h.ChangedById)
             .OnDelete(DeleteBehavior.SetNull);
 
         // ========== PRECISIÓN DECIMAL ==========

@@ -2,12 +2,41 @@ namespace SavedByTheMaid.Domain.Enums;
 
 public enum OrderStatus
 {
-    Draft = 0,
-    Confirmed = 1,
-    InProgress = 2,
-    Completed = 3,
-    Cancelled = 4,
-    NoShow = 5
+    /// <summary>
+    /// Orden pendiente de revisión por administrador (estado inicial desde web)
+    /// </summary>
+    PendingReview = 0,
+    
+    /// <summary>
+    /// Borrador - Orden creada pero no finalizada (deprecated, usar PendingReview)
+    /// </summary>
+    [Obsolete("Use PendingReview para nuevas órdenes")]
+    Draft = 1,
+    
+    /// <summary>
+    /// Orden confirmada y lista para ejecutarse
+    /// </summary>
+    Confirmed = 2,
+    
+    /// <summary>
+    /// Servicio en progreso
+    /// </summary>
+    InProgress = 3,
+    
+    /// <summary>
+    /// Servicio completado exitosamente
+    /// </summary>
+    Completed = 4,
+    
+    /// <summary>
+    /// Orden cancelada
+    /// </summary>
+    Cancelled = 5,
+    
+    /// <summary>
+    /// Cliente no se presentó o no permitió acceso
+    /// </summary>
+    NoShow = 6
 }
 
 public enum RecurrenceType
@@ -114,4 +143,21 @@ public enum DirtLevel
     Light = 0,
     Normal = 1,
     Heavy = 2
+}
+
+/// <summary>
+/// Tipo de ocupación de slot para modelo anti-colisión.
+/// SoftReserve es temporal y expira, Meeting es permanente.
+/// </summary>
+public enum OccupancyType
+{
+    /// <summary>
+    /// Reserva temporal que expira después de cierto tiempo
+    /// </summary>
+    SoftReserve = 0,
+    
+    /// <summary>
+    /// Cita confirmada (ServiceMeet)
+    /// </summary>
+    Meeting = 1
 }

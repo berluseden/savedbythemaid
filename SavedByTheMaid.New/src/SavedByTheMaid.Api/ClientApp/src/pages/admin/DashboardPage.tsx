@@ -228,7 +228,7 @@ export function AdminDashboardPage() {
           </div>
         )}
 
-        {/* Recent Bookings & Quick Actions */}
+        {/* Recent Bookings & Alerts */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Recent Bookings */}
           <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border">
@@ -280,37 +280,8 @@ export function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* Quick Actions & Alerts */}
+          {/* Alerts */}
           <div className="space-y-6">
-            {/* Quick Actions */}
-            <div className="bg-white rounded-xl shadow-sm border p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Acciones Rápidas</h2>
-              <div className="space-y-3">
-                <a
-                  href="/admin/bookings/new"
-                  className="flex items-center gap-3 p-3 bg-[#FFE44D]/10 text-[#001440] rounded-lg hover:bg-[#FFE44D]/20 transition-colors"
-                >
-                  <Calendar className="h-5 w-5" />
-                  <span className="font-medium">Nueva Reserva</span>
-                </a>
-                <a
-                  href="/admin/employees/new"
-                  className="flex items-center gap-3 p-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors"
-                >
-                  <Users className="h-5 w-5" />
-                  <span className="font-medium">Agregar Empleado</span>
-                </a>
-                <a
-                  href="/admin/services"
-                  className="flex items-center gap-3 p-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors"
-                >
-                  <TrendingUp className="h-5 w-5" />
-                  <span className="font-medium">Gestionar Servicios</span>
-                </a>
-              </div>
-            </div>
-
-            {/* Alerts */}
             <div className="bg-white rounded-xl shadow-sm border p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Alertas</h2>
               <div className="space-y-3">

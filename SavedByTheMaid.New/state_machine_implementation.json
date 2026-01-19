@@ -1,0 +1,227 @@
+{
+  "enum_changes": {
+    "file": "SavedByTheMaid.New/src/SavedByTheMaid.Domain/Enums/OrderEnums.cs",
+    "before": {
+      "OrderStatus": {
+        "Draft": 0,
+        "Confirmed": 1,
+        "InProgress": 2,
+        "Completed": 3,
+        "Cancelled": 4,
+        "NoShow": 5
+      }
+    },
+    "after": {
+      "OrderStatus": {
+        "PendingReview": 0,
+        "Draft": 1,
+        "Confirmed": 2,
+        "InProgress": 3,
+        "Completed": 4,
+        "Cancelled": 5,
+        "NoShow": 6
+      }
+    },
+    "notes": [
+      "PendingReview (0) es el nuevo estado inicial para órdenes desde web",
+      "Draft (1) está marcado como [Obsolete] para deprecarlo gradualmente",
+      "Los valores de Confirmed, InProgress, Completed, Cancelled, NoShow fueron renumerados (+1)",
+      "Se agregaron XML comments para documentar cada estado"
+    ]
+  },
+  "state_machine_code": {
+    "file": "SavedByTheMaid.New/src/SavedByTheMaid.Domain/Services/OrderStateMachine.cs",
+    "classes": [
+      {
+        "name": "OrderStateMachine",
+        "type": "static class",
+        "methods": [
+          {
+            "name": "CanTransition",
+            "signature": "bool CanTransition(OrderStatus from, OrderStatus to)",
+            "description": "Verifica si una transición de estado es válida"
+          },
+          {
+            "name": "GetAllowedTransitions",
+            "signature": "OrderStatus[] GetAllowedTransitions(OrderStatus current)",
+            "description": "Obtiene todos los estados permitidos desde el estado actual"
+          },
+          {
+            "name": "IsFinalState",
+            "signature": "bool IsFinalState(OrderStatus status)",
+            "description": "Verifica si un estado es terminal"
+          },
+          {
+            "name": "IsActiveState",
+            "signature": "bool IsActiveState(OrderStatus status)",
+            "description": "Verifica si un estado es activo"
+          },
+          {
+            "name": "ValidateTransition",
+            "signature": "void ValidateTransition(OrderStatus from, OrderStatus to)",
+            "description": "Valida y lanza excepción si la transición no es válida"
+          }
+        ],
+        "transitions": {
+          "PendingReview": ["Confirmed", "Cancelled"],
+          "Draft": ["Confirmed", "Cancelled"],
+          "Confirmed": ["InProgress", "Cancelled", "NoShow"],
+          "InProgress": ["Completed", "Cancelled"],
+          "Completed": [],
+          "Cancelled": [],
+          "NoShow": []
+        }
+      },
+      {
+        "name": "MeetStateMachine",
+        "type": "static class",
+        "methods": [
+          {
+            "name": "CanTransition",
+            "signature": "bool CanTransition(MeetStatus from, MeetStatus to)",
+            "description": "Verifica si una transición de estado es válida"
+          },
+          {
+            "name": "GetAllowedTransitions",
+            "signature": "MeetStatus[] GetAllowedTransitions(MeetStatus current)",
+            "description": "Obtiene todos los estados permitidos desde el estado actual"
+          },
+          {
+            "name": "IsFinalState",
+            "signature": "bool IsFinalState(MeetStatus status)",
+            "description": "Verifica si un estado es terminal"
+          },
+          {
+            "name": "IsActiveState",
+            "signature": "bool IsActiveState(MeetStatus status)",
+            "description": "Verifica si un estado es activo"
+          },
+          {
+            "name": "ValidateTransition",
+            "signature": "void ValidateTransition(MeetStatus from, MeetStatus to)",
+            "description": "Valida y lanza excepción si la transición no es válida"
+          }
+        ],
+        "transitions": {
+          "Scheduled": ["Assigned", "Cancelled", "Rescheduled"],
+          "Assigned": ["OnTheWay", "Cancelled", "Rescheduled"],
+          "OnTheWay": ["InProgress", "Cancelled", "NoShow"],
+          "InProgress": ["Completed", "Cancelled"],
+          "Rescheduled": ["Scheduled", "Assigned", "Cancelled"],
+          "Completed": [],
+          "Cancelled": [],
+          "NoShow": []
+        }
+      }
+    ]
+  },
+  "controller_changes": {
+    "file": "SavedByTheMaid.New/src/SavedByTheMaid.Api/Controllers/Admin/AdminOrdersController.cs",
+    "changes": [
+      {
+        "action": "add_using",
+        "line": 8,
+        "add": "using SavedByTheMaid.Domain.Services;"
+      },
+      {
+        "action": "replace",
+        "lines": "98-111",
+        "description": "Reemplazar diccionario inline por llamada a OrderStateMachine",
+        "before": [
+          "// Validar transiciones permitidas de OrderStatus",
+          "var currentStatus = order.OrderStatus;",
+          "var newStatus = request.OrderStatus;",
+          "",
+          "// Definir transiciones válidas",
+          "var validTransitions = new Dictionary<OrderStatus, OrderStatus[]>",
+          "{",
+          "    [OrderStatus.Draft] = new[] { OrderStatus.Confirmed, OrderStatus.Cancelled },",
+          "    [OrderStatus.Confirmed] = new[] { OrderStatus.InProgress, OrderStatus.Cancelled, OrderStatus.NoShow },",
+          "    [OrderStatus.InProgress] = new[] { OrderStatus.Completed, OrderStatus.Cancelled },",
+          "    [OrderStatus.Completed] = Array.Empty<OrderStatus>(), // Estado final",
+          "    [OrderStatus.Cancelled] = Array.Empty<OrderStatus>(), // Estado final",
+          "    [OrderStatus.NoShow] = Array.Empty<OrderStatus>() // Estado final",
+          "};",
+          "",
+          "if (!validTransitions[currentStatus].Contains(newStatus))"
+        ],
+        "after": [
+          "// Validar transiciones permitidas usando máquina de estados centralizada",
+          "var currentStatus = order.OrderStatus;",
+          "var newStatus = request.OrderStatus;",
+          "",
+          "if (!OrderStateMachine.CanTransition(currentStatus, newStatus))"
+        ]
+      },
+      {
+        "action": "update_error_message",
+        "lines": "113-114",
+        "before": "return BadRequest($\"Transición inválida: {currentStatus} -> {newStatus}\");",
+        "after": "return BadRequest($\"Transición inválida: {currentStatus} -> {newStatus}. Transiciones permitidas: [{string.Join(\", \", OrderStateMachine.GetAllowedTransitions(currentStatus))}]\");"
+      },
+      {
+        "action": "optional_add_endpoint",
+        "description": "Agregar endpoint para consultar transiciones permitidas",
+        "code": [
+          "[HttpGet(\"{id}/allowed-transitions\")]",
+          "public async Task<ActionResult<OrderStatus[]>> GetAllowedTransitions(int id)",
+          "{",
+          "    var order = await _context.ServiceOrders.FindAsync(id);",
+          "    if (order == null || order.IsDeleted) return NotFound();",
+          "    return OrderStateMachine.GetAllowedTransitions(order.OrderStatus);",
+          "}"
+        ]
+      }
+    ]
+  },
+  "migration_notes": {
+    "database_migration_required": true,
+    "migration_script": {
+      "name": "UpdateOrderStatusValues",
+      "sql": [
+        "-- IMPORTANTE: Ejecutar en orden inverso para evitar conflictos",
+        "-- Paso 1: Actualizar NoShow (5 -> 6)",
+        "UPDATE ServiceOrders SET OrderStatus = 6 WHERE OrderStatus = 5;",
+        "UPDATE ServiceMeets SET Status = 7 WHERE Status = 5;  -- Si aplica",
+        "",
+        "-- Paso 2: Actualizar Cancelled (4 -> 5)",
+        "UPDATE ServiceOrders SET OrderStatus = 5 WHERE OrderStatus = 4;",
+        "",
+        "-- Paso 3: Actualizar Completed (3 -> 4)",
+        "UPDATE ServiceOrders SET OrderStatus = 4 WHERE OrderStatus = 3;",
+        "",
+        "-- Paso 4: Actualizar InProgress (2 -> 3)",
+        "UPDATE ServiceOrders SET OrderStatus = 3 WHERE OrderStatus = 2;",
+        "",
+        "-- Paso 5: Actualizar Confirmed (1 -> 2)",
+        "UPDATE ServiceOrders SET OrderStatus = 2 WHERE OrderStatus = 1;",
+        "",
+        "-- Paso 6: Migrar Draft (0) a PendingReview (0) - mismo valor, no requiere cambio",
+        "-- Los registros con Draft=0 ahora se interpretan como PendingReview=0",
+        "",
+        "-- Opcional: Si deseas convertir Draft existentes a nuevo valor Draft=1",
+        "-- UPDATE ServiceOrders SET OrderStatus = 1 WHERE OrderStatus = 0 AND CreatedAt < '2026-01-19';"
+      ]
+    },
+    "ef_migration": {
+      "command": "dotnet ef migrations add UpdateOrderStatusEnum --project src/SavedByTheMaid.Infrastructure --startup-project src/SavedByTheMaid.Api",
+      "notes": [
+        "EF Core no detectará cambios en enums automáticamente ya que son int en la DB",
+        "Crear migración manual con Up() y Down() usando los scripts SQL anteriores",
+        "Aplicar migración en ambiente de staging primero"
+      ]
+    },
+    "rollback_considerations": [
+      "Si hay órdenes con PendingReview=0 nuevas, decidir si convertirlas a Draft=0 (antiguo) o manejar como caso especial",
+      "El atributo [Obsolete] en Draft generará warnings de compilación pero no errores",
+      "APIs existentes que envíen Draft seguirán funcionando (valor 1 es válido)"
+    ],
+    "testing_checklist": [
+      "Verificar que órdenes existentes muestran status correcto en UI",
+      "Probar flujo completo: PendingReview -> Confirmed -> InProgress -> Completed",
+      "Probar cancelación desde cada estado permitido",
+      "Verificar que transiciones inválidas son rechazadas con mensaje claro",
+      "Probar endpoint /api/admin/orders/{id}/allowed-transitions si se implementa"
+    ]
+  }
+}

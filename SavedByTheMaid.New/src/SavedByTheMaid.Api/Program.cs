@@ -59,6 +59,12 @@ builder.Services.AddScoped<IPasswordHasher<SavedByTheMaid.Domain.Entities.Applic
 // Email Service
 builder.Services.AddScoped<IEmailService, EmailService>();
 
+// Scheduling Service - validación de conflictos y gestión de SlotOccupancy
+builder.Services.AddScoped<ISchedulingService, SchedulingService>();
+
+// Status History Service - auditoría de cambios de estado
+builder.Services.AddScoped<IStatusHistoryService, StatusHistoryService>();
+
 // Autenticación JWT
 var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>() 
     ?? new JwtSettings { Secret = "DefaultSecretKeyForDevelopmentOnly123456789!", Issuer = "SavedByTheMaid", Audience = "SavedByTheMaidApp" };
@@ -156,6 +162,7 @@ builder.Services.AddControllers()
     {
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
     });
 
 // OpenAPI/Swagger

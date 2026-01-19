@@ -424,8 +424,8 @@ public class BookingController : ControllerBase
     #region Step 5 - Soft Reserve (anti-colisión)
 
     /// <summary>
-    /// Crea una reserva temporal (soft reserve) mientras el cliente completa el checkout
-    /// Usa GET_LOCK de MySQL para evitar colisiones
+    /// Crea una reserva temporal (soft reserve) mientras el cliente completa el checkout.
+    /// Usa SlotOccupancy con constraint UNIQUE para anti-colisión a nivel de BD.
     /// </summary>
     [HttpPost("soft-reserve")]
     public async Task<ActionResult<SoftReserveResponse>> CreateSoftReserve(CreateSoftReserveRequest request)
@@ -442,84 +442,56 @@ public class BookingController : ControllerBase
 
         var serviceAreaId = serviceAreaZip.ServiceAreaId;
         var sessionId = request.SessionId ?? Guid.NewGuid().ToString();
-        var lockName = $"softreserve:{request.EmployeeId}:{request.Date:yyyyMMdd}";
         var ttlMinutes = 15;
+        var expiresAt = DateTime.UtcNow.AddMinutes(ttlMinutes);
+
+        var startDateTime = request.Date.Date.Add(request.StartTime);
+        var endDateTime = startDateTime.AddMinutes(request.EstimatedMinutes);
+
+        // 1. Verificar que la empleada tenga horario laboral ese día
+        var dayOfWeek = request.Date.DayOfWeek;
+        var schedule = await _context.EmployeeSchedules
+            .FirstOrDefaultAsync(s => 
+                s.EmployeeId == request.EmployeeId &&
+                s.DayOfWeek == dayOfWeek &&
+                s.IsAvailable);
+
+        if (schedule == null)
+        {
+            return BadRequest(new { message = "Empleada no trabaja en ese día de la semana." });
+        }
+
+        // Verificar que el horario esté dentro del turno laboral
+        if (request.StartTime < schedule.StartTime || request.StartTime >= schedule.EndTime)
+        {
+            return BadRequest(new { message = "Horario fuera del turno laboral de la empleada." });
+        }
+
+        // 2. Verificar que la empleada no tenga días libres (TimeOff)
+        var hasTimeOff = await _context.EmployeeTimeOffs
+            .AnyAsync(t => 
+                t.EmployeeId == request.EmployeeId &&
+                t.Status == TimeOffStatus.Approved &&
+                t.StartDateTime <= endDateTime &&
+                t.EndDateTime >= startDateTime);
+
+        if (hasTimeOff)
+        {
+            return BadRequest(new { message = "Empleada no disponible en esas fechas." });
+        }
+
+        // Calcular slots de 30 minutos
+        var slots = CalculateTimeSlots(startDateTime, endDateTime);
+        if (!slots.Any())
+        {
+            return BadRequest(new { message = "El rango de tiempo no genera slots válidos." });
+        }
 
         using var transaction = await _context.Database.BeginTransactionAsync();
 
         try
         {
-            // Obtener lock con timeout de 3 segundos
-            // Nota: GET_LOCK requiere string literal, el lockName se construye de forma segura (solo int + fecha)
-            await _context.Database.ExecuteSqlRawAsync(
-                "SELECT GET_LOCK(@p0, 3)", lockName);
-
-            var startDateTime = request.Date.Date.Add(request.StartTime);
-            var endDateTime = startDateTime.AddMinutes(request.EstimatedMinutes);
-
-            // 1. Verificar que la empleada tenga horario laboral ese día
-            var dayOfWeek = request.Date.DayOfWeek;
-            var schedule = await _context.EmployeeSchedules
-                .FirstOrDefaultAsync(s => 
-                    s.EmployeeId == request.EmployeeId &&
-                    s.DayOfWeek == dayOfWeek &&
-                    s.IsAvailable);
-
-            if (schedule == null)
-            {
-                await ReleaseLock(lockName);
-                return BadRequest(new { message = "Empleada no trabaja en ese día de la semana." });
-            }
-
-            // Verificar que el horario esté dentro del turno laboral
-            if (request.StartTime < schedule.StartTime || request.StartTime >= schedule.EndTime)
-            {
-                await ReleaseLock(lockName);
-                return BadRequest(new { message = "Horario fuera del turno laboral de la empleada." });
-            }
-
-            // 2. Verificar que la empleada no tenga días libres (TimeOff)
-            var hasTimeOff = await _context.EmployeeTimeOffs
-                .AnyAsync(t => 
-                    t.EmployeeId == request.EmployeeId &&
-                    t.Status == TimeOffStatus.Approved &&
-                    t.StartDateTime <= endDateTime &&
-                    t.EndDateTime >= startDateTime);
-
-            if (hasTimeOff)
-            {
-                await ReleaseLock(lockName);
-                return BadRequest(new { message = "Empleada no disponible en esas fechas." });
-            }
-
-            // 3. Verificar conflictos con meetings existentes
-            var meetingConflict = await _context.ServiceMeets
-                .AnyAsync(m =>
-                    m.AssignedEmployeeId == request.EmployeeId &&
-                    m.Status != MeetStatus.Cancelled && m.Status != MeetStatus.NoShow &&
-                    m.ScheduledStart < endDateTime && m.ScheduledEnd > startDateTime);
-
-            if (meetingConflict)
-            {
-                await ReleaseLock(lockName);
-                return Conflict(new { message = "Este horario ya no está disponible." });
-            }
-
-            // 4. Verificar conflictos con soft reserves activas
-            var softReserveConflict = await _context.SoftReserves
-                .AnyAsync(s =>
-                    s.EmployeeId == request.EmployeeId &&
-                    s.Status == SoftReserveStatus.Active &&
-                    s.ExpiresAt > DateTime.UtcNow &&
-                    s.ScheduledStart < endDateTime && s.ScheduledEnd > startDateTime);
-
-            if (softReserveConflict)
-            {
-                await ReleaseLock(lockName);
-                return Conflict(new { message = "Alguien más está reservando este horario. Intenta otro." });
-            }
-
-            // Crear soft reserve
+            // Crear soft reserve primero para obtener el ID
             var softReserve = new SoftReserve
             {
                 SessionId = sessionId,
@@ -528,16 +500,32 @@ public class BookingController : ControllerBase
                 ServiceAreaId = serviceAreaId,
                 ScheduledStart = startDateTime,
                 ScheduledEnd = endDateTime,
-                ExpiresAt = DateTime.UtcNow.AddMinutes(ttlMinutes),
+                ExpiresAt = expiresAt,
                 Status = SoftReserveStatus.Active
             };
 
             _context.SoftReserves.Add(softReserve);
             await _context.SaveChangesAsync();
+
+            // Insertar filas en SlotOccupancy (granularidad 30 min)
+            // El constraint UNIQUE en (EmployeeId, SlotStart) previene double-booking
+            var slotOccupancies = slots.Select(slot => new SlotOccupancy
+            {
+                EmployeeId = request.EmployeeId,
+                SlotStart = slot.Start,
+                SlotEnd = slot.End,
+                OccupancyType = OccupancyType.SoftReserve,
+                ReferenceId = softReserve.Id,
+                ExpiresAt = expiresAt
+            }).ToList();
+
+            _context.SlotOccupancies.AddRange(slotOccupancies);
+            await _context.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            // Liberar lock
-            await ReleaseLock(lockName);
+            _logger.LogInformation(
+                "SoftReserve {SoftReserveId} creado con {SlotCount} slots para empleada {EmployeeId}",
+                softReserve.Id, slotOccupancies.Count, request.EmployeeId);
 
             return Ok(new SoftReserveResponse
             {
@@ -550,9 +538,17 @@ public class BookingController : ControllerBase
                 Message = $"Horario reservado por {ttlMinutes} minutos. Complete el pago para confirmar."
             });
         }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            // Constraint violation = slot ya ocupado por otro usuario
+            _logger.LogWarning(
+                "Conflicto de slot para empleada {EmployeeId} en {Start} - {End}",
+                request.EmployeeId, startDateTime, endDateTime);
+            
+            return Conflict(new { message = "Este horario ya no está disponible. Alguien más lo reservó." });
+        }
         catch (Exception ex)
         {
-            await ReleaseLock(lockName);
             _logger.LogError(ex, "Error creating soft reserve");
             throw;
         }
@@ -734,6 +730,7 @@ public class BookingController : ControllerBase
             string? customerId = request.CustomerId;
             AuthToken? authToken = null;
             bool isNewUser = false;
+            bool isGuest = false;
 
             if (string.IsNullOrEmpty(customerId))
             {
@@ -751,8 +748,12 @@ public class BookingController : ControllerBase
                 }
                 else if (string.IsNullOrWhiteSpace(request.Password))
                 {
-                    // Email nuevo pero sin contraseña - solicitar
-                    return BadRequest(new { message = "Please create a password for your account." });
+                    // Email nuevo sin contraseña - GUEST CHECKOUT
+                    // Crear orden SIN CustomerId (guest)
+                    customerId = null;
+                    isNewUser = false;
+                    isGuest = true;
+                    _logger.LogInformation("Guest booking creado sin cuenta: {Email}", request.ContactEmail);
                 }
                 else
                 {
@@ -805,7 +806,7 @@ public class BookingController : ControllerBase
                 }
             }
 
-            // Crear orden con pricing validado
+            // Crear orden con pricing validado (estado PendingReview para revisión admin)
             var order = new ServiceOrder
             {
                 CustomerId = customerId,
@@ -828,7 +829,7 @@ public class BookingController : ControllerBase
                 Tax = 0, // No tax in MVP
                 Discount = calculatedDiscount,
                 Total = calculatedTotal,
-                OrderStatus = OrderStatus.Confirmed, // Auto-confirmed for customer visibility
+                OrderStatus = OrderStatus.PendingReview, // Pendiente de confirmación por admin
                 RecurrenceType = request.RecurrenceType,
                 RecurrenceEndDate = request.RecurrenceEndDate,
                 Source = OrderSource.Website,
@@ -883,6 +884,9 @@ public class BookingController : ControllerBase
             softReserve.ServiceOrderId = order.Id;
             softReserve.CustomerId = customerId;
 
+            // Convertir SlotOccupancy de SoftReserve a Meeting
+            await ConvertSoftReserveToMeetingOccupancy(softReserve.Id, meet.Id);
+
             await _context.SaveChangesAsync();
 
             // Si es recurrente, crear citas futuras (se crean en estado Scheduled)
@@ -935,10 +939,13 @@ public class BookingController : ControllerBase
                 ScheduledEnd = meet.ScheduledEnd,
                 Total = order.Total,
                 OrderStatus = order.OrderStatus.ToString(),
-                Message = isNewUser 
-                    ? "¡Cuenta creada y reserva confirmada! Ahora puedes dar seguimiento a tu servicio."
-                    : "Your booking request has been received! We'll confirm your appointment shortly.",
-                AuthToken = authToken
+                Message = isGuest 
+                    ? "Reserva creada. Te enviaremos confirmación por email."
+                    : isNewUser 
+                        ? "¡Cuenta creada! Tu reserva está pendiente de confirmación. Te notificaremos pronto."
+                        : "Reserva recibida, pendiente de confirmación. Te contactaremos para confirmar tu cita.",
+                AuthToken = authToken,
+                IsGuest = isGuest
             });
         }
         catch (Exception ex)
@@ -952,11 +959,54 @@ public class BookingController : ControllerBase
 
     #region Helpers
 
-    private async Task ReleaseLock(string lockName)
+    /// <summary>
+    /// Calcula los slots de 30 minutos entre startTime y endTime
+    /// </summary>
+    private static List<(DateTime Start, DateTime End)> CalculateTimeSlots(DateTime startTime, DateTime endTime)
     {
-        // lockName se construye de forma segura (employeeId:fecha)
-        await _context.Database.ExecuteSqlRawAsync(
-            "SELECT RELEASE_LOCK(@p0)", lockName);
+        var slots = new List<(DateTime Start, DateTime End)>();
+        var slotDuration = TimeSpan.FromMinutes(30);
+        var current = startTime;
+
+        while (current < endTime)
+        {
+            var slotEnd = current.Add(slotDuration);
+            if (slotEnd > endTime)
+                slotEnd = endTime;
+            
+            slots.Add((current, slotEnd));
+            current = current.Add(slotDuration);
+        }
+
+        return slots;
+    }
+
+    /// <summary>
+    /// Verifica si una excepción es violación de constraint UNIQUE
+    /// </summary>
+    private static bool IsUniqueConstraintViolation(DbUpdateException ex)
+    {
+        // MySQL: error 1062 (Duplicate entry)
+        // Pomelo MySQL: verifica el InnerException
+        var inner = ex.InnerException?.Message ?? ex.Message;
+        return inner.Contains("Duplicate entry", StringComparison.OrdinalIgnoreCase) ||
+               inner.Contains("UNIQUE constraint", StringComparison.OrdinalIgnoreCase) ||
+               inner.Contains("duplicate key", StringComparison.OrdinalIgnoreCase) ||
+               inner.Contains("1062");
+    }
+
+    /// <summary>
+    /// Convierte los slots de SoftReserve a Meeting cuando se confirma la reserva
+    /// </summary>
+    private async Task ConvertSoftReserveToMeetingOccupancy(int softReserveId, int meetId)
+    {
+        // Actualizar SlotOccupancy: cambiar tipo a Meeting, actualizar referencia y quitar expiración
+        var meetingType = (int)OccupancyType.Meeting;
+        var softReserveType = (int)OccupancyType.SoftReserve;
+        var now = DateTime.UtcNow;
+        
+        await _context.Database.ExecuteSqlAsync(
+            $"UPDATE SlotOccupancies SET OccupancyType = {meetingType}, ReferenceId = {meetId}, ExpiresAt = NULL, UpdatedAt = {now} WHERE OccupancyType = {softReserveType} AND ReferenceId = {softReserveId}");
     }
 
     private async Task CreateRecurringMeetings(ServiceOrder order, ServiceMeet firstMeet, 
@@ -1315,6 +1365,7 @@ public record BookingConfirmationResponse
     public string OrderStatus { get; init; } = "";
     public string Message { get; init; } = "";
     public AuthToken? AuthToken { get; init; }
+    public bool IsGuest { get; init; }
 }
 
 public record AuthToken
