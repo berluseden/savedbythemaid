@@ -37,6 +37,7 @@ interface EstimateResponse {
 
 export default function BookingSuccessPage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { refreshUser, isAuthenticated } = useAuth();
   const { confirmation, bookingData, estimate } = (location.state || {}) as {
     confirmation?: BookingConfirmation;
@@ -45,6 +46,7 @@ export default function BookingSuccessPage() {
   };
 
   const [copied, setCopied] = useState(false);
+  const [countdown, setCountdown] = useState(5);
 
   // Refrescar el contexto de auth si hay token guardado (usuario recién creado)
   useEffect(() => {
@@ -53,6 +55,22 @@ export default function BookingSuccessPage() {
       refreshUser();
     }
   }, [refreshUser, isAuthenticated]);
+
+  // Auto-redirect to dashboard after 5 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          navigate('/dashboard');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [navigate]);
 
   const copyConfirmation = () => {
     if (confirmation?.confirmationNumber) {
@@ -203,11 +221,16 @@ export default function BookingSuccessPage() {
             </ul>
           </div>
 
+          {/* Auto-redirect notice */}
+          <p className="text-sm text-gray-500 mb-4">
+            Redirecting to your dashboard in {countdown} seconds...
+          </p>
+
           {/* Actions */}
           <div className="space-y-3">
             <Link to="/dashboard" className="block">
               <Button className="w-full">
-                Go to Dashboard
+                Go to Dashboard Now
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
