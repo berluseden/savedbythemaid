@@ -662,7 +662,7 @@ export function AdminBookingsPage() {
 
               {/* Actions */}
               <div className="flex gap-3 pt-4 border-t">
-                {selectedBooking.orderStatus === 'Pending' && (
+                {selectedBooking.orderStatus === 'PendingReview' && (
                   <>
                     <button
                       onClick={() => updateBookingStatus(selectedBooking.id, 'Confirmed')}
