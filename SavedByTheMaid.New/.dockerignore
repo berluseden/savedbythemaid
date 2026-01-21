@@ -2,7 +2,6 @@
 **/bin/
 **/obj/
 **/dist/
-**/build/
 **/out/
 
 # Node modules
@@ -13,9 +12,9 @@
 **/.vs/
 **/.vscode/
 **/.idea/
-**/*.swp
-**/*.swo
-**/*~
+*.swp
+*.swo
+*~
 
 # Test results
 **/test-results/
@@ -23,7 +22,7 @@
 **/playwright-report/
 
 # Logs
-**/*.log
+*.log
 **/logs/
 
 # OS
@@ -34,25 +33,12 @@ Thumbs.db
 .git/
 .gitignore
 
-# Docker
-**/Dockerfile*
-**/docker-compose*
-**/.dockerignore
-
 # Temporary
 **/tmp/
 **/temp/
 
-# Secrets
-**/*.env
+# Secrets (keep .env.example)
 **/*.local
 
 # Coverage
 **/coverage/
-
-# Keep necessary files
-!**/package.json
-!**/package-lock.json
-!**/*.csproj
-!**/*.sln
-!**/*.resx
