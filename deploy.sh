@@ -15,6 +15,17 @@ REPO_URL="https://github.com/berluseden/savedbythemaid.git"
 APP_DIR="/opt/savedbythemaid"
 BRANCH="main"
 
+# Si se ejecuta con sudo, $USER será root. Queremos usar el usuario real.
+DEPLOY_USER="${SUDO_USER:-$USER}"
+
+run_as_deploy_user() {
+    if [ "$DEPLOY_USER" = "$USER" ]; then
+        bash -lc "$1"
+    else
+        sudo -u "$DEPLOY_USER" -H bash -lc "$1"
+    fi
+}
+
 get_external_ip() {
     # Preferir metadata server de GCP si está disponible
     local ip
@@ -73,15 +84,19 @@ DOCKER_CMD=$(select_docker_cmd)
 # 2. Clonar o actualizar repositorio
 if [ -d "$APP_DIR" ]; then
     echo -e "${GREEN}🔄 Actualizando repositorio...${NC}"
+    # Asegurar ownership correcto y evitar error de Git "dubious ownership"
+    sudo chown -R "$DEPLOY_USER":"$DEPLOY_USER" "$APP_DIR" || true
+    (git config --global --add safe.directory "$APP_DIR" >/dev/null 2>&1) || true
+    run_as_deploy_user "git config --global --add safe.directory '$APP_DIR' >/dev/null 2>&1 || true"
     cd "$APP_DIR"
-    git fetch origin
-    git reset --hard origin/$BRANCH
-    git pull origin $BRANCH
+    run_as_deploy_user "cd '$APP_DIR' && git fetch origin"
+    run_as_deploy_user "cd '$APP_DIR' && git reset --hard origin/$BRANCH"
+    run_as_deploy_user "cd '$APP_DIR' && git pull origin $BRANCH"
 else
     echo -e "${GREEN}📥 Clonando repositorio...${NC}"
     sudo mkdir -p "$APP_DIR"
-    sudo chown -R $USER:$USER "$APP_DIR"
-    git clone -b $BRANCH "$REPO_URL" "$APP_DIR"
+    sudo chown -R "$DEPLOY_USER":"$DEPLOY_USER" "$APP_DIR"
+    run_as_deploy_user "git clone -b $BRANCH '$REPO_URL' '$APP_DIR'"
     cd "$APP_DIR"
 fi
 
