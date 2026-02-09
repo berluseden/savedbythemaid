@@ -3,9 +3,26 @@ set -e
 
 echo "🧪 Ejecutando tests E2E contra GCP..."
 
-# Detectar IP de GCP
-EXTERNAL_IP=$(curl -s ifconfig.me)
-GCP_URL="http://136.119.103.67:3000"
+# Permite pasar URL explícita por env
+GCP_URL="${GCP_URL:-${BASE_URL:-}}"
+
+if [ -z "$GCP_URL" ]; then
+    INSTANCE_NAME="${INSTANCE_NAME:-instancia-gratis-ubuntu}"
+    ZONE="${ZONE:-us-central1-a}"
+
+    if command -v gcloud >/dev/null 2>&1; then
+        EXTERNAL_IP=$(gcloud compute instances describe "$INSTANCE_NAME" --zone="$ZONE" --format='get(networkInterfaces[0].accessConfigs[0].natIP)' 2>/dev/null || true)
+        if [ -n "$EXTERNAL_IP" ]; then
+            GCP_URL="http://${EXTERNAL_IP}:3000"
+        fi
+    fi
+fi
+
+if [ -z "$GCP_URL" ]; then
+    echo "❌ No se pudo determinar GCP_URL automáticamente."
+    echo "   Setea GCP_URL o BASE_URL, o configura gcloud/instancia."
+    exit 1
+fi
 
 echo "🌐 Target URL: $GCP_URL"
 

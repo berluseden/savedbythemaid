@@ -218,7 +218,7 @@ export function AdminEmployeesPage() {
       await api.post(`/admin/employees/${editingEmployee.id}/schedules`, scheduleForm);
       await fetchSchedules(editingEmployee.id);
       setScheduleForm({ dayOfWeek: 1, startTime: '08:00', endTime: '18:00', bufferMinutes: 15, isAvailable: true });
-    } catch (err) {
+    } catch (_err) {
       setError('Error al guardar horario');
     } finally {
       setSaving(false);
@@ -230,7 +230,7 @@ export function AdminEmployeesPage() {
     try {
       await api.delete(`/admin/employees/${editingEmployee.id}/schedules/${dayOfWeek}`);
       await fetchSchedules(editingEmployee.id);
-    } catch (err) {
+    } catch (_err) {
       setError('Error al eliminar horario');
     }
   };
@@ -249,7 +249,7 @@ export function AdminEmployeesPage() {
       });
       await fetchTimeOffs(editingEmployee.id);
       setTimeOffForm({ startDate: '', endDate: '', isAllDay: false, type: 0, reason: '' });
-    } catch (err) {
+    } catch (_err) {
       setError('Error al guardar bloqueo');
     } finally {
       setSaving(false);
@@ -261,7 +261,7 @@ export function AdminEmployeesPage() {
     try {
       await api.delete(`/admin/employees/${editingEmployee.id}/time-off/${timeOffId}`);
       await fetchTimeOffs(editingEmployee.id);
-    } catch (err) {
+    } catch (_err) {
       setError('Error al eliminar bloqueo');
     }
   };
@@ -315,7 +315,7 @@ export function AdminEmployeesPage() {
       await api.post(`/admin/employees/${editingEmployee.id}/service-areas/${serviceAreaId}?isPrimary=${isPrimary}`);
       await fetchEmployeeDetails(editingEmployee.id);
       await fetchEmployees();
-    } catch (err) {
+    } catch (_err) {
       setError('Error al agregar zona');
     } finally {
       setSaving(false);
@@ -328,7 +328,7 @@ export function AdminEmployeesPage() {
       await api.delete(`/admin/employees/${editingEmployee.id}/service-areas/${serviceAreaId}`);
       await fetchEmployeeDetails(editingEmployee.id);
       await fetchEmployees();
-    } catch (err) {
+    } catch (_err) {
       setError('Error al eliminar zona');
     }
   };
@@ -339,7 +339,7 @@ export function AdminEmployeesPage() {
       await api.post(`/admin/employees/${editingEmployee.id}/service-areas/${serviceAreaId}?isPrimary=true`);
       await fetchEmployeeDetails(editingEmployee.id);
       await fetchEmployees();
-    } catch (err) {
+    } catch (_err) {
       setError('Error al establecer zona principal');
     }
   };
@@ -351,7 +351,7 @@ export function AdminEmployeesPage() {
     try {
       await api.post(`/admin/employees/${editingEmployee.id}/equipment/${equipmentId}`);
       await fetchEmployeeDetails(editingEmployee.id);
-    } catch (err) {
+    } catch (_err) {
       setError('Error al agregar equipamiento');
     } finally {
       setSaving(false);
@@ -363,7 +363,7 @@ export function AdminEmployeesPage() {
     try {
       await api.delete(`/admin/employees/${editingEmployee.id}/equipment/${equipmentId}`);
       await fetchEmployeeDetails(editingEmployee.id);
-    } catch (err) {
+    } catch (_err) {
       setError('Error al eliminar equipamiento');
     }
   };
@@ -374,7 +374,7 @@ export function AdminEmployeesPage() {
       // Primero eliminamos y luego volvemos a agregar con el nuevo estado
       await api.post(`/admin/employees/${editingEmployee.id}/equipment/${equipmentId}?isAvailable=${!currentAvailable}`);
       await fetchEmployeeDetails(editingEmployee.id);
-    } catch (err) {
+    } catch (_err) {
       setError('Error al cambiar disponibilidad');
     }
   };

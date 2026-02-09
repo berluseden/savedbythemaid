@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
-import { MapPin, Home, Sparkles, Calendar, User, CreditCard, CheckCircle } from 'lucide-react';
+import { MapPin, Home, Sparkles, Calendar, User, CreditCard, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Button, Input, Card, CardContent, Spinner, Modal } from '@/components/ui';
+import { ReservationTimer } from '@/components/ui/ReservationTimer';
+import { Alert } from '@/components/ui/Alert';
 import api, { bookingApi, type ServiceType, type CleaningPlace, type EstimateResponse, type BookingConfirmation } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn, formatCurrency } from '@/lib/utils';
@@ -31,6 +33,7 @@ interface BookingData {
   specialInstructions: string;
   softReserveId?: number;
   sessionId?: string;
+  expiresAt?: string;
 }
 
 const initialBookingData: BookingData = {
@@ -69,6 +72,9 @@ export default function BookingPage() {
   const [currentStep, setCurrentStep] = useState<BookingStep>('zipcode');
   const [bookingData, setBookingData] = useState<BookingData>(initialBookingData);
   const [estimate, setEstimate] = useState<EstimateResponse | null>(null);
+  const [showExpireModal, setShowExpireModal] = useState(false);
+  const [isRenewing, setIsRenewing] = useState(false);
+  const [renewalError, setRenewalError] = useState<string | null>(null);
 
   const currentStepIndex = steps.findIndex((s) => s.id === currentStep);
 
@@ -90,8 +96,104 @@ export default function BookingPage() {
     }
   };
 
+  const handleExpire = () => {
+    setShowExpireModal(true);
+    setRenewalError(null);
+  };
+
+  const handleResetAfterExpiry = () => {
+    setShowExpireModal(false);
+    updateBookingData({ 
+        softReserveId: undefined, 
+        expiresAt: undefined,
+        timeSlot: '',
+        employeeId: 0
+    });
+    setRenewalError(null);
+    setCurrentStep('schedule');
+  };
+
+  const handleTryRenew = async () => {
+    setIsRenewing(true);
+    setRenewalError(null);
+    try {
+        const response = await bookingApi.createSoftReserve({
+            date: new Date(bookingData.date),
+            startTime: bookingData.timeSlot,
+            estimatedMinutes: estimate?.estimatedMinutes || 120,
+            zipCode: bookingData.zipCode,
+            employeeId: bookingData.employeeId,
+            sessionId: bookingData.sessionId
+        });
+        
+        // Success
+        updateBookingData({ 
+            softReserveId: response.data.softReserveId,
+            sessionId: response.data.sessionId,
+            expiresAt: response.data.expiresAt
+        });
+        setShowExpireModal(false);
+    } catch (_err) {
+        setRenewalError("The selected time slot is unfortunately no longer available.");
+    } finally {
+        setIsRenewing(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
+      {bookingData.expiresAt && bookingData.softReserveId && !showExpireModal && (
+        <ReservationTimer 
+          expiresAt={bookingData.expiresAt} 
+          onExpire={handleExpire} 
+        />
+      )}
+
+      {/* Expire Modal */}
+      <Modal 
+        isOpen={showExpireModal} 
+        onClose={() => {}} // Force user to click action button
+        title="Reservation Expired"
+        showCloseButton={false}
+      >
+        <div className="text-center py-4">
+          <div className={cn(
+            "mx-auto flex h-12 w-12 items-center justify-center rounded-full mb-4",
+            renewalError ? "bg-red-100" : "bg-yellow-100"
+          )}>
+            <AlertTriangle className={cn(
+              "h-6 w-6",
+              renewalError ? "text-red-600" : "text-yellow-600"
+            )} />
+          </div>
+          
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            {renewalError ? "Slot No Longer Available" : "Reservation Hold Expired"}
+          </h3>
+
+          <p className="text-gray-600 mb-6">
+            {renewalError 
+                ? "Someone else has booked this time slot while you were away. Please choose another time." 
+                : "Your 15-minute reservation hold has expired. Would you like to check if this time is still available?"}
+          </p>
+
+          {renewalError ? (
+            <Button onClick={handleResetAfterExpiry} className="w-full">
+              Select New Time
+            </Button>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <Button onClick={handleTryRenew} loading={isRenewing} className="w-full">
+                Check Availability & Renew
+              </Button>
+              <Button variant="outline" onClick={handleResetAfterExpiry} className="w-full">
+                Select Different Time
+              </Button>
+            </div>
+          )}
+        </div>
+      </Modal>
+
       <div className="mx-auto max-w-4xl px-4">
         {/* Progress Steps */}
         <div className="mb-8">
@@ -645,7 +747,8 @@ function ScheduleStep({
     onSuccess: (response) => {
       onChange({ 
         softReserveId: response.data.softReserveId,
-        sessionId: response.data.sessionId 
+        sessionId: response.data.sessionId,
+        expiresAt: response.data.expiresAt
       });
       onNext();
     },
@@ -1099,8 +1202,11 @@ function ConfirmStep({
       }
       onSuccess(response.data);
     },
-    onError: (err: Error & { response?: { data?: { message?: string } } }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onError: (err: any) => {
+      // Intentar extraer mensaje de error detallado
       const message = err.response?.data?.message 
+        || err.response?.data?.details
         || err.message 
         || 'Something went wrong. Please try again.';
       setError(message);
@@ -1113,6 +1219,12 @@ function ConfirmStep({
     <div>
       <h2 className="text-2xl font-bold text-gray-900 mb-2">Review & Confirm</h2>
       <p className="text-gray-600 mb-8">Please review your booking details before confirming.</p>
+
+      {error && (
+        <Alert variant="error" className="mb-6" title="Booking Error">
+          {error}
+        </Alert>
+      )}
 
       <div className="space-y-6">
         {/* Schedule Summary */}

@@ -41,6 +41,23 @@ git config --global user.email "tu@email.com"
 
 ## 🚀 Paso 3: Opción A - Despliegue Automático (Recomendado)
 
+### Opción A0 (Desde tu máquina local): crear VM si no existe + desplegar
+
+Este repo incluye un helper que ejecutas desde tu máquina local (requiere `gcloud`).
+
+```bash
+chmod +x gcp-deploy.sh
+
+# Defaults: instancia-gratis-ubuntu + us-central1-a
+./gcp-deploy.sh
+
+# O con parámetros
+./gcp-deploy.sh <INSTANCE_NAME> <ZONE>
+
+# O con env vars
+INSTANCE_NAME=instancia-gratis-ubuntu ZONE=us-central1-a ./gcp-deploy.sh
+```
+
 ### Ejecutar script de despliegue
 
 ```bash
@@ -53,6 +70,8 @@ chmod +x deploy.sh
 # Ejecutar
 ./deploy.sh
 ```
+
+> Nota: `deploy.sh` está pensado para ejecutarse dentro de la VM.
 
 ## 🔨 Paso 3: Opción B - Despliegue Manual
 
@@ -197,6 +216,18 @@ docker compose up -d --build
 
 # Ver logs
 docker compose logs -f
+```
+
+Si quieres actualizar solo la API desde tu máquina local:
+
+```bash
+chmod +x update-api.sh
+
+# Defaults: instancia-gratis-ubuntu + us-central1-a
+./update-api.sh
+
+# O con parámetros
+./update-api.sh <INSTANCE_NAME> <ZONE>
 ```
 
 ### Detener todo

@@ -25,19 +25,22 @@ public class BookingController : ControllerBase
     private readonly IEmailService _emailService;
     private readonly IJwtService _jwtService;
     private readonly IPasswordHasher<ApplicationUser> _passwordHasher;
+    private readonly ISchedulingService _schedulingService;
 
     public BookingController(
         ApplicationDbContext context, 
         ILogger<BookingController> logger, 
         IEmailService emailService,
         IJwtService jwtService,
-        IPasswordHasher<ApplicationUser> passwordHasher)
+        IPasswordHasher<ApplicationUser> passwordHasher,
+        ISchedulingService schedulingService)
     {
         _context = context;
         _logger = logger;
         _emailService = emailService;
         _jwtService = jwtService;
         _passwordHasher = passwordHasher;
+        _schedulingService = schedulingService;
     }
 
     #region Step 1 - Dirección y Cobertura
@@ -467,24 +470,12 @@ public class BookingController : ControllerBase
             return BadRequest(new { message = "Horario fuera del turno laboral de la empleada." });
         }
 
-        // 2. Verificar que la empleada no tenga días libres (TimeOff)
-        var hasTimeOff = await _context.EmployeeTimeOffs
-            .AnyAsync(t => 
-                t.EmployeeId == request.EmployeeId &&
-                t.Status == TimeOffStatus.Approved &&
-                t.StartDateTime <= endDateTime &&
-                t.EndDateTime >= startDateTime);
-
-        if (hasTimeOff)
+        // 2. Verificar conflictos usando el servicio centralizado (TimeOffs y otros Bookings)
+        var conflict = await _schedulingService.CheckConflictsAsync(request.EmployeeId, startDateTime, endDateTime);
+        if (conflict != null)
         {
-            return BadRequest(new { message = "Empleada no disponible en esas fechas." });
-        }
-
-        // Calcular slots de 30 minutos
-        var slots = CalculateTimeSlots(startDateTime, endDateTime);
-        if (!slots.Any())
-        {
-            return BadRequest(new { message = "El rango de tiempo no genera slots válidos." });
+            _logger.LogWarning("Conflicto detectado al crear SoftReserve: {Message}", conflict.Message);
+            return Conflict(new { message = conflict.Message, details = conflict.Details });
         }
 
         using var transaction = await _context.Database.BeginTransactionAsync();
@@ -507,25 +498,22 @@ public class BookingController : ControllerBase
             _context.SoftReserves.Add(softReserve);
             await _context.SaveChangesAsync();
 
-            // Insertar filas en SlotOccupancy (granularidad 30 min)
+            // Insertar filas en SlotOccupancy usando el servicio
             // El constraint UNIQUE en (EmployeeId, SlotStart) previene double-booking
-            var slotOccupancies = slots.Select(slot => new SlotOccupancy
-            {
-                EmployeeId = request.EmployeeId,
-                SlotStart = slot.Start,
-                SlotEnd = slot.End,
-                OccupancyType = OccupancyType.SoftReserve,
-                ReferenceId = softReserve.Id,
-                ExpiresAt = expiresAt
-            }).ToList();
+            await _schedulingService.AcquireSlotsAsync(
+                request.EmployeeId, 
+                startDateTime, 
+                endDateTime, 
+                OccupancyType.SoftReserve, 
+                softReserve.Id, 
+                expiresAt);
 
-            _context.SlotOccupancies.AddRange(slotOccupancies);
-            await _context.SaveChangesAsync();
+            // Commit transaction (AcquireSlotsAsync ya hizo SaveChanges, pero necesitamos commitear la transacción)
             await transaction.CommitAsync();
 
             _logger.LogInformation(
-                "SoftReserve {SoftReserveId} creado con {SlotCount} slots para empleada {EmployeeId}",
-                softReserve.Id, slotOccupancies.Count, request.EmployeeId);
+                "SoftReserve {SoftReserveId} creado para empleada {EmployeeId}",
+                softReserve.Id, request.EmployeeId);
 
             return Ok(new SoftReserveResponse
             {
@@ -878,6 +866,8 @@ public class BookingController : ControllerBase
             };
 
             _context.ServiceMeets.Add(meet);
+            // CRÍTICO: Guardar cambios para generar el ID del meeting antes de usarlo en SlotOccupancy
+            await _context.SaveChangesAsync(); 
 
             // Actualizar soft reserve
             softReserve.Status = SoftReserveStatus.Converted;
@@ -959,27 +949,6 @@ public class BookingController : ControllerBase
 
     #region Helpers
 
-    /// <summary>
-    /// Calcula los slots de 30 minutos entre startTime y endTime
-    /// </summary>
-    private static List<(DateTime Start, DateTime End)> CalculateTimeSlots(DateTime startTime, DateTime endTime)
-    {
-        var slots = new List<(DateTime Start, DateTime End)>();
-        var slotDuration = TimeSpan.FromMinutes(30);
-        var current = startTime;
-
-        while (current < endTime)
-        {
-            var slotEnd = current.Add(slotDuration);
-            if (slotEnd > endTime)
-                slotEnd = endTime;
-            
-            slots.Add((current, slotEnd));
-            current = current.Add(slotDuration);
-        }
-
-        return slots;
-    }
 
     /// <summary>
     /// Verifica si una excepción es violación de constraint UNIQUE

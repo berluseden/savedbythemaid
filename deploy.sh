@@ -15,11 +15,60 @@ REPO_URL="https://github.com/berluseden/savedbythemaid.git"
 APP_DIR="/opt/savedbythemaid"
 BRANCH="main"
 
-# 1. Instalar Docker Compose si no está instalado
-if ! command -v docker compose &> /dev/null; then
-    echo -e "${GREEN}📦 Instalando Docker Compose...${NC}"
-    sudo apt-get install docker-compose-plugin -y
-fi
+get_external_ip() {
+    # Preferir metadata server de GCP si está disponible
+    local ip
+    ip=$(curl -fsS -H "Metadata-Flavor: Google" \
+        "http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip" 2>/dev/null || true)
+    if [ -n "$ip" ]; then
+        echo "$ip"
+        return 0
+    fi
+
+    # Fallback genérico
+    curl -fsS ifconfig.me 2>/dev/null || true
+}
+
+ensure_packages() {
+    sudo apt-get update -y
+
+    if ! command -v git &> /dev/null; then
+        echo -e "${GREEN}📦 Instalando Git...${NC}"
+        sudo apt-get install -y git
+    fi
+
+    if ! command -v curl &> /dev/null; then
+        echo -e "${GREEN}📦 Instalando curl...${NC}"
+        sudo apt-get install -y curl
+    fi
+
+    if ! command -v docker &> /dev/null; then
+        echo -e "${GREEN}📦 Instalando Docker...${NC}"
+        sudo apt-get install -y docker.io
+        sudo systemctl enable --now docker
+    fi
+
+    if ! docker compose version &> /dev/null; then
+        echo -e "${GREEN}📦 Instalando Docker Compose (v2)...${NC}"
+        # En Ubuntu 24.04 suele ser docker-compose-v2 (no docker-compose-plugin)
+        if ! sudo apt-get install -y docker-compose-v2; then
+            echo -e "${YELLOW}⚠️  No se pudo instalar docker-compose-v2; intentando docker-compose-plugin...${NC}"
+            sudo apt-get install -y docker-compose-plugin
+        fi
+    fi
+}
+
+select_docker_cmd() {
+    # Si no tenemos permisos sobre el socket de Docker, usar sudo.
+    if docker info &> /dev/null; then
+        echo "docker"
+    else
+        echo "sudo docker"
+    fi
+}
+
+ensure_packages
+DOCKER_CMD=$(select_docker_cmd)
 
 # 2. Clonar o actualizar repositorio
 if [ -d "$APP_DIR" ]; then
@@ -38,15 +87,15 @@ fi
 
 # 3. Detener contenedores existentes
 echo -e "${GREEN}🛑 Deteniendo contenedores existentes...${NC}"
-docker compose down || true
+${DOCKER_CMD} compose down || true
 
 # 4. Limpiar imágenes antiguas (opcional)
 echo -e "${YELLOW}🧹 Limpiando imágenes antiguas...${NC}"
-docker system prune -f
+${DOCKER_CMD} system prune -f
 
 # 5. Construir y levantar contenedores
 echo -e "${GREEN}🏗️  Construyendo y levantando contenedores...${NC}"
-docker compose up -d --build
+${DOCKER_CMD} compose up -d --build
 
 # 6. Esperar a que MySQL esté listo
 echo -e "${GREEN}⏳ Esperando a que MySQL inicie...${NC}"
@@ -65,17 +114,17 @@ done
 
 # 8. Verificar estado de los contenedores
 echo -e "${GREEN}✅ Estado de los contenedores:${NC}"
-docker compose ps
+${DOCKER_CMD} compose ps
 
 # 9. Mostrar logs
 echo -e "${GREEN}📋 Logs recientes de la API:${NC}"
-docker compose logs api --tail=30
+${DOCKER_CMD} compose logs api --tail=30
 
 echo -e "${GREEN}📋 Logs recientes del Frontend:${NC}"
-docker compose logs frontend --tail=20
+${DOCKER_CMD} compose logs frontend --tail=20
 
 # 10. Obtener IP externa
-EXTERNAL_IP=$(curl -s ifconfig.me)
+EXTERNAL_IP=$(get_external_ip)
 
 echo ""
 echo -e "${GREEN}========================================${NC}"

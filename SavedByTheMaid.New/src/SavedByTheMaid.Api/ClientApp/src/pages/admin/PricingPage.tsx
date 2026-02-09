@@ -54,10 +54,6 @@ export function AdminPricingPage() {
   const [additionalServices, setAdditionalServices] = useState<AdditionalService[]>([]);
   const [zonePricing, setZonePricing] = useState<ZonePricing[]>([]);
 
-  useEffect(() => {
-    fetchPricingData();
-  }, []);
-
   const fetchPricingData = async () => {
     setIsLoading(true);
     await new Promise(resolve => setTimeout(resolve, 500));
@@ -100,6 +96,10 @@ export function AdminPricingPage() {
     
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    fetchPricingData();
+  }, []);
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);

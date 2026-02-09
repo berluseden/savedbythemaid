@@ -148,10 +148,17 @@ public class AdminOrdersController : ControllerBase
         // Cancelar todas las citas pendientes
         foreach (var meet in order.Meetings.Where(m => 
             m.Status == MeetStatus.Scheduled || 
-            m.Status == MeetStatus.Assigned))
+            m.Status == MeetStatus.Assigned ||
+            m.Status == MeetStatus.Rescheduled))
         {
             meet.Status = MeetStatus.Cancelled;
             meet.CancellationReason = request?.Reason ?? "Orden cancelada";
+            
+            // Liberar slots ocupados si tiene empleado asignado
+            if (meet.AssignedEmployeeId.HasValue)
+            {
+                await _schedulingService.ReleaseSlotsAsync(meet.Id, OccupancyType.Meeting);
+            }
         }
 
         await _context.SaveChangesAsync();
