@@ -176,15 +176,15 @@ export function AdminServicesPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Tipos de Servicio</h1>
-            <p className="text-gray-600">Gestiona los tipos de servicios de limpieza</p>
+            <h1 className="text-2xl font-bold text-gray-900">Service Types</h1>
+            <p className="text-gray-600">Manage cleaning service types</p>
           </div>
           <button
             onClick={() => setShowModal(true)}
             className="inline-flex items-center gap-2 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] transition-colors"
           >
             <Plus className="h-5 w-5" />
-            Nuevo Servicio
+            New Service
           </button>
         </div>
 
@@ -200,7 +200,7 @@ export function AdminServicesPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
           <input
             type="search"
-            placeholder="Buscar servicios..."
+            placeholder="Search services..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
@@ -214,13 +214,13 @@ export function AdminServicesPage() {
             <p className="text-2xl font-bold text-gray-900">{services.length}</p>
           </div>
           <div className="bg-white rounded-lg p-4 border">
-            <p className="text-sm text-gray-500">Activos</p>
+            <p className="text-sm text-gray-500">Active</p>
             <p className="text-2xl font-bold text-green-600">
               {services.filter(s => s.isActive).length}
             </p>
           </div>
           <div className="bg-white rounded-lg p-4 border">
-            <p className="text-sm text-gray-500">Precio promedio</p>
+            <p className="text-sm text-gray-500">Average price</p>
             <p className="text-2xl font-bold text-[#00205B]">
               {services.length > 0 
                 ? formatCurrency(services.reduce((acc, s) => acc + s.price, 0) / services.length)
@@ -228,7 +228,7 @@ export function AdminServicesPage() {
             </p>
           </div>
           <div className="bg-white rounded-lg p-4 border">
-            <p className="text-sm text-gray-500">Duración promedio</p>
+            <p className="text-sm text-gray-500">Average duration</p>
             <p className="text-2xl font-bold text-purple-600">
               {services.length > 0
                 ? formatDuration(Math.round(services.reduce((acc, s) => acc + s.estimatedMinutes, 0) / services.length))
@@ -285,7 +285,7 @@ export function AdminServicesPage() {
               </div>
 
               <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                {service.description || 'Sin descripción'}
+                {service.description || 'No description'}
               </p>
 
               <div className="flex items-center gap-4 mb-4">
@@ -300,12 +300,12 @@ export function AdminServicesPage() {
               </div>
 
               <div className="text-xs text-gray-500 mb-4">
-                +{formatCurrency(service.pricePerBedroom)}/recámara | +{formatCurrency(service.pricePerBathroom)}/baño
+                +{formatCurrency(service.pricePerBedroom)}/bedroom | +{formatCurrency(service.pricePerBathroom)}/bathroom
               </div>
 
               <div className="flex items-center justify-between pt-4 border-t">
                 <span className={`text-sm font-medium ${service.isActive ? 'text-green-600' : 'text-gray-400'}`}>
-                  {service.isActive ? 'Activo' : 'Inactivo'}
+                  {service.isActive ? 'Active' : 'Inactive'}
                 </span>
                 <button
                   onClick={() => toggleActive(service)}
@@ -326,7 +326,7 @@ export function AdminServicesPage() {
 
         {filteredServices.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-500">No se encontraron servicios</p>
+            <p className="text-gray-500">No services found</p>
           </div>
         )}
       </div>
@@ -337,7 +337,7 @@ export function AdminServicesPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b">
               <h2 className="text-xl font-semibold text-gray-900">
-                {editingService ? 'Editar Servicio' : 'Nuevo Servicio'}
+                {editingService ? 'Edit Service' : 'New Service'}
               </h2>
               <button onClick={closeModal} className="p-2 text-gray-400 hover:text-gray-600">
                 <X className="h-5 w-5" />
@@ -347,7 +347,7 @@ export function AdminServicesPage() {
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre del servicio *
+                  Service name *
                 </label>
                 <input
                   type="text"
@@ -360,7 +360,7 @@ export function AdminServicesPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Descripción
+                  Description
                 </label>
                 <textarea
                   value={formData.description}
@@ -371,7 +371,7 @@ export function AdminServicesPage() {
               </div>
 
               <div className="bg-gray-50 p-4 rounded-lg space-y-4">
-                <h3 className="font-medium text-gray-900">Precios</h3>
+                <h3 className="font-medium text-gray-900">Pricing</h3>
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -386,12 +386,12 @@ export function AdminServicesPage() {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                       required
                     />
-                    <p className="text-xs text-gray-500 mt-1">Incluye 1 recámara + 1 baño</p>
+                    <p className="text-xs text-gray-500 mt-1">Includes 1 bedroom + 1 bathroom</p>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Por Recámara Extra ($)
+                      Per Extra Bedroom ($)
                     </label>
                     <input
                       type="number"
@@ -405,7 +405,7 @@ export function AdminServicesPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Por Baño Extra ($)
+                      Per Extra Bathroom ($)
                     </label>
                     <input
                       type="number"
@@ -420,7 +420,7 @@ export function AdminServicesPage() {
               </div>
 
               <div className="bg-gray-50 p-4 rounded-lg space-y-4">
-                <h3 className="font-medium text-gray-900">Duración Estimada</h3>
+                <h3 className="font-medium text-gray-900">Estimated Duration</h3>
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -438,7 +438,7 @@ export function AdminServicesPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Por Recámara (min)
+                      Per Bedroom (min)
                     </label>
                     <input
                       type="number"
@@ -452,7 +452,7 @@ export function AdminServicesPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Por Baño (min)
+                      Per Bathroom (min)
                     </label>
                     <input
                       type="number"
@@ -469,7 +469,7 @@ export function AdminServicesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Orden de visualización
+                    Display order
                   </label>
                   <input
                     type="number"
@@ -487,7 +487,7 @@ export function AdminServicesPage() {
                       onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                       className="w-4 h-4 text-[#00205B] border-gray-300 rounded focus:ring-[#00205B]"
                     />
-                    <span className="text-sm text-gray-700">Servicio activo</span>
+                    <span className="text-sm text-gray-700">Service active</span>
                   </label>
                 </div>
               </div>
@@ -498,14 +498,14 @@ export function AdminServicesPage() {
                   onClick={closeModal}
                   className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
                   className="flex-1 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] transition-colors disabled:opacity-50"
                 >
-                  {saving ? 'Guardando...' : editingService ? 'Guardar Cambios' : 'Crear Servicio'}
+                  {saving ? 'Saving...' : editingService ? 'Save Changes' : 'Create Service'}
                 </button>
               </div>
             </form>

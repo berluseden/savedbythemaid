@@ -67,10 +67,33 @@ const steps: { id: BookingStep; title: string; icon: typeof MapPin }[] = [
   { id: 'confirm', title: 'Confirm', icon: CreditCard },
 ];
 
+const WIZARD_STORAGE_KEY = 'booking-wizard-state';
+
+function loadWizardState(): { step: BookingStep; data: BookingData } | null {
+  try {
+    const raw = sessionStorage.getItem(WIZARD_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed?.step && parsed?.data) return parsed;
+  } catch { /* ignore corrupt data */ }
+  return null;
+}
+
+function saveWizardState(step: BookingStep, data: BookingData) {
+  try {
+    sessionStorage.setItem(WIZARD_STORAGE_KEY, JSON.stringify({ step, data }));
+  } catch { /* storage full — ignore */ }
+}
+
+function clearWizardState() {
+  sessionStorage.removeItem(WIZARD_STORAGE_KEY);
+}
+
 export default function BookingPage() {
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState<BookingStep>('zipcode');
-  const [bookingData, setBookingData] = useState<BookingData>(initialBookingData);
+  const saved = loadWizardState();
+  const [currentStep, setCurrentStep] = useState<BookingStep>(saved?.step ?? 'zipcode');
+  const [bookingData, setBookingData] = useState<BookingData>(saved?.data ?? initialBookingData);
   const [estimate, setEstimate] = useState<EstimateResponse | null>(null);
   const [showExpireModal, setShowExpireModal] = useState(false);
   const [isRenewing, setIsRenewing] = useState(false);
@@ -79,20 +102,28 @@ export default function BookingPage() {
   const currentStepIndex = steps.findIndex((s) => s.id === currentStep);
 
   const updateBookingData = (data: Partial<BookingData>) => {
-    setBookingData((prev) => ({ ...prev, ...data }));
+    setBookingData((prev) => {
+      const updated = { ...prev, ...data };
+      saveWizardState(currentStep, updated);
+      return updated;
+    });
   };
 
   const goToNextStep = () => {
     const nextIndex = currentStepIndex + 1;
     if (nextIndex < steps.length) {
-      setCurrentStep(steps[nextIndex].id);
+      const nextStep = steps[nextIndex].id;
+      setCurrentStep(nextStep);
+      saveWizardState(nextStep, bookingData);
     }
   };
 
   const goToPreviousStep = () => {
     const prevIndex = currentStepIndex - 1;
     if (prevIndex >= 0) {
-      setCurrentStep(steps[prevIndex].id);
+      const prevStep = steps[prevIndex].id;
+      setCurrentStep(prevStep);
+      saveWizardState(prevStep, bookingData);
     }
   };
 
@@ -133,8 +164,8 @@ export default function BookingPage() {
             expiresAt: response.data.expiresAt
         });
         setShowExpireModal(false);
-    } catch (_err) {
-        setRenewalError("The selected time slot is unfortunately no longer available.");
+    } catch {
+      setRenewalError("The selected time slot is unfortunately no longer available.");
     } finally {
         setIsRenewing(false);
     }
@@ -291,7 +322,10 @@ export default function BookingPage() {
                 data={bookingData}
                 estimate={estimate}
                 onBack={goToPreviousStep}
-                onSuccess={(confirmation) => navigate('/booking/success', { state: { confirmation, bookingData, estimate } })}
+                onSuccess={(confirmation) => {
+                  clearWizardState();
+                  navigate('/booking/success', { state: { confirmation, bookingData, estimate } });
+                }}
               />
             )}
           </CardContent>
@@ -1060,12 +1094,6 @@ function ContactStep({
             </Button>
           </div>
           
-          <div className="text-center">
-            <Link to="/forgot-password" className="text-sm text-[#00205B] hover:text-[#001440]">
-              Forgot your password?
-            </Link>
-          </div>
-          
           <p className="text-xs text-gray-500 text-center">
             If you continue as guest, a confirmation email will be sent to {data.email}
           </p>
@@ -1202,13 +1230,10 @@ function ConfirmStep({
       }
       onSuccess(response.data);
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       // Intentar extraer mensaje de error detallado
-      const message = err.response?.data?.message 
-        || err.response?.data?.details
-        || err.message 
-        || 'Something went wrong. Please try again.';
+      const maybe = err as { response?: { data?: { message?: string; details?: string } }; message?: string };
+      const message = maybe.response?.data?.message || maybe.response?.data?.details || maybe.message || 'Something went wrong. Please try again.';
       setError(message);
     },
   });
@@ -1291,19 +1316,6 @@ function ConfirmStep({
           <CreditCard className="h-5 w-5 text-gray-400" />
           <span>Payment will be collected after service completion</span>
         </div>
-
-        {/* Error message */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-            <svg className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <p className="text-sm font-medium text-red-800">Booking failed</p>
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
-          </div>
-        )}
       </div>
 
       <div className="flex justify-between mt-8">

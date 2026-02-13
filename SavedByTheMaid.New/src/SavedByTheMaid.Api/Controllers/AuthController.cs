@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using SavedByTheMaid.Api.Auth;
 using SavedByTheMaid.Domain.Entities;
@@ -35,13 +36,21 @@ public class AuthController : ControllerBase
     /// </summary>
     [HttpGet("check-email")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth-sensitive")]
     public async Task<ActionResult<EmailCheckResponse>> CheckEmail([FromQuery] string email)
     {
         if (string.IsNullOrWhiteSpace(email))
-            return BadRequest(new { message = "Email es requerido" });
+            return BadRequest(new { message = "Email is required" });
 
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         var exists = await _context.Users.AnyAsync(u => u.Email == email);
-        
+        stopwatch.Stop();
+
+        // Normalize response time to prevent timing-based enumeration
+        var elapsed = stopwatch.ElapsedMilliseconds;
+        if (elapsed < 200)
+            await Task.Delay((int)(200 - elapsed));
+
         return Ok(new EmailCheckResponse
         {
             Email = email,

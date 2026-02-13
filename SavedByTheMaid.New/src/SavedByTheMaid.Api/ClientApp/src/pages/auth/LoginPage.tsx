@@ -14,7 +14,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const from = (location.state as any)?.from?.pathname;
+  const from = (location.state as { from?: { pathname?: string } } | undefined)?.from?.pathname;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,8 +25,16 @@ export default function LoginPage() {
       const redirectPath = await login(email, password);
       // Use the path returned by login (based on user role) or the 'from' path
       navigate(from || redirectPath, { replace: true });
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid email or password');
+    } catch (err: unknown) {
+      const fallback = 'Invalid email or password';
+      if (!err) {
+        setError(fallback);
+      } else if (err instanceof Error) {
+        setError(err.message || fallback);
+      } else {
+        const maybe = err as { response?: { data?: { message?: string } } };
+        setError(maybe.response?.data?.message || fallback);
+      }
     } finally {
       setIsLoading(false);
     }

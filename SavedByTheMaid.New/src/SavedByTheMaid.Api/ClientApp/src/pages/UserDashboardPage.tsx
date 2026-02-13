@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Calendar, Clock, MapPin, CreditCard, X, AlertCircle, Sparkles, ChevronRight, History, CalendarDays, Home, FileText } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -45,10 +46,7 @@ type TabType = 'upcoming' | 'history';
 
 export function UserDashboardPage() {
   const { user } = useAuth();
-  const [allBookings, setAllBookings] = useState<CustomerOrder[]>([]);
-  const [stats, setStats] = useState<CustomerStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabType>('upcoming');
   
   const [cancellingId, setCancellingId] = useState<number | null>(null);
@@ -66,37 +64,43 @@ export function UserDashboardPage() {
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [isRescheduling, setIsRescheduling] = useState(false);
 
-  useEffect(() => { fetchDashboardData(); }, []);
+  const { data: allBookings = [], isLoading: loadingBookings, error: bookingsError } = useQuery({
+    queryKey: ['customer', 'orders'],
+    queryFn: async () => {
+      const res = await api.get<{ items: CustomerOrder[] }>('/customer/my-orders?pageSize=50');
+      return res.data.items;
+    },
+  });
 
-  const fetchDashboardData = async () => {
-    try {
-      setIsLoading(true);
-      setError('');
-      const [ordersRes, statsRes] = await Promise.all([
-        api.get<{ items: CustomerOrder[] }>('/customer/my-orders?pageSize=50'),
-        api.get<CustomerStats>('/customer/stats'),
-      ]);
-      setAllBookings(ordersRes.data.items);
-      setStats(statsRes.data);
-    } catch (_err) {
-      setError('Failed to load dashboard data');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { data: stats = null, isLoading: loadingStats } = useQuery({
+    queryKey: ['customer', 'stats'],
+    queryFn: async () => {
+      const res = await api.get<CustomerStats>('/customer/stats');
+      return res.data;
+    },
+  });
+
+  const isLoading = loadingBookings || loadingStats;
+  const error = bookingsError ? 'Failed to load dashboard data' : '';
 
   const upcomingBookings = allBookings.filter(o => o.status === 'Confirmed' || o.status === 'InProgress');
   const pastBookings = allBookings.filter(o => o.status === 'Completed' || o.status === 'Cancelled' || o.status === 'NoShow');
 
-  const handleCancelOrder = async () => {
-    if (!cancellingId) return;
-    try {
-      await api.post(`/customer/my-orders/${cancellingId}/cancel`, { reason: cancelReason });
+  const cancelMutation = useMutation({
+    mutationFn: async ({ id, reason }: { id: number; reason: string }) => {
+      await api.post(`/customer/my-orders/${id}/cancel`, { reason });
+    },
+    onSuccess: () => {
       setShowCancelModal(false);
       setCancellingId(null);
       setCancelReason('');
-      await fetchDashboardData();
-    } catch { setError('Failed to cancel booking'); }
+      queryClient.invalidateQueries({ queryKey: ['customer'] });
+    },
+  });
+
+  const handleCancelOrder = async () => {
+    if (!cancellingId) return;
+    cancelMutation.mutate({ id: cancellingId, reason: cancelReason });
   };
 
   const openRescheduleModal = (booking: CustomerOrder) => {
@@ -113,7 +117,11 @@ export function UserDashboardPage() {
     try {
       const booking = allBookings.find(b => b.id === rescheduleBookingId);
       if (!booking) return;
-      const response = await api.get<{ slots: AvailableSlot[] }>(`/booking/availability?zipCode=${booking.zipCode || '10001'}&date=${date}`);
+      if (!booking.zipCode) {
+        setAvailableSlots([]);
+        return;
+      }
+      const response = await api.get<{ slots: AvailableSlot[] }>(`/booking/availability?zipCode=${booking.zipCode}&date=${date}`);
       setAvailableSlots(response.data.slots || []);
     } catch { setAvailableSlots([]); }
     finally { setIsLoadingSlots(false); }
@@ -126,9 +134,10 @@ export function UserDashboardPage() {
       await api.post(`/customer/my-orders/${rescheduleBookingId}/reschedule`, { newDate: rescheduleDate, newTime: rescheduleTime });
       setShowRescheduleModal(false);
       setRescheduleBookingId(null);
-      await fetchDashboardData();
+      queryClient.invalidateQueries({ queryKey: ['customer'] });
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to reschedule');
+      // error handled inline
+      console.error(err instanceof Error ? err.message : 'Failed to reschedule');
     } finally { setIsRescheduling(false); }
   };
 

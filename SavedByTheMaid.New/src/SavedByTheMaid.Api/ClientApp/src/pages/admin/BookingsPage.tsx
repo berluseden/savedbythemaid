@@ -61,24 +61,24 @@ interface Employee {
 }
 
 const statusConfig: Record<OrderStatus, { label: string; color: string; bgColor: string }> = {
-  PendingReview: { label: 'Por Aprobar', color: 'text-orange-700', bgColor: 'bg-orange-100' },
-  Draft: { label: 'Borrador', color: 'text-gray-700', bgColor: 'bg-gray-100' },
+  PendingReview: { label: 'Pending Review', color: 'text-orange-700', bgColor: 'bg-orange-100' },
+  Draft: { label: 'Draft', color: 'text-gray-700', bgColor: 'bg-gray-100' },
   Confirmed: { label: 'Confirmada', color: 'text-blue-700', bgColor: 'bg-blue-100' },
-  InProgress: { label: 'En Progreso', color: 'text-purple-700', bgColor: 'bg-purple-100' },
-  Completed: { label: 'Completada', color: 'text-green-700', bgColor: 'bg-green-100' },
-  Cancelled: { label: 'Cancelada', color: 'text-red-700', bgColor: 'bg-red-100' },
-  NoShow: { label: 'No Presentó', color: 'text-red-700', bgColor: 'bg-red-200' },
+  InProgress: { label: 'In Progress', color: 'text-purple-700', bgColor: 'bg-purple-100' },
+  Completed: { label: 'Completed', color: 'text-green-700', bgColor: 'bg-green-100' },
+  Cancelled: { label: 'Cancelled', color: 'text-red-700', bgColor: 'bg-red-100' },
+  NoShow: { label: 'No Show', color: 'text-red-700', bgColor: 'bg-red-200' },
 };
 
 const meetStatusConfig: Record<MeetStatus, { label: string; color: string; bgColor: string }> = {
-  Scheduled: { label: 'Programada', color: 'text-gray-700', bgColor: 'bg-gray-100' },
-  Assigned: { label: 'Asignada', color: 'text-blue-700', bgColor: 'bg-blue-100' },
-  OnTheWay: { label: 'En Camino', color: 'text-cyan-700', bgColor: 'bg-cyan-100' },
+  Scheduled: { label: 'Scheduled', color: 'text-gray-700', bgColor: 'bg-gray-100' },
+  Assigned: { label: 'Assigned', color: 'text-blue-700', bgColor: 'bg-blue-100' },
+  OnTheWay: { label: 'On The Way', color: 'text-cyan-700', bgColor: 'bg-cyan-100' },
   InProgress: { label: 'En Curso', color: 'text-purple-700', bgColor: 'bg-purple-100' },
-  Completed: { label: 'Completada', color: 'text-green-700', bgColor: 'bg-green-100' },
-  Cancelled: { label: 'Cancelada', color: 'text-red-700', bgColor: 'bg-red-100' },
-  Rescheduled: { label: 'Reprogramada', color: 'text-orange-700', bgColor: 'bg-orange-100' },
-  NoShow: { label: 'No Presentó', color: 'text-red-700', bgColor: 'bg-red-100' },
+  Completed: { label: 'Completed', color: 'text-green-700', bgColor: 'bg-green-100' },
+  Cancelled: { label: 'Cancelled', color: 'text-red-700', bgColor: 'bg-red-100' },
+  Rescheduled: { label: 'Rescheduled', color: 'text-orange-700', bgColor: 'bg-orange-100' },
+  NoShow: { label: 'No Show', color: 'text-red-700', bgColor: 'bg-red-100' },
 };
 
 export function AdminBookingsPage() {
@@ -208,7 +208,7 @@ export function AdminBookingsPage() {
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
   const formatDate = (date: string) =>
-    new Date(date).toLocaleDateString('es-ES', {
+    new Date(date).toLocaleDateString('en-US', {
       weekday: 'short',
       year: 'numeric',
       month: 'short',
@@ -217,7 +217,7 @@ export function AdminBookingsPage() {
 
   const formatDateTime = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleString('es-ES', {
+    return date.toLocaleString('en-US', {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
@@ -240,7 +240,7 @@ export function AdminBookingsPage() {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Reservas</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Bookings</h1>
           <p className="text-gray-600">Gestiona todas las reservas de limpieza</p>
         </div>
 
@@ -277,7 +277,7 @@ export function AdminBookingsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
             <input
               type="search"
-              placeholder="Buscar por nombre, ID o dirección..."
+              placeholder="Search by name, ID or address..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
@@ -309,12 +309,12 @@ export function AdminBookingsPage() {
             <table className="w-full">
               <thead>
                 <tr className="text-left text-sm text-gray-500 bg-gray-50 border-b">
-                  <th className="px-6 py-3 font-medium">Confirmación</th>
+                  <th className="px-6 py-3 font-medium">Confirmation</th>
                   <th className="px-6 py-3 font-medium">Cliente</th>
                   <th className="px-6 py-3 font-medium">Servicio</th>
                   <th className="px-6 py-3 font-medium">Fecha</th>
                   <th className="px-6 py-3 font-medium">Estado</th>
-                  <th className="px-6 py-3 font-medium">Teléfono</th>
+                  <th className="px-6 py-3 font-medium">Phone</th>
                   <th className="px-6 py-3 font-medium text-right">Total</th>
                   <th className="px-6 py-3 font-medium text-right">Acciones</th>
                 </tr>
@@ -466,7 +466,7 @@ export function AdminBookingsPage() {
             <div className="p-6 space-y-6">
               {/* Customer Info */}
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-3">Información del Cliente</h3>
+                <h3 className="text-sm font-medium text-gray-500 mb-3">Customer Information</h3>
                 <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                   <div className="flex items-center gap-3">
                     <User className="h-5 w-5 text-gray-400" />
@@ -474,7 +474,7 @@ export function AdminBookingsPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <Phone className="h-5 w-5 text-gray-400" />
-                    <span className="text-gray-900">{selectedBooking.contactPhone || 'Sin teléfono'}</span>
+                    <span className="text-gray-900">{selectedBooking.contactPhone || 'No phone'}</span>
                   </div>
                   <div className="flex items-start gap-3">
                     <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
@@ -511,7 +511,7 @@ export function AdminBookingsPage() {
 
               {/* Schedule */}
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-3">Información de la Orden</h3>
+                <h3 className="text-sm font-medium text-gray-500 mb-3">Order Information</h3>
                 <div className="bg-gray-50 rounded-lg p-4 grid grid-cols-2 gap-4">
                   <div className="flex items-center gap-3">
                     <Calendar className="h-5 w-5 text-gray-400" />
@@ -534,7 +534,7 @@ export function AdminBookingsPage() {
               <div>
                 <h3 className="text-sm font-medium text-gray-500 mb-3 flex items-center gap-2">
                   <Users className="h-4 w-4" />
-                  Citas Programadas
+                  Scheduled Appointments
                 </h3>
                 {meetings.length === 0 ? (
                   <div className="bg-gray-50 rounded-lg p-4 text-center text-gray-500 text-sm">

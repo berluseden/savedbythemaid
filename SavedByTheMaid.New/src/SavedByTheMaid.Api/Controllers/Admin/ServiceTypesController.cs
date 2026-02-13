@@ -9,6 +9,7 @@ namespace SavedByTheMaid.Api.Controllers;
 
 [ApiController]
 [Route("api/admin/service-types")]
+[Route("api/admin/servicetypes")]
 [Authorize(Policy = Policies.AdminOnly)]
 public class ServiceTypesController : ControllerBase
 {

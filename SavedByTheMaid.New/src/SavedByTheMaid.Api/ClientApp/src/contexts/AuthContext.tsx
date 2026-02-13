@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { authApi, type User } from '../lib/api';
 
@@ -76,10 +77,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(response.data.accessToken, rememberMe);
       setUser(response.data.user);
       return getRedirectPath(response.data.user.roles);
+    } catch (err: unknown) {
+      // Prefer the normalized userMessage attached by the API layer
+      type ErrLike = { userMessage?: string; response?: { data?: { message?: string } } };
+      const e = err as ErrLike;
+      const msg = e?.userMessage || e?.response?.data?.message || (err instanceof Error ? err.message : 'Invalid email or password');
+      throw new Error(msg);
     } finally {
       setIsLoading(false);
     }
   };
+
 
   const register = async (data: RegisterData): Promise<string> => {
     setIsLoading(true);

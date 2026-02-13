@@ -50,7 +50,7 @@ export function AdminDashboardPage() {
     totalEmployees: 0,
     activeEmployees: 0,
     todayServiceCount: 0,
-    nextServiceText: 'No hay servicios pendientes',
+    nextServiceText: 'No pending services',
   });
 
   const [recentBookings, setRecentBookings] = useState<OrderSummary[]>([]);
@@ -95,17 +95,17 @@ export function AdminDashboardPage() {
             .filter(o => o.dateObj > now)
             .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
         
-        let nextServiceText = "No hay servicios pendientes por venir";
+        let nextServiceText = "No upcoming services";
         if (futureServices.length > 0) {
             const next = futureServices[0];
-            const timeStr = next.dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            const timeStr = next.dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
             
             // If it's today
              if (next.dateObj >= startOfToday && next.dateObj < endOfToday) {
-                 nextServiceText = `Próximo a las ${timeStr}`;
+                 nextServiceText = `Next at ${timeStr}`;
              } else {
-                 const dateStr = next.dateObj.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
-                 nextServiceText = `Próximo: ${dateStr} ${timeStr}`;
+                 const dateStr = next.dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+                 nextServiceText = `Next: ${dateStr} ${timeStr}`;
              }
         }
 
@@ -149,11 +149,11 @@ export function AdminDashboardPage() {
       Cancelled: 'bg-red-100 text-red-700',
     };
     const labels: Record<string, string> = {
-      Pending: 'Pendiente',
+      Pending: 'Pending',
       Confirmed: 'Confirmada',
       InProgress: 'En Progreso',
-      Completed: 'Completada',
-      Cancelled: 'Cancelada',
+      Completed: 'Completed',
+      Cancelled: 'Cancelled',
     };
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[status]}`}>
@@ -187,7 +187,7 @@ export function AdminDashboardPage() {
           <div className="bg-white rounded-xl p-6 shadow-sm border">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Reservas Totales</p>
+                <p className="text-sm text-gray-500">Total Bookings</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.totalBookings}</p>
               </div>
               <div className="w-12 h-12 bg-[#FFE44D]/20 rounded-lg flex items-center justify-center">
@@ -206,7 +206,7 @@ export function AdminDashboardPage() {
           <div className="bg-white rounded-xl p-6 shadow-sm border">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Ingresos Totales</p>
+                <p className="text-sm text-gray-500">Total Revenue</p>
                 <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalRevenue)}</p>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -225,7 +225,7 @@ export function AdminDashboardPage() {
           <div className="bg-white rounded-xl p-6 shadow-sm border">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Empleados Activos</p>
+                <p className="text-sm text-gray-500">Active Employees</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.activeEmployees}/{stats.totalEmployees}</p>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -246,7 +246,7 @@ export function AdminDashboardPage() {
           <div className="bg-white rounded-xl p-6 shadow-sm border">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-500">Pendientes</p>
+                <p className="text-sm text-gray-500">Pending</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.pendingBookings}</p>
               </div>
               <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
@@ -256,7 +256,7 @@ export function AdminDashboardPage() {
             <div className="mt-4 flex items-center gap-4">
               <span className="flex items-center gap-1 text-sm text-green-600">
                 <CheckCircle className="h-4 w-4" />
-                {stats.completedBookings} completadas
+                {stats.completedBookings} completed
               </span>
             </div>
           </div>
@@ -275,7 +275,7 @@ export function AdminDashboardPage() {
           <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border">
             <div className="p-6 border-b">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">Reservas Recientes</h2>
+                <h2 className="text-lg font-semibold text-gray-900">Recent Bookings</h2>
                 <a href="/admin/bookings" className="text-sm text-[#00205B] hover:text-[#001440]">
                   Ver todas →
                 </a>
@@ -286,10 +286,10 @@ export function AdminDashboardPage() {
                 <thead>
                   <tr className="text-left text-sm text-gray-500 border-b">
                     <th className="px-6 py-3 font-medium">ID</th>
-                    <th className="px-6 py-3 font-medium">Cliente</th>
-                    <th className="px-6 py-3 font-medium">Servicio</th>
+                    <th className="px-6 py-3 font-medium">Customer</th>
+                    <th className="px-6 py-3 font-medium">Service</th>
                     <th className="px-6 py-3 font-medium">Fecha</th>
-                    <th className="px-6 py-3 font-medium">Estado</th>
+                    <th className="px-6 py-3 font-medium">Status</th>
                     <th className="px-6 py-3 font-medium text-right">Monto</th>
                   </tr>
                 </thead>
@@ -306,7 +306,7 @@ export function AdminDashboardPage() {
                         {booking.serviceTypeName || '-'}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
-                        {new Date(booking.createdAt).toLocaleDateString('es-ES')}
+                        {new Date(booking.createdAt).toLocaleDateString('en-US')}
                       </td>
                       <td className="px-6 py-4">
                         {getStatusBadge(booking.orderStatus)}
@@ -324,16 +324,16 @@ export function AdminDashboardPage() {
           {/* Alerts */}
           <div className="space-y-6">
             <div className="bg-white rounded-xl shadow-sm border p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Alertas</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Alerts</h2>
               <div className="space-y-3">
                 <div className="flex items-start gap-3 p-3 bg-yellow-50 rounded-lg">
                   <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
                   <div>
                     <p className="text-sm font-medium text-yellow-800">
-                      {stats.pendingBookings} reservas pendientes
+                      {stats.pendingBookings} pending bookings
                     </p>
                     <p className="text-xs text-yellow-600 mt-1">
-                      Requieren confirmación
+                      Require confirmation
                     </p>
                   </div>
                 </div>
@@ -341,7 +341,7 @@ export function AdminDashboardPage() {
                   <Clock className="h-5 w-5 text-blue-600 mt-0.5" />
                   <div>
                     <p className="text-sm font-medium text-blue-800">
-                      {stats.todayServiceCount} servicios hoy
+                      {stats.todayServiceCount} services today
                     </p>
                     <p className="text-xs text-blue-600 mt-1">
                       {stats.nextServiceText}

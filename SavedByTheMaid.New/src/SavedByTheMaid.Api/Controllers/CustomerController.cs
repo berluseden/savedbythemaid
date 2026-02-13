@@ -163,27 +163,28 @@ public class CustomerController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
-        var orders = await _context.ServiceOrders
-            .Include(o => o.Meetings)
-            .Where(o => o.CustomerId == userId && !o.IsDeleted)
-            .ToListAsync();
+        var orders = _context.ServiceOrders
+            .Where(o => o.CustomerId == userId && !o.IsDeleted);
 
-        var completedOrders = orders.Count(o => o.OrderStatus == OrderStatus.Completed);
-        var totalSpent = orders.Where(o => o.OrderStatus == OrderStatus.Completed).Sum(o => o.Total);
+        var completedOrders = await orders.CountAsync(o => o.OrderStatus == OrderStatus.Completed);
+        var totalSpent = await orders.Where(o => o.OrderStatus == OrderStatus.Completed).SumAsync(o => o.Total);
         
         // Find next upcoming meeting
-        var now = DateTime.Now;
-        var nextMeeting = orders
-            .Where(o => o.OrderStatus == OrderStatus.Draft || o.OrderStatus == OrderStatus.Confirmed)
-            .SelectMany(o => o.Meetings)
-            .Where(m => m.ScheduledStart >= now)
+        var now = DateTime.UtcNow;
+        var nextMeeting = await _context.ServiceMeets
+            .Where(m => m.ServiceOrder != null 
+                && m.ServiceOrder.CustomerId == userId 
+                && !m.ServiceOrder.IsDeleted
+                && (m.ServiceOrder.OrderStatus == OrderStatus.PendingReview || m.ServiceOrder.OrderStatus == OrderStatus.Confirmed)
+                && m.ScheduledStart >= now)
             .OrderBy(m => m.ScheduledStart)
-            .FirstOrDefault();
+            .Select(m => (DateTime?)m.ScheduledStart)
+            .FirstOrDefaultAsync();
 
         string? nextBookingDate = null;
-        if (nextMeeting != null)
+        if (nextMeeting.HasValue)
         {
-            nextBookingDate = nextMeeting.ScheduledStart.ToString("yyyy-MM-dd");
+            nextBookingDate = nextMeeting.Value.ToString("yyyy-MM-dd");
         }
 
         return Ok(new CustomerStatsDto
@@ -211,7 +212,7 @@ public class CustomerController : ControllerBase
         if (order == null)
             return NotFound();
 
-        if (order.OrderStatus != OrderStatus.Draft && order.OrderStatus != OrderStatus.Confirmed)
+        if (order.OrderStatus != OrderStatus.PendingReview && order.OrderStatus != OrderStatus.Confirmed)
             return BadRequest("Only pending or confirmed orders can be cancelled");
 
         order.OrderStatus = OrderStatus.Cancelled;
@@ -255,7 +256,7 @@ public class CustomerController : ControllerBase
 
         // Check if date is in the future
         var newDateTime = newDate.ToDateTime(newTime);
-        if (newDateTime <= DateTime.Now)
+        if (newDateTime <= DateTime.UtcNow)
             return BadRequest("New date/time must be in the future");
 
         // Update all meetings for this order

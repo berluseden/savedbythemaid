@@ -60,29 +60,29 @@ export function AdminPricingPage() {
     
     // Room pricing
     setRoomPricing([
-      { id: '1', roomType: 'Habitaciones', pricePerUnit: 15, minUnits: 1, maxUnits: 10 },
-      { id: '2', roomType: 'Baños', pricePerUnit: 20, minUnits: 1, maxUnits: 6 },
-      { id: '3', roomType: 'Baños medios', pricePerUnit: 10, minUnits: 0, maxUnits: 4 },
+      { id: '1', roomType: 'Bedrooms', pricePerUnit: 15, minUnits: 1, maxUnits: 10 },
+      { id: '2', roomType: 'Bathrooms', pricePerUnit: 20, minUnits: 1, maxUnits: 6 },
+      { id: '3', roomType: 'Half Baths', pricePerUnit: 10, minUnits: 0, maxUnits: 4 },
     ]);
     
     // Size pricing
     setSizePricing([
-      { id: '1', minSqFt: 0, maxSqFt: 1000, multiplier: 1.0, label: 'Pequeño' },
-      { id: '2', minSqFt: 1001, maxSqFt: 2000, multiplier: 1.2, label: 'Mediano' },
-      { id: '3', minSqFt: 2001, maxSqFt: 3500, multiplier: 1.5, label: 'Grande' },
-      { id: '4', minSqFt: 3501, maxSqFt: 99999, multiplier: 2.0, label: 'Muy Grande' },
+      { id: '1', minSqFt: 0, maxSqFt: 1000, multiplier: 1.0, label: 'Small' },
+      { id: '2', minSqFt: 1001, maxSqFt: 2000, multiplier: 1.2, label: 'Medium' },
+      { id: '3', minSqFt: 2001, maxSqFt: 3500, multiplier: 1.5, label: 'Large' },
+      { id: '4', minSqFt: 3501, maxSqFt: 99999, multiplier: 2.0, label: 'Extra Large' },
     ]);
     
     // Additional services
     setAdditionalServices([
-      { id: '1', name: 'Interior de refrigerador', price: 35, duration: 30, isActive: true },
+      { id: '1', name: 'Inside refrigerator', price: 35, duration: 30, isActive: true },
       { id: '2', name: 'Interior de horno', price: 25, duration: 20, isActive: true },
       { id: '3', name: 'Interior de gabinetes', price: 45, duration: 45, isActive: true },
       { id: '4', name: 'Lavado de ropa (1 carga)', price: 20, duration: 60, isActive: true },
       { id: '5', name: 'Lavado de platos', price: 15, duration: 20, isActive: true },
-      { id: '6', name: 'Cambio de sábanas', price: 10, duration: 15, isActive: true },
-      { id: '7', name: 'Limpieza de ventanas (por ventana)', price: 8, duration: 10, isActive: false },
-      { id: '8', name: 'Limpieza de garaje', price: 75, duration: 60, isActive: true },
+      { id: '6', name: 'Linen change', price: 10, duration: 15, isActive: true },
+      { id: '7', name: 'Window cleaning (per window)', price: 8, duration: 10, isActive: false },
+      { id: '8', name: 'Garage cleaning', price: 75, duration: 60, isActive: true },
     ]);
     
     // Zone pricing
@@ -98,17 +98,20 @@ export function AdminPricingPage() {
   };
 
   useEffect(() => {
-    fetchPricingData();
+    // call async loader from effect to avoid synchronous setState inside effect body
+    (async () => {
+      await fetchPricingData();
+    })();
   }, []);
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
   const tabs = [
-    { id: 'rooms', label: 'Por Habitación', icon: Home },
-    { id: 'size', label: 'Por Tamaño', icon: Square },
-    { id: 'addons', label: 'Servicios Adicionales', icon: Plus },
-    { id: 'zones', label: 'Por Zona', icon: MapPin },
+    { id: 'rooms', label: 'By Room', icon: Home },
+    { id: 'size', label: 'By Size', icon: Square },
+    { id: 'addons', label: 'Additional Services', icon: Plus },
+    { id: 'zones', label: 'By Zone', icon: MapPin },
   ];
 
   if (isLoading) {
@@ -126,8 +129,8 @@ export function AdminPricingPage() {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Configuración de Precios</h1>
-          <p className="text-gray-600">Gestiona las tarifas y precios de los servicios</p>
+          <h1 className="text-2xl font-bold text-gray-900">Pricing Configuration</h1>
+          <p className="text-gray-600">Manage service rates and pricing</p>
         </div>
 
         {/* Tabs */}
@@ -136,7 +139,7 @@ export function AdminPricingPage() {
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id as 'rooms' | 'size' | 'addons' | 'zones')}
                 className={`flex items-center gap-2 pb-4 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === tab.id
                     ? 'border-[#00205B] text-[#00205B]'
@@ -157,8 +160,8 @@ export function AdminPricingPage() {
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Precios por Habitación</h2>
-                  <p className="text-sm text-gray-600">Precio adicional por cada tipo de habitación</p>
+                  <h2 className="text-lg font-semibold text-gray-900">Prices by Room</h2>
+                  <p className="text-sm text-gray-600">Additional price per room type</p>
                 </div>
               </div>
               
@@ -167,9 +170,9 @@ export function AdminPricingPage() {
                   <thead>
                     <tr className="border-b">
                       <th className="text-left py-3 px-4 font-medium text-gray-600">Tipo</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Precio por Unidad</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Mínimo</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Máximo</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-600">Price per Unit</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-600">Minimum</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-600">Maximum</th>
                       <th className="text-right py-3 px-4 font-medium text-gray-600">Acciones</th>
                     </tr>
                   </thead>
@@ -178,7 +181,7 @@ export function AdminPricingPage() {
                       <tr key={item.id} className="border-b last:border-0">
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-2">
-                            {item.roomType === 'Habitaciones' ? <Home className="h-4 w-4 text-gray-400" /> : <Bath className="h-4 w-4 text-gray-400" />}
+                            {item.roomType === 'Bedrooms' ? <Home className="h-4 w-4 text-gray-400" /> : <Bath className="h-4 w-4 text-gray-400" />}
                             <span className="font-medium text-gray-900">{item.roomType}</span>
                           </div>
                         </td>
@@ -205,8 +208,8 @@ export function AdminPricingPage() {
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Precios por Tamaño</h2>
-                  <p className="text-sm text-gray-600">Multiplicador de precio según pies cuadrados</p>
+                  <h2 className="text-lg font-semibold text-gray-900">Prices by Size</h2>
+                  <p className="text-sm text-gray-600">Price multiplier by square footage</p>
                 </div>
               </div>
               
@@ -214,10 +217,10 @@ export function AdminPricingPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Categoría</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Rango (sq ft)</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Multiplicador</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Ejemplo (base $100)</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-600">Category</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-600">Range (sq ft)</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-600">Multiplier</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-600">Example (base $100)</th>
                       <th className="text-right py-3 px-4 font-medium text-gray-600">Acciones</th>
                     </tr>
                   </thead>
@@ -257,12 +260,12 @@ export function AdminPricingPage() {
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Servicios Adicionales</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">Additional Services</h2>
                   <p className="text-sm text-gray-600">Extras que los clientes pueden agregar</p>
                 </div>
                 <button className="inline-flex items-center gap-2 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] transition-colors">
                   <Plus className="h-4 w-4" />
-                  Agregar Servicio
+                  Add Service
                 </button>
               </div>
               
@@ -277,7 +280,7 @@ export function AdminPricingPage() {
                     <div className="flex items-center gap-4">
                       <div>
                         <h3 className="font-medium text-gray-900">{service.name}</h3>
-                        <p className="text-sm text-gray-500">{service.duration} min adicionales</p>
+                        <p className="text-sm text-gray-500">{service.duration} additional min</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
@@ -316,12 +319,12 @@ export function AdminPricingPage() {
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Precios por Zona</h2>
-                  <p className="text-sm text-gray-600">Ajustes de precio según la ubicación</p>
+                  <h2 className="text-lg font-semibold text-gray-900">Prices by Zone</h2>
+                  <p className="text-sm text-gray-600">Price adjustments by location</p>
                 </div>
                 <button className="inline-flex items-center gap-2 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] transition-colors">
                   <Plus className="h-4 w-4" />
-                  Agregar Zona
+                  Add Zone
                 </button>
               </div>
               
@@ -329,9 +332,9 @@ export function AdminPricingPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Código Postal</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Zona</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Multiplicador</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-600">Zip Code</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-600">Zone</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-600">Multiplier</th>
                       <th className="text-left py-3 px-4 font-medium text-gray-600">Estado</th>
                       <th className="text-right py-3 px-4 font-medium text-gray-600">Acciones</th>
                     </tr>
@@ -359,7 +362,7 @@ export function AdminPricingPage() {
                         </td>
                         <td className="py-4 px-4">
                           <span className={`text-sm ${zone.isActive ? 'text-green-600' : 'text-gray-400'}`}>
-                            {zone.isActive ? 'Activo' : 'Inactivo'}
+                            {zone.isActive ? 'Active' : 'Inactive'}
                           </span>
                         </td>
                         <td className="py-4 px-4 text-right">
@@ -381,14 +384,14 @@ export function AdminPricingPage() {
 
         {/* Quick Summary */}
         <div className="bg-gradient-to-r from-[#FFE44D]/50 to-blue-600 rounded-xl p-6 text-white">
-          <h3 className="text-lg font-semibold mb-2">💡 Cómo se calcula el precio</h3>
+          <h3 className="text-lg font-semibold mb-2">💡 How pricing is calculated</h3>
           <p className="text-sky-100 text-sm">
-            Precio Final = (Precio Base del Servicio + Precio por Habitaciones + Precio por Baños) × Multiplicador de Tamaño × Multiplicador de Zona + Servicios Adicionales
+            Final Price = (Base Service Price + Room Price + Bathroom Price) × Size Multiplier × Zone Multiplier + Additional Services
           </p>
           <div className="mt-4 p-4 bg-white/10 rounded-lg">
-            <p className="text-sm font-medium">Ejemplo:</p>
+            <p className="text-sm font-medium">Example:</p>
             <p className="text-xs text-sky-100 mt-1">
-              Limpieza Regular ($85) + 3 habitaciones ($45) + 2 baños ($40) = $170 × 1.2 (mediano) × 1.15 (Miami Beach) + Interior refrigerador ($35) = <strong className="text-white">$269.60</strong>
+              Regular Cleaning ($85) + 3 bedrooms ($45) + 2 bathrooms ($40) = $170 × 1.2 (medium) × 1.15 (Miami Beach) + Inside refrigerator ($35) = <strong className="text-white">$269.60</strong>
             </p>
           </div>
         </div>

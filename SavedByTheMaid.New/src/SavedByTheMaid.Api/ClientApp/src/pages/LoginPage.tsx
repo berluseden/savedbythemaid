@@ -24,7 +24,6 @@ export function LoginPage() {
 
     try {
       const redirectPath = await login(formData.email, formData.password, formData.rememberMe);
-      // Redirect to role-based path, or to 'from' if coming from a protected route
       const destination = from !== '/' ? from : redirectPath;
       navigate(destination, { replace: true });
     } catch (err) {
@@ -38,7 +37,6 @@ export function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2">
-            {/* 3 Bubbles icon */}
             <svg viewBox="0 0 100 100" fill="none" className="h-10 w-10">
               <circle cx="58" cy="65" r="24" fill="#00205B"/>
               <ellipse cx="50" cy="55" rx="7" ry="10" fill="white" opacity="0.35"/>
@@ -77,7 +75,7 @@ export function LoginPage() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent transition-all"
-                  placeholder="tu@email.com"
+                  placeholder="you@example.com"
                   required
                 />
               </div>

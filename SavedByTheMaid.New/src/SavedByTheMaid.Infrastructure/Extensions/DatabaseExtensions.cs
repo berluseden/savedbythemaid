@@ -29,11 +29,29 @@ public static class DatabaseExtensions
             }
 
             logger.LogInformation("Verificando esquema de base de datos...");
-            
-            // Verificar si hay migraciones disponibles
+
+            // Si el proveedor no es relacional (ej. InMemory en tests), usamos EnsureCreated
+            if (!context.Database.IsRelational())
+            {
+                logger.LogWarning("Proveedor de base de datos no relacional detectado. Usando EnsureCreatedAsync() para entorno de pruebas.");
+                var created = await context.Database.EnsureCreatedAsync();
+                if (created)
+                {
+                    logger.LogInformation("Esquema de base de datos (InMemory) creado exitosamente");
+                }
+                else
+                {
+                    logger.LogInformation("El esquema de base de datos ya existe (InMemory)");
+                }
+
+                // Evitar ejecutar correcciones SQL específicas de providers relacionales
+                return;
+            }
+
+            // Verificar si hay migraciones disponibles (solo para proveedores relacionales)
             var appliedMigrations = await context.Database.GetAppliedMigrationsAsync();
             var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
-            
+
             if (!appliedMigrations.Any() && !pendingMigrations.Any())
             {
                 // No hay migraciones creadas, usar EnsureCreated

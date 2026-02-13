@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Header, Footer } from '@/components/layout';
 import { AuthProvider, ProtectedRoute } from '@/contexts/AuthContext';
+import { ToastProvider } from '@/contexts/ToastProvider';
 import HomePage from '@/pages/HomePage';
 import BookingPage from '@/pages/BookingPage';
 import BookingSuccessPage from '@/pages/BookingSuccessPage';
@@ -46,7 +47,8 @@ function PublicLayout({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
         <BrowserRouter>
           <Routes>
             {/* Public routes with header/footer */}
@@ -162,7 +164,8 @@ function App() {
             <Route path="*" element={<PublicLayout><NotFoundPage /></PublicLayout>} />
           </Routes>
         </BrowserRouter>
-      </AuthProvider>
+        </AuthProvider>
+      </ToastProvider>
     </QueryClientProvider>
   );
 }

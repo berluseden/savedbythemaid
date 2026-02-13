@@ -134,29 +134,29 @@ export function AdminUsersPage() {
         });
       } else {
         if (!userFormData.password) {
-          setUserFormError('La contraseña es requerida para nuevos usuarios');
+          setUserFormError('Password is required for new users');
           return;
         }
         await api.post('/admin/users', userFormData);
       }
       handleCloseUserModal();
       fetchData();
-    } catch (error: any) {
-      setUserFormError(
-        error.response?.data?.message || 'Error al guardar usuario'
-      );
+    } catch (error: unknown) {
+      const maybe = error as { response?: { data?: { message?: string } } };
+      setUserFormError(maybe.response?.data?.message || 'Error saving user');
     }
   };
 
   const handleDeleteUser = async (user: UserDto) => {
-    if (!confirm(`¿Estás seguro de desactivar al usuario ${user.email}?`)) {
+    if (!confirm(`Are you sure you want to deactivate user ${user.email}?`)) {
       return;
     }
     try {
       await api.delete(`/admin/users/${user.id}`);
       fetchData();
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Error al eliminar usuario');
+    } catch (error: unknown) {
+      const maybe = error as { response?: { data?: { message?: string } } };
+      alert(maybe.response?.data?.message || 'Error deleting user');
     }
   };
 
@@ -176,11 +176,10 @@ export function AdminUsersPage() {
         newPassword,
       });
       setShowPasswordModal(false);
-      alert('Contraseña actualizada correctamente');
-    } catch (error: any) {
-      setPasswordError(
-        error.response?.data?.message || 'Error al cambiar contraseña'
-      );
+      alert('Password updated successfully');
+    } catch (error: unknown) {
+      const maybe = error as { response?: { data?: { message?: string } } };
+      setPasswordError(maybe.response?.data?.message || 'Error changing password');
     }
   };
 
@@ -202,19 +201,21 @@ export function AdminUsersPage() {
       setShowRoleModal(false);
       setNewRoleName('');
       fetchData();
-    } catch (error: any) {
-      setRoleError(error.response?.data?.message || 'Error al crear rol');
+    } catch (error: unknown) {
+      const maybe = error as { response?: { data?: { message?: string } } };
+      setRoleError(maybe.response?.data?.message || 'Error creating role');
     }
   };
 
   const handleDeleteRole = async (role: RoleDto) => {
-    if (!confirm(`¿Eliminar el rol "${role.name}"?`)) return;
+    if (!confirm(`Delete role "${role.name}"?`)) return;
 
     try {
       await api.delete(`/admin/users/roles/${role.id}`);
       fetchData();
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Error al eliminar rol');
+    } catch (error: unknown) {
+      const maybe = error as { response?: { data?: { message?: string } } };
+      alert(maybe.response?.data?.message || 'Error deleting role');
     }
   };
 
@@ -255,10 +256,10 @@ export function AdminUsersPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              Usuarios y Roles
+              Users and Roles
             </h1>
             <p className="mt-1 text-sm text-gray-500">
-              Gestiona los usuarios del sistema y sus permisos
+              Manage system users and their permissions
             </p>
           </div>
           <div className="flex gap-2">
@@ -267,14 +268,14 @@ export function AdminUsersPage() {
               className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               <Shield className="h-4 w-4" />
-              Gestionar Roles
+              Manage Roles
             </button>
             <button
               onClick={() => handleOpenUserModal()}
               className="inline-flex items-center gap-2 rounded-lg bg-[#00205B] px-4 py-2 text-sm font-medium text-white hover:bg-[#001440]"
             >
               <Plus className="h-4 w-4" />
-              Nuevo Usuario
+              New User
             </button>
           </div>
         </div>
@@ -288,7 +289,7 @@ export function AdminUsersPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-gray-900">{users.length}</p>
-                <p className="text-sm text-gray-500">Total usuarios</p>
+                <p className="text-sm text-gray-500">Total users</p>
               </div>
             </div>
           </div>
@@ -301,7 +302,7 @@ export function AdminUsersPage() {
                 <p className="text-2xl font-bold text-gray-900">
                   {users.filter((u) => u.isActive).length}
                 </p>
-                <p className="text-sm text-gray-500">Activos</p>
+                <p className="text-sm text-gray-500">Active</p>
               </div>
             </div>
           </div>
@@ -314,7 +315,7 @@ export function AdminUsersPage() {
                 <p className="text-2xl font-bold text-gray-900">
                   {users.filter((u) => u.roles.includes('Admin')).length}
                 </p>
-                <p className="text-sm text-gray-500">Administradores</p>
+                <p className="text-sm text-gray-500">Administrators</p>
               </div>
             </div>
           </div>
@@ -337,7 +338,7 @@ export function AdminUsersPage() {
             <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Buscar por nombre o email..."
+              placeholder="Search by name or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-[#00205B] focus:outline-none focus:ring-1 focus:ring-[#00205B]"
@@ -348,7 +349,7 @@ export function AdminUsersPage() {
             onChange={(e) => setFilterRole(e.target.value)}
             className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#00205B] focus:outline-none focus:ring-1 focus:ring-[#00205B]"
           >
-            <option value="all">Todos los roles</option>
+            <option value="all">All roles</option>
             {roles.map((role) => (
               <option key={role.id} value={role.name}>
                 {role.name}
@@ -360,9 +361,9 @@ export function AdminUsersPage() {
             onChange={(e) => setFilterStatus(e.target.value)}
             className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#00205B] focus:outline-none focus:ring-1 focus:ring-[#00205B]"
           >
-            <option value="all">Todos los estados</option>
-            <option value="active">Activos</option>
-            <option value="inactive">Inactivos</option>
+            <option value="all">All statuses</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
           </select>
         </div>
 
@@ -375,7 +376,7 @@ export function AdminUsersPage() {
           <div className="rounded-lg border border-gray-200 bg-white p-12 text-center">
             <User className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-4 text-lg font-medium text-gray-900">
-              No hay usuarios
+              No users
             </h3>
             <p className="mt-2 text-sm text-gray-500">
               {searchTerm || filterRole !== 'all' || filterStatus !== 'all'
@@ -486,14 +487,14 @@ export function AdminUsersPage() {
                         <button
                           onClick={() => handleOpenPasswordModal(user.id)}
                           className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                          title="Cambiar contraseña"
+                          title="Change password"
                         >
                           <Key className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleOpenUserModal(user)}
                           className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                          title="Editar usuario"
+                          title="Edit user"
                         >
                           <Edit2 className="h-4 w-4" />
                         </button>
@@ -519,7 +520,7 @@ export function AdminUsersPage() {
             <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900">
-                  {editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}
+                  {editingUser ? 'Edit User' : 'New User'}
                 </h2>
                 <button
                   onClick={handleCloseUserModal}
@@ -593,7 +594,7 @@ export function AdminUsersPage() {
                 {!editingUser && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Contraseña *
+                      Password *
                     </label>
                     <input
                       type="password"
@@ -604,18 +605,18 @@ export function AdminUsersPage() {
                           password: e.target.value,
                         })
                       }
-                      placeholder="Mínimo 8 caracteres"
+                      placeholder="Minimum 8 characters"
                       className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#00205B] focus:outline-none focus:ring-1 focus:ring-[#00205B]"
                     />
                     <p className="mt-1 text-xs text-gray-500">
-                      Debe contener mayúscula, minúscula, número y símbolo
+                      Must contain uppercase, lowercase, number and symbol
                     </p>
                   </div>
                 )}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Teléfono
+                    Phone
                   </label>
                   <input
                     type="tel"
@@ -667,7 +668,7 @@ export function AdminUsersPage() {
                       className="h-4 w-4 rounded border-gray-300 text-[#00205B] focus:ring-[#00205B]"
                     />
                     <label htmlFor="isActive" className="text-sm text-gray-700">
-                      Usuario activo
+                      User active
                     </label>
                   </div>
                 )}
@@ -678,13 +679,13 @@ export function AdminUsersPage() {
                     onClick={handleCloseUserModal}
                     className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                   >
-                    Cancelar
+                    Cancel
                   </button>
                   <button
                     type="submit"
                     className="rounded-lg bg-[#00205B] px-4 py-2 text-sm font-medium text-white hover:bg-[#001440]"
                   >
-                    {editingUser ? 'Guardar Cambios' : 'Crear Usuario'}
+                    {editingUser ? 'Save Changes' : 'Create User'}
                   </button>
                 </div>
               </form>
@@ -698,7 +699,7 @@ export function AdminUsersPage() {
             <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900">
-                  Cambiar Contraseña
+                  Change Password
                 </h2>
                 <button
                   onClick={() => setShowPasswordModal(false)}
@@ -717,18 +718,18 @@ export function AdminUsersPage() {
               <form onSubmit={handleResetPassword} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nueva Contraseña *
+                    Nueva Password *
                   </label>
                   <input
                     type="password"
                     required
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Mínimo 8 caracteres"
+                    placeholder="Minimum 8 characters"
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#00205B] focus:outline-none focus:ring-1 focus:ring-[#00205B]"
                   />
                   <p className="mt-1 text-xs text-gray-500">
-                    Debe contener mayúscula, minúscula, número y símbolo
+                    Must contain uppercase, lowercase, number and symbol
                   </p>
                 </div>
 
@@ -738,7 +739,7 @@ export function AdminUsersPage() {
                     onClick={() => setShowPasswordModal(false)}
                     className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                   >
-                    Cancelar
+                    Cancel
                   </button>
                   <button
                     type="submit"
@@ -758,7 +759,7 @@ export function AdminUsersPage() {
             <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900">
-                  Gestionar Roles
+                  Manage Roles
                 </h2>
                 <button
                   onClick={() => setShowRoleModal(false)}
@@ -802,7 +803,7 @@ export function AdminUsersPage() {
               {/* Create New Role */}
               <form onSubmit={handleCreateRole} className="border-t border-gray-200 pt-4">
                 <h3 className="text-sm font-medium text-gray-700 mb-2">
-                  Crear nuevo rol
+                  Create new role
                 </h3>
                 {roleError && (
                   <div className="mb-2 text-sm text-red-600">{roleError}</div>
@@ -815,7 +816,7 @@ export function AdminUsersPage() {
                       setNewRoleName(e.target.value);
                       setRoleError('');
                     }}
-                    placeholder="Nombre del rol"
+                    placeholder="Role name"
                     className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#00205B] focus:outline-none focus:ring-1 focus:ring-[#00205B]"
                   />
                   <button

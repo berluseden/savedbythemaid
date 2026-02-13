@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { User, Mail, Phone, MapPin, Save, X, AlertCircle, CheckCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import api from '@/lib/api';
 
 interface ProfileData {
@@ -22,6 +21,12 @@ export function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
   
   const [profile, setProfile] = useState<ProfileData>({
     firstName: '',
@@ -36,11 +41,7 @@ export function ProfilePage() {
   
   const [editForm, setEditForm] = useState<ProfileData>(profile);
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await api.get<ProfileData>('/customer/profile');
@@ -48,7 +49,7 @@ export function ProfilePage() {
       setEditForm(response.data);
     } catch {
       // Fallback to auth context user
-      setProfile({
+      const fallback: ProfileData = {
         firstName: user?.firstName || '',
         lastName: user?.lastName || '',
         email: user?.email || '',
@@ -57,12 +58,17 @@ export function ProfilePage() {
         city: '',
         state: '',
         zipCode: '',
-      });
-      setEditForm(profile);
+      };
+      setProfile(fallback);
+      setEditForm(fallback);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
 
   const handleSave = async () => {
     try {
@@ -100,6 +106,27 @@ export function ProfilePage() {
     setEditForm(profile);
     setIsEditing(false);
     setError('');
+  };
+
+  const handleChangePassword = async () => {
+    setPasswordError('');
+    setPasswordSuccess('');
+    setIsChangingPassword(true);
+    try {
+      await api.post('/auth/change-password', {
+        currentPassword,
+        newPassword,
+      });
+      setPasswordSuccess('Password updated successfully');
+      setCurrentPassword('');
+      setNewPassword('');
+      setTimeout(() => setShowChangePassword(false), 2000);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setPasswordError(msg || 'Failed to update password');
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   if (isLoading) {
@@ -335,12 +362,53 @@ export function ProfilePage() {
             {!isEditing && (
               <section className="pt-4 border-t border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Security</h2>
-                <Link
-                  to="/forgot-password"
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Change Password
-                </Link>
+                {showChangePassword ? (
+                  <div className="space-y-4 max-w-md">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                      <input
+                        type="password"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                      <input
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+                        placeholder="Minimum 8 characters"
+                      />
+                    </div>
+                    {passwordError && <p className="text-sm text-red-500">{passwordError}</p>}
+                    {passwordSuccess && <p className="text-sm text-green-600">{passwordSuccess}</p>}
+                    <div className="flex gap-3">
+                      <button
+                        onClick={handleChangePassword}
+                        disabled={isChangingPassword || !currentPassword || newPassword.length < 8}
+                        className="px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] transition-colors disabled:opacity-50"
+                      >
+                        {isChangingPassword ? 'Updating...' : 'Update Password'}
+                      </button>
+                      <button
+                        onClick={() => { setShowChangePassword(false); setCurrentPassword(''); setNewPassword(''); setPasswordError(''); setPasswordSuccess(''); }}
+                        className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowChangePassword(true)}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Change Password
+                  </button>
+                )}
               </section>
             )}
           </div>

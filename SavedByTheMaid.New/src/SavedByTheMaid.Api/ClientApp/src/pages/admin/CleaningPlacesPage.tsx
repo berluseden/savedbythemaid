@@ -100,7 +100,7 @@ export function AdminCleaningPlacesPage() {
       await fetchPlaces();
       closePlaceModal();
     } catch (err) {
-      setError('Error al guardar el tipo de inmueble');
+      setError('Error al guardar el property type');
       console.error(err);
     } finally {
       setSaving(false);
@@ -123,7 +123,7 @@ export function AdminCleaningPlacesPage() {
       await fetchPlaces();
       setDeleteConfirm(null);
     } catch (err) {
-      setError('Error al eliminar el tipo de inmueble');
+      setError('Error al eliminar el property type');
       console.error(err);
     }
   };
@@ -150,7 +150,7 @@ export function AdminCleaningPlacesPage() {
       await fetchPlaces();
       closeRoomModal();
     } catch (err) {
-      setError('Error al guardar la habitación');
+      setError('Error saving room');
       console.error(err);
     } finally {
       setSaving(false);
@@ -184,7 +184,7 @@ export function AdminCleaningPlacesPage() {
       await fetchPlaces();
       setDeleteConfirm(null);
     } catch (err) {
-      setError('Error al eliminar la habitación');
+      setError('Error deleting room');
       console.error(err);
     }
   };
@@ -221,15 +221,15 @@ export function AdminCleaningPlacesPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Tipos de Inmueble</h1>
-            <p className="text-gray-600">Gestiona los tipos de propiedades y sus habitaciones</p>
+            <h1 className="text-2xl font-bold text-gray-900">Property Types</h1>
+            <p className="text-gray-600">Gestiona los tipos de propiedades y sus rooms</p>
           </div>
           <button
             onClick={() => setShowModal(true)}
             className="inline-flex items-center gap-2 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] transition-colors"
           >
             <Plus className="h-5 w-5" />
-            Nuevo Tipo
+            New Type
           </button>
         </div>
 
@@ -245,7 +245,7 @@ export function AdminCleaningPlacesPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
           <input
             type="search"
-            placeholder="Buscar tipos de inmueble..."
+            placeholder="Search property types..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
@@ -255,7 +255,7 @@ export function AdminCleaningPlacesPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-lg p-4 border">
-            <p className="text-sm text-gray-500">Total Tipos</p>
+            <p className="text-sm text-gray-500">Total Types</p>
             <p className="text-2xl font-bold text-gray-900">{places.length}</p>
           </div>
           <div className="bg-white rounded-lg p-4 border">
@@ -265,7 +265,7 @@ export function AdminCleaningPlacesPage() {
             </p>
           </div>
           <div className="bg-white rounded-lg p-4 border">
-            <p className="text-sm text-gray-500">Total Habitaciones</p>
+            <p className="text-sm text-gray-500">Total Rooms</p>
             <p className="text-2xl font-bold text-[#00205B]">
               {places.reduce((acc, p) => acc + p.rooms.length, 0)}
             </p>
@@ -301,7 +301,7 @@ export function AdminCleaningPlacesPage() {
                   <div>
                     <h3 className="font-semibold text-gray-900">{place.name}</h3>
                     <p className="text-sm text-gray-500">
-                      {place.rooms.length} habitaciones | {place.description || 'Sin descripción'}
+                      {place.rooms.length} rooms | {place.description || 'No description'}
                     </p>
                   </div>
                 </div>
@@ -314,21 +314,21 @@ export function AdminCleaningPlacesPage() {
                   <button
                     onClick={() => handleAddRoom(place.id)}
                     className="p-2 text-gray-400 hover:text-[#00205B] hover:bg-[#FFE44D]/10 rounded-lg"
-                    title="Agregar habitación"
+                    title="Add room"
                   >
                     <Plus className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleEditPlace(place)}
                     className="p-2 text-gray-400 hover:text-[#00205B] hover:bg-[#FFE44D]/10 rounded-lg"
-                    title="Editar"
+                    title="Edit"
                   >
                     <Edit2 className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => setDeleteConfirm({ type: 'place', placeId: place.id })}
                     className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                    title="Eliminar"
+                    title="Delete"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -389,7 +389,7 @@ export function AdminCleaningPlacesPage() {
 
               {expandedPlaces.has(place.id) && place.rooms.length === 0 && (
                 <div className="border-t p-4 text-center text-gray-500 text-sm">
-                  No hay habitaciones configuradas.{' '}
+                  No hay rooms configuradas.{' '}
                   <button
                     onClick={() => handleAddRoom(place.id)}
                     className="text-[#00205B] hover:underline"
@@ -404,7 +404,7 @@ export function AdminCleaningPlacesPage() {
 
         {filteredPlaces.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-500">No se encontraron tipos de inmueble</p>
+            <p className="text-gray-500">No property types found</p>
           </div>
         )}
       </div>
@@ -414,15 +414,15 @@ export function AdminCleaningPlacesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              ¿Eliminar {deleteConfirm.type === 'place' ? 'tipo de inmueble' : 'habitación'}?
+              Delete {deleteConfirm.type === 'place' ? 'property type' : 'room'}?
             </h3>
-            <p className="text-gray-600 mb-6">Esta acción no se puede deshacer.</p>
+            <p className="text-gray-600 mb-6">This action cannot be undone.</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
                 className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
               >
-                Cancelar
+                Cancel
               </button>
               <button
                 onClick={() => {
@@ -434,7 +434,7 @@ export function AdminCleaningPlacesPage() {
                 }}
                 className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
               >
-                Eliminar
+                Delete
               </button>
             </div>
           </div>
@@ -447,7 +447,7 @@ export function AdminCleaningPlacesPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
             <div className="flex items-center justify-between p-6 border-b">
               <h2 className="text-xl font-semibold text-gray-900">
-                {editingPlace ? 'Editar Tipo de Inmueble' : 'Nuevo Tipo de Inmueble'}
+                {editingPlace ? 'Edit Property Type' : 'New Type de Inmueble'}
               </h2>
               <button onClick={closePlaceModal} className="p-2 text-gray-400 hover:text-gray-600">
                 <X className="h-5 w-5" />
@@ -456,7 +456,7 @@ export function AdminCleaningPlacesPage() {
 
             <form onSubmit={handlePlaceSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Nombre *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
                 <input
                   type="text"
                   value={placeForm.name}
@@ -467,7 +467,7 @@ export function AdminCleaningPlacesPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                 <textarea
                   value={placeForm.description}
                   onChange={(e) => setPlaceForm({ ...placeForm, description: e.target.value })}
@@ -494,14 +494,14 @@ export function AdminCleaningPlacesPage() {
                   onClick={closePlaceModal}
                   className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
                   className="flex-1 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] disabled:opacity-50"
                 >
-                  {saving ? 'Guardando...' : editingPlace ? 'Guardar' : 'Crear'}
+                  {saving ? 'Saving...' : editingPlace ? 'Save' : 'Crear'}
                 </button>
               </div>
             </form>
@@ -515,7 +515,7 @@ export function AdminCleaningPlacesPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
             <div className="flex items-center justify-between p-6 border-b">
               <h2 className="text-xl font-semibold text-gray-900">
-                {editingRoom ? 'Editar Habitación' : 'Nueva Habitación'}
+                {editingRoom ? 'Edit Room' : 'New Room'}
               </h2>
               <button onClick={closeRoomModal} className="p-2 text-gray-400 hover:text-gray-600">
                 <X className="h-5 w-5" />
@@ -524,7 +524,7 @@ export function AdminCleaningPlacesPage() {
 
             <form onSubmit={handleRoomSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Nombre *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
                 <input
                   type="text"
                   value={roomForm.name}
@@ -535,7 +535,7 @@ export function AdminCleaningPlacesPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                 <textarea
                   value={roomForm.description}
                   onChange={(e) => setRoomForm({ ...roomForm, description: e.target.value })}
@@ -597,14 +597,14 @@ export function AdminCleaningPlacesPage() {
                   onClick={closeRoomModal}
                   className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
                   className="flex-1 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] disabled:opacity-50"
                 >
-                  {saving ? 'Guardando...' : editingRoom ? 'Guardar' : 'Crear'}
+                  {saving ? 'Saving...' : editingRoom ? 'Save' : 'Crear'}
                 </button>
               </div>
             </form>

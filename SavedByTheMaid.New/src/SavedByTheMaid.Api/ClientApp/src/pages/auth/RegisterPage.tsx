@@ -60,8 +60,9 @@ export default function RegisterPage() {
         password: formData.password,
       });
       navigate(redirectPath);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+    } catch (err: unknown) {
+      const maybe = err as { response?: { data?: { message?: string } } };
+      setError(maybe.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
     }

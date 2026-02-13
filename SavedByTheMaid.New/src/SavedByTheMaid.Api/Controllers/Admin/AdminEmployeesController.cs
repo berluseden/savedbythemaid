@@ -40,7 +40,8 @@ public class AdminEmployeesController : ControllerBase
                 PrimaryServiceAreaName = e.PrimaryServiceArea != null ? e.PrimaryServiceArea.Name : null,
                 ServiceAreaCount = e.ServiceAreas.Count,
                 MaxDailyHours = e.MaxDailyHours,
-                MaxDailyServices = e.MaxDailyServices
+                MaxDailyServices = e.MaxDailyServices,
+                HasActiveTimeOff = e.TimeOffs.Any(t => t.Status == TimeOffStatus.Approved && t.EndDateTime >= DateTime.UtcNow)
             })
             .ToListAsync();
     }
@@ -317,6 +318,7 @@ public record EmployeeAdminDto
     public int ServiceAreaCount { get; init; }
     public int? MaxDailyHours { get; init; }
     public int? MaxDailyServices { get; init; }
+    public bool HasActiveTimeOff { get; init; }
 }
 
 public record CreateEmployeeAdminRequest(

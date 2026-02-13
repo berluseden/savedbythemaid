@@ -29,6 +29,7 @@ interface EmployeeDto {
   serviceAreaCount: number;
   maxDailyHours: number | null;
   maxDailyServices: number | null;
+  hasActiveTimeOff: boolean;
 }
 
 interface ServiceArea {
@@ -74,21 +75,21 @@ interface EmployeeTimeOff {
 }
 
 const TIME_OFF_TYPES = [
-  { value: 0, label: 'Permiso General', color: 'gray' },
-  { value: 1, label: 'Vacaciones', color: 'blue' },
-  { value: 2, label: 'Enfermedad', color: 'red' },
-  { value: 3, label: 'Personal', color: 'purple' },
-  { value: 4, label: 'Bloqueo Manual', color: 'orange' },
+  { value: 0, label: 'General Leave', color: 'gray', iconClass: 'text-gray-500', badgeBg: 'bg-gray-100', badgeText: 'text-gray-700' },
+  { value: 1, label: 'Vacation', color: 'blue', iconClass: 'text-blue-500', badgeBg: 'bg-blue-100', badgeText: 'text-blue-700' },
+  { value: 2, label: 'Sick Leave', color: 'red', iconClass: 'text-red-500', badgeBg: 'bg-red-100', badgeText: 'text-red-700' },
+  { value: 3, label: 'Personal', color: 'purple', iconClass: 'text-purple-500', badgeBg: 'bg-purple-100', badgeText: 'text-purple-700' },
+  { value: 4, label: 'Manual Block', color: 'orange', iconClass: 'text-orange-500', badgeBg: 'bg-orange-100', badgeText: 'text-orange-700' },
 ];
 
 const TIME_OFF_STATUS = [
-  { value: 0, label: 'Pendiente', color: 'yellow' },
-  { value: 1, label: 'Aprobado', color: 'green' },
-  { value: 2, label: 'Rechazado', color: 'red' },
+  { value: 0, label: 'Pending', color: 'yellow' },
+  { value: 1, label: 'Approved', color: 'green' },
+  { value: 2, label: 'Rejected', color: 'red' },
 ];
 
-const DAYS_OF_WEEK = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-const DAYS_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 type ModalTab = 'info' | 'zones' | 'equipment' | 'schedule' | 'timeoff';
 
@@ -169,7 +170,7 @@ export function AdminEmployeesPage() {
       const response = await api.get<EmployeeDto[]>('/admin/employees');
       setEmployees(response.data);
     } catch (err) {
-      setError('Error al cargar empleados');
+      setError('Error loading employees');
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -218,8 +219,8 @@ export function AdminEmployeesPage() {
       await api.post(`/admin/employees/${editingEmployee.id}/schedules`, scheduleForm);
       await fetchSchedules(editingEmployee.id);
       setScheduleForm({ dayOfWeek: 1, startTime: '08:00', endTime: '18:00', bufferMinutes: 15, isAvailable: true });
-    } catch (_err) {
-      setError('Error al guardar horario');
+    } catch {
+      setError('Error saving schedule');
     } finally {
       setSaving(false);
     }
@@ -230,8 +231,8 @@ export function AdminEmployeesPage() {
     try {
       await api.delete(`/admin/employees/${editingEmployee.id}/schedules/${dayOfWeek}`);
       await fetchSchedules(editingEmployee.id);
-    } catch (_err) {
-      setError('Error al eliminar horario');
+    } catch {
+      setError('Error deleting schedule');
     }
   };
 
@@ -249,8 +250,8 @@ export function AdminEmployeesPage() {
       });
       await fetchTimeOffs(editingEmployee.id);
       setTimeOffForm({ startDate: '', endDate: '', isAllDay: false, type: 0, reason: '' });
-    } catch (_err) {
-      setError('Error al guardar bloqueo');
+    } catch {
+      setError('Error saving time off');
     } finally {
       setSaving(false);
     }
@@ -261,8 +262,8 @@ export function AdminEmployeesPage() {
     try {
       await api.delete(`/admin/employees/${editingEmployee.id}/time-off/${timeOffId}`);
       await fetchTimeOffs(editingEmployee.id);
-    } catch (_err) {
-      setError('Error al eliminar bloqueo');
+    } catch {
+      setError('Error deleting time off');
     }
   };
 
@@ -280,7 +281,7 @@ export function AdminEmployeesPage() {
       await fetchEmployees();
       closeModal();
     } catch (err) {
-      setError('Error al guardar empleado');
+      setError('Error saving employee');
       console.error(err);
     } finally {
       setSaving(false);
@@ -315,8 +316,8 @@ export function AdminEmployeesPage() {
       await api.post(`/admin/employees/${editingEmployee.id}/service-areas/${serviceAreaId}?isPrimary=${isPrimary}`);
       await fetchEmployeeDetails(editingEmployee.id);
       await fetchEmployees();
-    } catch (_err) {
-      setError('Error al agregar zona');
+    } catch {
+      setError('Error adding zone');
     } finally {
       setSaving(false);
     }
@@ -328,8 +329,8 @@ export function AdminEmployeesPage() {
       await api.delete(`/admin/employees/${editingEmployee.id}/service-areas/${serviceAreaId}`);
       await fetchEmployeeDetails(editingEmployee.id);
       await fetchEmployees();
-    } catch (_err) {
-      setError('Error al eliminar zona');
+    } catch {
+      setError('Error removing zone');
     }
   };
 
@@ -339,8 +340,8 @@ export function AdminEmployeesPage() {
       await api.post(`/admin/employees/${editingEmployee.id}/service-areas/${serviceAreaId}?isPrimary=true`);
       await fetchEmployeeDetails(editingEmployee.id);
       await fetchEmployees();
-    } catch (_err) {
-      setError('Error al establecer zona principal');
+    } catch {
+      setError('Error setting primary zone');
     }
   };
 
@@ -351,8 +352,8 @@ export function AdminEmployeesPage() {
     try {
       await api.post(`/admin/employees/${editingEmployee.id}/equipment/${equipmentId}`);
       await fetchEmployeeDetails(editingEmployee.id);
-    } catch (_err) {
-      setError('Error al agregar equipamiento');
+    } catch {
+      setError('Error adding equipment');
     } finally {
       setSaving(false);
     }
@@ -363,8 +364,8 @@ export function AdminEmployeesPage() {
     try {
       await api.delete(`/admin/employees/${editingEmployee.id}/equipment/${equipmentId}`);
       await fetchEmployeeDetails(editingEmployee.id);
-    } catch (_err) {
-      setError('Error al eliminar equipamiento');
+    } catch {
+      setError('Error removing equipment');
     }
   };
 
@@ -374,8 +375,8 @@ export function AdminEmployeesPage() {
       // Primero eliminamos y luego volvemos a agregar con el nuevo estado
       await api.post(`/admin/employees/${editingEmployee.id}/equipment/${equipmentId}?isAvailable=${!currentAvailable}`);
       await fetchEmployeeDetails(editingEmployee.id);
-    } catch (_err) {
-      setError('Error al cambiar disponibilidad');
+    } catch {
+      setError('Error changing availability');
     }
   };
 
@@ -385,7 +386,7 @@ export function AdminEmployeesPage() {
       await fetchEmployees();
       setDeleteConfirm(null);
     } catch (err) {
-      setError('Error al eliminar empleado');
+      setError('Error deleting employee');
       console.error(err);
     }
   };
@@ -418,18 +419,26 @@ export function AdminEmployeesPage() {
       (employee.email?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
     const matchesStatus = filterStatus === 'all' || 
       (filterStatus === 'active' && employee.isActive) || 
-      (filterStatus === 'inactive' && !employee.isActive);
+      (filterStatus === 'inactive' && !employee.isActive) ||
+      (filterStatus === 'on-leave' && employee.hasActiveTimeOff);
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusBadge = (isActive: boolean) => {
-    return isActive ? (
+  const getStatusBadge = (employee: EmployeeDto) => {
+    if (employee.hasActiveTimeOff) {
+      return (
+        <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+          On Leave
+        </span>
+      );
+    }
+    return employee.isActive ? (
       <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-        Activo
+        Active
       </span>
     ) : (
       <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-        Inactivo
+        Inactive
       </span>
     );
   };
@@ -450,7 +459,7 @@ export function AdminEmployeesPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Empleados</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Employees</h1>
             <p className="text-gray-600">Gestiona el equipo de limpieza</p>
           </div>
           <button
@@ -458,7 +467,7 @@ export function AdminEmployeesPage() {
             className="inline-flex items-center gap-2 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] transition-colors"
           >
             <Plus className="h-5 w-5" />
-            Nuevo Empleado
+            New Employee
           </button>
         </div>
 
@@ -468,7 +477,7 @@ export function AdminEmployeesPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
             <input
               type="search"
-              placeholder="Buscar empleados..."
+              placeholder="Search employees..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
@@ -480,9 +489,9 @@ export function AdminEmployeesPage() {
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
           >
             <option value="all">Todos los estados</option>
-            <option value="active">Activos</option>
-            <option value="inactive">Inactivos</option>
-            <option value="on-leave">En permiso</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="on-leave">On Leave</option>
           </select>
         </div>
 
@@ -493,13 +502,13 @@ export function AdminEmployeesPage() {
             <p className="text-2xl font-bold text-gray-900">{employees.length}</p>
           </div>
           <div className="bg-white rounded-lg p-4 border">
-            <p className="text-sm text-gray-500">Activos</p>
+            <p className="text-sm text-gray-500">Active</p>
             <p className="text-2xl font-bold text-green-600">
               {employees.filter(e => e.isActive).length}
             </p>
           </div>
           <div className="bg-white rounded-lg p-4 border">
-            <p className="text-sm text-gray-500">Inactivos</p>
+            <p className="text-sm text-gray-500">Inactive</p>
             <p className="text-2xl font-bold text-gray-600">
               {employees.filter(e => !e.isActive).length}
             </p>
@@ -521,7 +530,7 @@ export function AdminEmployeesPage() {
                   <th className="px-6 py-3 font-medium">Empleado</th>
                   <th className="px-6 py-3 font-medium">Contacto</th>
                   <th className="px-6 py-3 font-medium">Estado</th>
-                  <th className="px-6 py-3 font-medium">Zona Principal</th>
+                  <th className="px-6 py-3 font-medium">Primary Zone</th>
                   <th className="px-6 py-3 font-medium text-right">Acciones</th>
                 </tr>
               </thead>
@@ -538,7 +547,7 @@ export function AdminEmployeesPage() {
                             {employee.firstName} {employee.lastName}
                           </p>
                           <p className="text-sm text-gray-500">
-                            {employee.serviceAreaCount} zonas | Max {employee.maxDailyServices || 4} servicios/día
+                            {employee.serviceAreaCount} zones | Max {employee.maxDailyServices || 4} services/day
                           </p>
                         </div>
                       </div>
@@ -556,11 +565,11 @@ export function AdminEmployeesPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      {getStatusBadge(employee.isActive)}
+                      {getStatusBadge(employee)}
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-sm text-gray-600">
-                        {employee.primaryServiceAreaName || 'Sin asignar'}
+                        {employee.primaryServiceAreaName || 'Unassigned'}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -588,7 +597,7 @@ export function AdminEmployeesPage() {
 
         {filteredEmployees.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-500">No se encontraron empleados</p>
+            <p className="text-gray-500">No se encontraron employees</p>
           </div>
         )}
       </div>
@@ -597,20 +606,20 @@ export function AdminEmployeesPage() {
       {deleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">¿Eliminar empleado?</h3>
-            <p className="text-gray-600 mb-6">Esta acción no se puede deshacer.</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete employee?</h3>
+            <p className="text-gray-600 mb-6">This action cannot be undone.</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
                 className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
               >
-                Cancelar
+                Cancel
               </button>
               <button
                 onClick={() => handleDelete(deleteConfirm)}
                 className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
               >
-                Eliminar
+                Delete
               </button>
             </div>
           </div>
@@ -623,7 +632,7 @@ export function AdminEmployeesPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex items-center justify-between p-6 border-b">
               <h2 className="text-xl font-semibold text-gray-900">
-                {editingEmployee ? `${editingEmployee.firstName} ${editingEmployee.lastName}` : 'Nuevo Empleado'}
+                {editingEmployee ? `${editingEmployee.firstName} ${editingEmployee.lastName}` : 'New Employee'}
               </h2>
               <button onClick={closeModal} className="p-2 text-gray-400 hover:text-gray-600">
                 <X className="h-5 w-5" />
@@ -653,7 +662,7 @@ export function AdminEmployeesPage() {
                   }`}
                 >
                   <MapPin className="h-4 w-4" />
-                  <span className="hidden sm:inline">Zonas</span> ({assignedZones.length})
+                  <span className="hidden sm:inline">Zones</span> ({assignedZones.length})
                 </button>
                 <button
                   onClick={() => setActiveTab('equipment')}
@@ -664,7 +673,7 @@ export function AdminEmployeesPage() {
                   }`}
                 >
                   <Wrench className="h-4 w-4" />
-                  <span className="hidden sm:inline">Equipo</span> ({assignedEquipment.length})
+                  <span className="hidden sm:inline">Equipment</span> ({assignedEquipment.length})
                 </button>
                 <button
                   onClick={() => setActiveTab('schedule')}
@@ -675,7 +684,7 @@ export function AdminEmployeesPage() {
                   }`}
                 >
                   <Clock className="h-4 w-4" />
-                  <span className="hidden sm:inline">Horarios</span> ({schedules.length})
+                  <span className="hidden sm:inline">Schedules</span> ({schedules.length})
                 </button>
                 <button
                   onClick={() => setActiveTab('timeoff')}
@@ -686,7 +695,7 @@ export function AdminEmployeesPage() {
                   }`}
                 >
                   <CalendarOff className="h-4 w-4" />
-                  <span className="hidden sm:inline">Bloqueos</span> ({timeOffs.length})
+                  <span className="hidden sm:inline">Time Off</span> ({timeOffs.length})
                 </button>
               </div>
             )}
@@ -697,7 +706,7 @@ export function AdminEmployeesPage() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
                       <input
                         type="text"
                         value={formData.firstName}
@@ -707,7 +716,7 @@ export function AdminEmployeesPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Apellido</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
                       <input
                         type="text"
                         value={formData.lastName}
@@ -729,7 +738,7 @@ export function AdminEmployeesPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
                     <input
                       type="tel"
                       value={formData.phone}
@@ -739,7 +748,7 @@ export function AdminEmployeesPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Dirección</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
                     <input
                       type="text"
                       value={formData.address}
@@ -749,7 +758,7 @@ export function AdminEmployeesPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Zona Principal</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Primary Zone</label>
                     <select
                       value={formData.primaryServiceAreaId || ''}
                       onChange={(e) => setFormData({ ...formData, primaryServiceAreaId: e.target.value ? Number(e.target.value) : null })}
@@ -764,7 +773,7 @@ export function AdminEmployeesPage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Max horas/día</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Max hours/day</label>
                       <input
                         type="number"
                         min="1"
@@ -775,7 +784,7 @@ export function AdminEmployeesPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Max servicios/día</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Max services/day</label>
                       <input
                         type="number"
                         min="1"
@@ -807,14 +816,14 @@ export function AdminEmployeesPage() {
                       onClick={closeModal}
                       className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                     >
-                      Cancelar
+                      Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={saving}
                       className="flex-1 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] transition-colors disabled:opacity-50"
                     >
-                      {saving ? 'Guardando...' : editingEmployee ? 'Guardar Cambios' : 'Crear Empleado'}
+                      {saving ? 'Guardando...' : editingEmployee ? 'Save Changes' : 'Create Employee'}
                     </button>
                   </div>
                 </form>
@@ -826,7 +835,7 @@ export function AdminEmployeesPage() {
                   <div>
                     <h3 className="font-medium text-gray-900 mb-3">Zonas asignadas</h3>
                     {assignedZones.length === 0 ? (
-                      <p className="text-gray-500 text-center py-4">No hay zonas asignadas</p>
+                      <p className="text-gray-500 text-center py-4">No zones assigned</p>
                     ) : (
                       <div className="space-y-2">
                         {assignedZones.map((zone) => (
@@ -862,7 +871,7 @@ export function AdminEmployeesPage() {
                   </div>
 
                   <div>
-                    <h3 className="font-medium text-gray-900 mb-3">Agregar zona</h3>
+                    <h3 className="font-medium text-gray-900 mb-3">Add zona</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {serviceAreas
                         .filter(area => !assignedZones.some(z => z.serviceAreaId === area.id))
@@ -881,7 +890,7 @@ export function AdminEmployeesPage() {
                         ))}
                     </div>
                     {serviceAreas.filter(area => !assignedZones.some(z => z.serviceAreaId === area.id)).length === 0 && (
-                      <p className="text-gray-500 text-center py-4">Todas las zonas ya están asignadas</p>
+                      <p className="text-gray-500 text-center py-4">All zones are already assigned</p>
                     )}
                   </div>
                 </div>
@@ -893,7 +902,7 @@ export function AdminEmployeesPage() {
                   <div>
                     <h3 className="font-medium text-gray-900 mb-3">Equipamiento asignado</h3>
                     {assignedEquipment.length === 0 ? (
-                      <p className="text-gray-500 text-center py-4">No hay equipamiento asignado</p>
+                      <p className="text-gray-500 text-center py-4">No equipment assigned</p>
                     ) : (
                       <div className="space-y-2">
                         {assignedEquipment.map((eq) => (
@@ -930,7 +939,7 @@ export function AdminEmployeesPage() {
                   </div>
 
                   <div>
-                    <h3 className="font-medium text-gray-900 mb-3">Agregar equipamiento</h3>
+                    <h3 className="font-medium text-gray-900 mb-3">Add equipamiento</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {allEquipment
                         .filter(eq => !assignedEquipment.some(ae => ae.equipmentId === eq.id))
@@ -950,7 +959,7 @@ export function AdminEmployeesPage() {
                     </div>
                     {allEquipment.filter(eq => !assignedEquipment.some(ae => ae.equipmentId === eq.id)).length === 0 && (
                       <p className="text-gray-500 text-center py-4">
-                        {allEquipment.length === 0 ? 'No hay equipamiento disponible en el sistema' : 'Todo el equipamiento ya está asignado'}
+                        {allEquipment.length === 0 ? 'No equipment available in the system' : 'All equipment is already assigned'}
                       </p>
                     )}
                   </div>
@@ -999,10 +1008,10 @@ export function AdminEmployeesPage() {
 
                   {/* Formulario para agregar */}
                   <form onSubmit={handleAddSchedule} className="bg-gray-50 rounded-lg p-4 space-y-4">
-                    <h3 className="font-medium text-gray-900">Agregar horario</h3>
+                    <h3 className="font-medium text-gray-900">Add horario</h3>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Día</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Day</label>
                         <select
                           value={scheduleForm.dayOfWeek}
                           onChange={(e) => setScheduleForm({ ...scheduleForm, dayOfWeek: parseInt(e.target.value) })}
@@ -1066,7 +1075,7 @@ export function AdminEmployeesPage() {
                       disabled={saving}
                       className="px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] disabled:opacity-50"
                     >
-                      {saving ? 'Guardando...' : 'Agregar'}
+                      {saving ? 'Guardando...' : 'Add'}
                     </button>
                   </form>
 
@@ -1077,7 +1086,7 @@ export function AdminEmployeesPage() {
                         <div className="w-6 h-6 border-2 border-[#00205B] border-t-transparent rounded-full animate-spin mx-auto" />
                       </div>
                     ) : schedules.length === 0 ? (
-                      <p className="text-gray-500 text-center py-4">No hay horarios configurados</p>
+                      <p className="text-gray-500 text-center py-4">No schedules configured</p>
                     ) : (
                       <div className="space-y-2">
                         {schedules.map((schedule) => (
@@ -1117,7 +1126,7 @@ export function AdminEmployeesPage() {
               {activeTab === 'timeoff' && (
                 <div className="space-y-6">
                   <form onSubmit={handleAddTimeOff} className="bg-gray-50 rounded-lg p-4 space-y-4">
-                    <h3 className="font-medium text-gray-900">Agregar bloqueo o permiso</h3>
+                    <h3 className="font-medium text-gray-900">Add bloqueo o permiso</h3>
                     
                     {/* Tipo de bloqueo */}
                     <div>
@@ -1133,7 +1142,7 @@ export function AdminEmployeesPage() {
                       </select>
                     </div>
 
-                    {/* Día completo toggle */}
+                    {/* Full day toggle */}
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"
@@ -1141,7 +1150,7 @@ export function AdminEmployeesPage() {
                         onChange={(e) => setTimeOffForm({ ...timeOffForm, isAllDay: e.target.checked })}
                         className="w-4 h-4 text-[#00205B] border-gray-300 rounded focus:ring-[#00205B]"
                       />
-                      <span className="text-sm text-gray-700">Día completo</span>
+                      <span className="text-sm text-gray-700">Full day</span>
                     </label>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -1171,12 +1180,12 @@ export function AdminEmployeesPage() {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Motivo (opcional)</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Reason (optional)</label>
                       <input
                         type="text"
                         value={timeOffForm.reason}
                         onChange={(e) => setTimeOffForm({ ...timeOffForm, reason: e.target.value })}
-                        placeholder="Vacaciones, cita médica, emergencia familiar..."
+                        placeholder="Vacation, medical appointment, family emergency..."
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                       />
                     </div>
@@ -1185,7 +1194,7 @@ export function AdminEmployeesPage() {
                       disabled={saving}
                       className="px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] disabled:opacity-50"
                     >
-                      {saving ? 'Guardando...' : 'Agregar'}
+                      {saving ? 'Guardando...' : 'Add'}
                     </button>
                   </form>
 
@@ -1202,8 +1211,8 @@ export function AdminEmployeesPage() {
                             <div key={timeOff.id} className="flex items-center justify-between p-3 bg-white border rounded-lg">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <CalendarOff className={`h-4 w-4 text-${typeInfo.color}-500`} />
-                                  <span className={`px-2 py-0.5 text-xs rounded-full bg-${typeInfo.color}-100 text-${typeInfo.color}-700`}>
+                                  <CalendarOff className={`h-4 w-4 ${typeInfo.iconClass}`} />
+                                  <span className={`px-2 py-0.5 text-xs rounded-full ${typeInfo.badgeBg} ${typeInfo.badgeText}`}>
                                     {typeInfo.label}
                                   </span>
                                   <span className="font-medium text-sm">
@@ -1214,7 +1223,7 @@ export function AdminEmployeesPage() {
                                     {!timeOff.isAllDay && ` ${new Date(timeOff.endDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
                                   </span>
                                   {timeOff.isAllDay && (
-                                    <span className="text-xs text-gray-500">(Todo el día)</span>
+                                    <span className="text-xs text-gray-500">(Full day)</span>
                                   )}
                                   <span className={`px-2 py-0.5 text-xs rounded-full ${
                                     statusInfo.value === 1 ? 'bg-green-100 text-green-700' :

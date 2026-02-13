@@ -16,33 +16,58 @@ using System.Text.Json.Serialization;
 using Serilog;
 using Serilog.Events;
 
-// Configurar Serilog antes de crear el builder
-Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-    .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
-    .Enrich.FromLogContext()
-    .Enrich.WithEnvironmentName()
-    .Enrich.WithMachineName()
-    .Enrich.WithThreadId()
-    .WriteTo.Console()
-    .CreateBootstrapLogger();
+// Configure Serilog unless we're running tests in the 'Testing' environment
+var envName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+if (!string.Equals(envName, "Testing", StringComparison.OrdinalIgnoreCase))
+{
+    // Configurar Serilog antes de crear el builder
+    try
+    {
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+            .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
+            .Enrich.FromLogContext()
+            .Enrich.WithEnvironmentName()
+            .Enrich.WithMachineName()
+            .Enrich.WithThreadId()
+            .WriteTo.Console()
+            .CreateBootstrapLogger();
+    }
+    catch (InvalidOperationException ex)
+    {
+        // Durante los tests podría intentarse inicializar Serilog varias veces.
+        // Evitar que esto detenga el proceso de test y caeremos al logger por defecto.
+        Console.Error.WriteLine($"Warning: Serilog bootstrap skipped: {ex.Message}");
+    }
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Reemplazar el logger por defecto con Serilog
-builder.Host.UseSerilog((context, services, configuration) => configuration
-    .ReadFrom.Configuration(context.Configuration)
-    .ReadFrom.Services(services)
-    .Enrich.FromLogContext()
-    .Enrich.WithEnvironmentName()
-    .Enrich.WithMachineName()
-    .Enrich.WithThreadId()
-    .WriteTo.Console()
-    .WriteTo.File(
-        path: "logs/savedbythemaid-.log",
-        rollingInterval: RollingInterval.Day,
-        retainedFileCountLimit: 30,
-        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}"));
+// Reemplazar el logger por defecto con Serilog (salvo cuando estamos en Testing)
+if (!string.Equals(envName, "Testing", StringComparison.OrdinalIgnoreCase))
+{
+    try
+    {
+        builder.Host.UseSerilog((context, services, configuration) => configuration
+            .ReadFrom.Configuration(context.Configuration)
+            .ReadFrom.Services(services)
+            .Enrich.FromLogContext()
+            .Enrich.WithEnvironmentName()
+            .Enrich.WithMachineName()
+            .Enrich.WithThreadId()
+            .WriteTo.Console()
+            .WriteTo.File(
+                path: "logs/savedbythemaid-.log",
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: 30,
+                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}"));
+    }
+    catch (InvalidOperationException ex)
+    {
+        // Evitar que la inicialización duplicada de Serilog detenga los tests.
+        Console.Error.WriteLine($"Warning: Serilog host configuration skipped: {ex.Message}");
+    }
+}
 
 // ============================================
 // 1. Configuración de servicios
@@ -66,8 +91,15 @@ builder.Services.AddScoped<ISchedulingService, SchedulingService>();
 builder.Services.AddScoped<IStatusHistoryService, StatusHistoryService>();
 
 // Autenticación JWT
-var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>() 
-    ?? new JwtSettings { Secret = "DefaultSecretKeyForDevelopmentOnly123456789!", Issuer = "SavedByTheMaid", Audience = "SavedByTheMaidApp" };
+var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>();
+if (jwtSettings == null || string.IsNullOrEmpty(jwtSettings.Secret))
+{
+    if (builder.Environment.IsProduction())
+    {
+        throw new InvalidOperationException("JWT Secret must be configured in production. Set Jwt:Secret in appsettings or environment variables.");
+    }
+    jwtSettings = new JwtSettings { Secret = "DefaultSecretKeyForDevelopmentOnly123456789!", Issuer = "SavedByTheMaid", Audience = "SavedByTheMaidApp" };
+}
 
 builder.Services.AddAuthentication(options =>
 {
@@ -129,12 +161,19 @@ builder.Services.AddRateLimiter(options =>
         options.AutoReplenishment = true;
     });
 
+    options.AddFixedWindowLimiter("auth-sensitive", options =>
+    {
+        options.PermitLimit = 5;
+        options.Window = TimeSpan.FromMinutes(1);
+        options.AutoReplenishment = true;
+    });
+
     options.OnRejected = async (context, token) =>
     {
         context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
         await context.HttpContext.Response.WriteAsJsonAsync(new 
         { 
-            message = "Demasiadas solicitudes. Por favor espera un momento." 
+            message = "Too many requests. Please wait a moment." 
         }, token);
     };
 });
@@ -207,17 +246,20 @@ var app = builder.Build();
 // Global Exception Handler (primero para capturar todo)
 app.UseGlobalExceptionHandler();
 
-// Usar Serilog para request logging
-app.UseSerilogRequestLogging(options =>
+// Usar Serilog para request logging (solo si Serilog fue configurado, p.ej. no en Testing)
+if (!app.Environment.IsEnvironment("Testing"))
 {
-    options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";
-    options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+    app.UseSerilogRequestLogging(options =>
     {
-        diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value);
-        diagnosticContext.Set("UserAgent", httpContext.Request.Headers.UserAgent.ToString());
-        diagnosticContext.Set("UserId", httpContext.User?.FindFirst("sub")?.Value ?? "anonymous");
-    };
-});
+        options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";
+        options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+        {
+            diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value);
+            diagnosticContext.Set("UserAgent", httpContext.Request.Headers.UserAgent.ToString());
+            diagnosticContext.Set("UserId", httpContext.User?.FindFirst("sub")?.Value ?? "anonymous");
+        };
+    });
+}
 
 // Development-only middleware
 if (app.Environment.IsDevelopment())
@@ -271,21 +313,19 @@ else
     // En producción: custom fallback que ignora rutas /api
     app.Use(async (context, next) =>
     {
-        // Si la ruta empieza con /api, dejar pasar al siguiente middleware (será 404 si no existe)
+        await next();
+        
+        // Si la ruta empieza con /api, no hacer fallback (dejar el 404 natural)
         if (context.Request.Path.StartsWithSegments("/api"))
         {
-            await next();
             return;
         }
         
         // Para cualquier otra ruta no encontrada, servir index.html (SPA routing)
-        if (context.Response.StatusCode == 404)
+        if (context.Response.StatusCode == 404 && !context.Response.HasStarted)
         {
             context.Request.Path = "/index.html";
-            await next();
-        }
-        else
-        {
+            context.Response.StatusCode = 200;
             await next();
         }
     });
@@ -295,17 +335,22 @@ else
 // 3. Inicialización de Base de Datos
 // ============================================
 
-// Aplicar migraciones automáticamente
-await app.Services.ApplyDatabaseMigrationsAsync();
+// En entorno de Testing usamos la configuración de los tests (InMemory, seeds personalizados),
+// por lo que evitamos ejecutar la migración/seed que dependen de Identity/servicios de producción.
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    // Aplicar migraciones automáticamente
+    await app.Services.ApplyDatabaseMigrationsAsync();
 
-// Seed de roles al iniciar
-await SeedRolesAsync(app.Services);
+    // Seed de roles al iniciar
+    await SeedRolesAsync(app.Services);
 
-// Seed de usuario admin
-await SeedAdminUserAsync(app.Services);
+    // Seed de usuario admin
+    await SeedAdminUserAsync(app.Services);
 
-// Seed de datos maestros (idempotente)
-await SeedMasterDataAsync(app.Services);
+    // Seed de datos maestros (idempotente)
+    await SeedMasterDataAsync(app.Services);
+}
 
 // Log startup
 Log.Information("SavedByTheMaid API iniciado - Entorno: {Environment}", app.Environment.EnvironmentName);
@@ -363,9 +408,15 @@ static async Task SeedAdminUserAsync(IServiceProvider services)
     using var scope = services.CreateScope();
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
 
-    const string adminEmail = "admin@savedbytemaid.com";
-    const string adminPassword = "Admin123!";
+    var adminEmail = configuration["AdminSeed:Email"] ?? "admin@savedbythemaid.com";
+    var adminPassword = configuration["AdminSeed:Password"] ?? "Admin123!";
+    
+    if (adminPassword == "Admin123!")
+    {
+        logger.LogWarning("Using default admin password. Set AdminSeed:Password in configuration for production!");
+    }
 
     try
     {

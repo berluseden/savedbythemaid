@@ -102,7 +102,7 @@ export function AdminServiceAreasPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('¿Estás seguro de eliminar esta zona de servicio? Esto también eliminará todos los códigos postales asociados.')) {
+    if (!confirm('Are you sure you want to delete this service area? This will also delete all associated zip codes.')) {
       return;
     }
     try {
@@ -126,7 +126,7 @@ export function AdminServiceAreasPage() {
 
     // Validate zip code format (5 digits)
     if (!/^\d{5}$/.test(newZipCode.trim())) {
-      setZipError('El código postal debe tener 5 dígitos');
+      setZipError('Zip code must be 5 digits');
       return;
     }
 
@@ -137,17 +137,18 @@ export function AdminServiceAreasPage() {
       setShowZipModal(false);
       setNewZipCode('');
       fetchServiceAreas();
-    } catch (error: any) {
-      if (error.response?.status === 409) {
-        setZipError('Este código postal ya está asignado a otra zona');
+    } catch (error: unknown) {
+      const maybe = error as { response?: { status?: number } };
+      if (maybe.response?.status === 409) {
+        setZipError('This zip code is already assigned to another zone');
       } else {
-        setZipError('Error al agregar el código postal');
+        setZipError('Error adding zip code');
       }
     }
   };
 
   const handleDeleteZipCode = async (areaId: number, zipId: number, zipCode: string) => {
-    if (!confirm(`¿Eliminar el código postal ${zipCode}?`)) return;
+    if (!confirm(`Delete zip code ${zipCode}?`)) return;
     
     try {
       await api.delete(`/serviceareas/${areaId}/zipcodes/${zipId}`);
@@ -177,9 +178,9 @@ export function AdminServiceAreasPage() {
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Zonas de Servicio</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Service Areas</h1>
             <p className="mt-1 text-sm text-gray-500">
-              Gestiona las áreas geográficas donde ofreces servicio
+              Manage geographic areas where you offer service
             </p>
           </div>
           <button
@@ -187,7 +188,7 @@ export function AdminServiceAreasPage() {
             className="inline-flex items-center gap-2 rounded-lg bg-[#00205B] px-4 py-2 text-sm font-medium text-white hover:bg-[#001440] transition-colors"
           >
             <Plus className="h-4 w-4" />
-            Nueva Zona
+            New Zone
           </button>
         </div>
 
@@ -200,7 +201,7 @@ export function AdminServiceAreasPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-gray-900">{serviceAreas.length}</p>
-                <p className="text-sm text-gray-500">Zonas totales</p>
+                <p className="text-sm text-gray-500">Total zones</p>
               </div>
             </div>
           </div>
@@ -211,7 +212,7 @@ export function AdminServiceAreasPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-gray-900">{activeAreas}</p>
-                <p className="text-sm text-gray-500">Zonas activas</p>
+                <p className="text-sm text-gray-500">Active zones</p>
               </div>
             </div>
           </div>
@@ -222,7 +223,7 @@ export function AdminServiceAreasPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-gray-900">{totalZipCodes}</p>
-                <p className="text-sm text-gray-500">Códigos postales</p>
+                <p className="text-sm text-gray-500">Zip Codes</p>
               </div>
             </div>
           </div>
@@ -233,7 +234,7 @@ export function AdminServiceAreasPage() {
           <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Buscar por nombre, descripción o código postal..."
+            placeholder="Search by name, description or zip code..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-[#00205B] focus:outline-none focus:ring-1 focus:ring-[#00205B]"
@@ -248,11 +249,11 @@ export function AdminServiceAreasPage() {
         ) : filteredAreas.length === 0 ? (
           <div className="rounded-lg border border-gray-200 bg-white p-12 text-center">
             <MapPin className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-4 text-lg font-medium text-gray-900">No hay zonas de servicio</h3>
+            <h3 className="mt-4 text-lg font-medium text-gray-900">No service areas</h3>
             <p className="mt-2 text-sm text-gray-500">
               {searchTerm
-                ? 'No se encontraron zonas que coincidan con tu búsqueda'
-                : 'Comienza creando tu primera zona de servicio'}
+                ? 'No zones matching your search were found'
+                : 'Start by creating your first service area'}
             </p>
             {!searchTerm && (
               <button
@@ -260,7 +261,7 @@ export function AdminServiceAreasPage() {
                 className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#00205B] px-4 py-2 text-sm font-medium text-white hover:bg-[#001440]"
               >
                 <Plus className="h-4 w-4" />
-                Nueva Zona
+                New Zone
               </button>
             )}
           </div>
@@ -301,7 +302,7 @@ export function AdminServiceAreasPage() {
                         <p className="mt-1 text-sm text-gray-500">{area.description}</p>
                       )}
                       <p className="mt-1 text-xs text-gray-400">
-                        {area.zipCodes.length} código{area.zipCodes.length !== 1 ? 's' : ''} postal
+                        {area.zipCodes.length} zip code{area.zipCodes.length !== 1 ? 's' : ''}
                         {area.zipCodes.length !== 1 ? 'es' : ''}
                       </p>
                     </div>
@@ -310,14 +311,14 @@ export function AdminServiceAreasPage() {
                     <button
                       onClick={() => handleOpenModal(area)}
                       className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                      title="Editar zona"
+                      title="Edit zone"
                     >
                       <Edit2 className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleDelete(area.id)}
                       className="rounded-lg p-2 text-gray-500 hover:bg-red-50 hover:text-red-600"
-                      title="Eliminar zona"
+                      title="Delete zone"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -328,7 +329,7 @@ export function AdminServiceAreasPage() {
                 {expandedArea === area.id && (
                   <div className="border-t border-gray-200 bg-gray-50 p-4">
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-sm font-medium text-gray-700">Códigos Postales</h4>
+                      <h4 className="text-sm font-medium text-gray-700">Zip Codes</h4>
                       <button
                         onClick={() => handleOpenZipModal(area.id)}
                         className="inline-flex items-center gap-1 rounded-md bg-[#00205B] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#001440]"
@@ -339,7 +340,7 @@ export function AdminServiceAreasPage() {
                     </div>
                     {area.zipCodes.length === 0 ? (
                       <p className="text-sm text-gray-500 italic">
-                        No hay códigos postales configurados
+                        No hay zip codes configured
                       </p>
                     ) : (
                       <div className="flex flex-wrap gap-2">
@@ -373,7 +374,7 @@ export function AdminServiceAreasPage() {
             <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900">
-                  {editingArea ? 'Editar Zona' : 'Nueva Zona de Servicio'}
+                  {editingArea ? 'Edit Zone' : 'New Service Area'}
                 </h2>
                 <button
                   onClick={handleCloseModal}
@@ -386,26 +387,26 @@ export function AdminServiceAreasPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nombre *
+                    Name *
                   </label>
                   <input
                     type="text"
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Ej: Zona Norte Miami"
+                    placeholder="E.g.: North Miami Zone"
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#00205B] focus:outline-none focus:ring-1 focus:ring-[#00205B]"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Descripción
+                    Description
                   </label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Descripción opcional de la zona"
+                    placeholder="Optional zone description"
                     rows={3}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#00205B] focus:outline-none focus:ring-1 focus:ring-[#00205B]"
                   />
@@ -421,7 +422,7 @@ export function AdminServiceAreasPage() {
                       className="h-4 w-4 rounded border-gray-300 text-[#00205B] focus:ring-[#00205B]"
                     />
                     <label htmlFor="isActive" className="text-sm text-gray-700">
-                      Zona activa
+                      Zone active
                     </label>
                   </div>
                 )}
@@ -432,13 +433,13 @@ export function AdminServiceAreasPage() {
                     onClick={handleCloseModal}
                     className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                   >
-                    Cancelar
+                    Cancel
                   </button>
                   <button
                     type="submit"
                     className="rounded-lg bg-[#00205B] px-4 py-2 text-sm font-medium text-white hover:bg-[#001440]"
                   >
-                    {editingArea ? 'Guardar Cambios' : 'Crear Zona'}
+                    {editingArea ? 'Save Changes' : 'Create Zone'}
                   </button>
                 </div>
               </form>
@@ -451,7 +452,7 @@ export function AdminServiceAreasPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Agregar Código Postal</h2>
+                <h2 className="text-lg font-semibold text-gray-900">Add Zip Code</h2>
                 <button
                   onClick={() => setShowZipModal(false)}
                   className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
@@ -463,7 +464,7 @@ export function AdminServiceAreasPage() {
               <form onSubmit={handleAddZipCode} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Código Postal (5 dígitos) *
+                    Zip Code (5 digits) *
                   </label>
                   <input
                     type="text"
@@ -490,7 +491,7 @@ export function AdminServiceAreasPage() {
                     onClick={() => setShowZipModal(false)}
                     className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                   >
-                    Cancelar
+                    Cancel
                   </button>
                   <button
                     type="submit"

@@ -151,15 +151,15 @@ export function AdminAdditionalServicesPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Servicios Adicionales</h1>
-            <p className="text-gray-600">Gestiona los servicios extra que se pueden añadir a las reservas</p>
+            <h1 className="text-2xl font-bold text-gray-900">Additional Services</h1>
+            <p className="text-gray-600">Manage extra services that can be added to bookings</p>
           </div>
           <button
             onClick={() => setShowModal(true)}
             className="inline-flex items-center gap-2 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] transition-colors"
           >
             <Plus className="h-5 w-5" />
-            Nuevo Servicio
+            New Service
           </button>
         </div>
 
@@ -187,14 +187,14 @@ export function AdminAdditionalServicesPage() {
           <div className="bg-white rounded-lg p-4 border">
             <div className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-purple-500" />
-              <p className="text-sm text-gray-500">Total Servicios</p>
+              <p className="text-sm text-gray-500">Total Services</p>
             </div>
             <p className="text-2xl font-bold text-gray-900 mt-1">{services.length}</p>
           </div>
           <div className="bg-white rounded-lg p-4 border">
             <div className="flex items-center gap-2">
               <ToggleRight className="h-5 w-5 text-green-500" />
-              <p className="text-sm text-gray-500">Activos</p>
+              <p className="text-sm text-gray-500">Active</p>
             </div>
             <p className="text-2xl font-bold text-green-600 mt-1">
               {services.filter(s => s.isActive).length}
@@ -203,7 +203,7 @@ export function AdminAdditionalServicesPage() {
           <div className="bg-white rounded-lg p-4 border">
             <div className="flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-[#00205B]" />
-              <p className="text-sm text-gray-500">Precio Promedio</p>
+              <p className="text-sm text-gray-500">Average Price</p>
             </div>
             <p className="text-2xl font-bold text-[#00205B] mt-1">
               {formatCurrency(services.length > 0 ? totalRevenue / services.length : 0)}
@@ -252,14 +252,14 @@ export function AdminAdditionalServicesPage() {
                   <button
                     onClick={() => handleEdit(service)}
                     className="p-1 text-gray-400 hover:text-[#00205B] hover:bg-[#FFE44D]/10 rounded"
-                    title="Editar"
+                    title="Edit"
                   >
                     <Edit2 className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => setDeleteConfirm(service.id)}
                     className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
-                    title="Eliminar"
+                    title="Delete"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -268,12 +268,12 @@ export function AdminAdditionalServicesPage() {
 
               <h3 className="font-semibold text-gray-900 mb-1">{service.title}</h3>
               <p className="text-sm text-gray-500 mb-4 line-clamp-2">
-                {service.description || 'Sin descripción'}
+                {service.description || 'No description'}
               </p>
 
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="text-center p-2 bg-[#FFE44D]/10 rounded-lg">
-                  <p className="text-[#00205B] text-xs">Precio</p>
+                  <p className="text-[#00205B] text-xs">Price</p>
                   <p className="font-semibold text-[#001440]">{formatCurrency(service.price)}</p>
                 </div>
                 <div className="text-center p-2 bg-purple-50 rounded-lg">
@@ -291,12 +291,12 @@ export function AdminAdditionalServicesPage() {
         {filteredServices.length === 0 && (
           <div className="text-center py-12">
             <Sparkles className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">No se encontraron servicios adicionales</p>
+            <p className="text-gray-500">No additional services found</p>
             <button
               onClick={() => setShowModal(true)}
               className="mt-4 text-[#00205B] hover:underline"
             >
-              Crear el primero
+              Create the first one
             </button>
           </div>
         )}
@@ -307,21 +307,21 @@ export function AdminAdditionalServicesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              ¿Eliminar servicio adicional?
+              Delete additional service?
             </h3>
-            <p className="text-gray-600 mb-6">Esta acción no se puede deshacer.</p>
+            <p className="text-gray-600 mb-6">This action cannot be undone.</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
                 className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
               >
-                Cancelar
+                Cancel
               </button>
               <button
                 onClick={() => handleDelete(deleteConfirm)}
                 className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
               >
-                Eliminar
+                Delete
               </button>
             </div>
           </div>
@@ -334,7 +334,7 @@ export function AdminAdditionalServicesPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
             <div className="flex items-center justify-between p-6 border-b">
               <h2 className="text-xl font-semibold text-gray-900">
-                {editingService ? 'Editar Servicio Adicional' : 'Nuevo Servicio Adicional'}
+                {editingService ? 'Edit Additional Service' : 'New Service Adicional'}
               </h2>
               <button onClick={closeModal} className="p-2 text-gray-400 hover:text-gray-600">
                 <X className="h-5 w-5" />
@@ -343,7 +343,7 @@ export function AdminAdditionalServicesPage() {
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Título *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Title *</label>
                 <input
                   type="text"
                   value={form.title}
@@ -355,11 +355,11 @@ export function AdminAdditionalServicesPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                 <textarea
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="Descripción del servicio adicional"
+                  placeholder="Additional service description"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                   rows={3}
                 />
@@ -399,7 +399,7 @@ export function AdminAdditionalServicesPage() {
                     onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
                     className="w-4 h-4 text-[#00205B] border-gray-300 rounded focus:ring-[#00205B]"
                   />
-                  <span className="text-sm text-gray-700">Activo</span>
+                  <span className="text-sm text-gray-700">Active</span>
                 </label>
               )}
 
@@ -409,14 +409,14 @@ export function AdminAdditionalServicesPage() {
                   onClick={closeModal}
                   className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
                   className="flex-1 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] disabled:opacity-50"
                 >
-                  {saving ? 'Guardando...' : editingService ? 'Guardar' : 'Crear'}
+                  {saving ? 'Saving...' : editingService ? 'Save' : 'Create'}
                 </button>
               </div>
             </form>

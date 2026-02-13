@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { pushToast } from '@/lib/toast';
 
 const api = axios.create({
   baseURL: '/api',
@@ -25,12 +26,45 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // Normalize common errors into a user-friendly message on the error object
+    const status = error.response?.status;
+    let userMessage = '';
+
+    if (!error.response) {
+      userMessage = 'Could not connect to the server. Check your connection and try again.';
+    } else if (status === 401) {
+      // Clear tokens and redirect to login when unauthorized
       localStorage.removeItem('token');
       localStorage.removeItem('rememberMe');
       sessionStorage.removeItem('token');
       window.location.href = '/login';
+      userMessage = 'Unauthorized. Please sign in.';
+    } else if (status === 400) {
+      userMessage = error.response?.data?.message
+        || (error.response?.data?.errors && Object.values(error.response.data.errors).flat().join(' '))
+        || 'Invalid request. Please check your input and try again.';
+    } else if (status === 404) {
+      userMessage = 'Resource not found.';
+    } else if (status >= 500) {
+      userMessage = 'Internal server error. Please try again later.';
+    } else {
+      userMessage = error.response?.data?.message || error.message || 'Unexpected error. Please try again.';
     }
+
+    // Attach a friendly message for consumers (components/hooks)
+    try {
+      error.userMessage = userMessage;
+    } catch {
+      // ignore if readonly
+    }
+
+    // Also emit a global toast for user-friendly feedback
+    try {
+      if (userMessage) pushToast(userMessage, status && status >= 500 ? 'error' : 'warning');
+    } catch {
+      // swallow
+    }
+
     return Promise.reject(error);
   }
 );
@@ -281,8 +315,11 @@ export const authApi = {
     api.get<{ email: string; exists: boolean }>(`/auth/check-email?email=${encodeURIComponent(email)}`),
 
   logout: () => {
+    localStorage.removeItem('token');
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('rememberMe');
+    sessionStorage.removeItem('token');
   },
 };
 
