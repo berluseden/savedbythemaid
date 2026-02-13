@@ -19,6 +19,8 @@ interface DashboardStats {
   totalRevenue: number;
   totalEmployees: number;
   activeEmployees: number;
+  todayServiceCount: number;
+  nextServiceText: string;
 }
 
 interface OrderSummary {
@@ -29,6 +31,7 @@ interface OrderSummary {
   total: number;
   orderStatus: string;
   createdAt: string;
+  scheduledDate?: string | null;
 }
 
 interface EmployeeDto {
@@ -46,6 +49,8 @@ export function AdminDashboardPage() {
     totalRevenue: 0,
     totalEmployees: 0,
     activeEmployees: 0,
+    todayServiceCount: 0,
+    nextServiceText: 'No hay servicios pendientes',
   });
 
   const [recentBookings, setRecentBookings] = useState<OrderSummary[]>([]);
@@ -70,6 +75,40 @@ export function AdminDashboardPage() {
         const pendingBookings = orders.filter(o => o.orderStatus === 'Pending').length;
         const completedBookings = orders.filter(o => o.orderStatus === 'Completed').length;
 
+        // Logic for today/next services
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const endOfToday = new Date(startOfToday);
+        endOfToday.setDate(endOfToday.getDate() + 1);
+
+        // Filter active orders that have a scheduled date
+        const activeOrdersWithDate = orders
+            .filter(o => o.scheduledDate && ['Confirmed', 'InProgress', 'Pending'].includes(o.orderStatus))
+            .map(o => ({ ...o, dateObj: new Date(o.scheduledDate!) }));
+        
+        const todayServices = activeOrdersWithDate.filter(o => 
+             o.dateObj >= startOfToday && o.dateObj < endOfToday
+        );
+
+        // Find next future service
+        const futureServices = activeOrdersWithDate
+            .filter(o => o.dateObj > now)
+            .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+        
+        let nextServiceText = "No hay servicios pendientes por venir";
+        if (futureServices.length > 0) {
+            const next = futureServices[0];
+            const timeStr = next.dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            
+            // If it's today
+             if (next.dateObj >= startOfToday && next.dateObj < endOfToday) {
+                 nextServiceText = `Próximo a las ${timeStr}`;
+             } else {
+                 const dateStr = next.dateObj.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+                 nextServiceText = `Próximo: ${dateStr} ${timeStr}`;
+             }
+        }
+
         setStats({
           totalBookings: orders.length,
           pendingBookings,
@@ -77,6 +116,8 @@ export function AdminDashboardPage() {
           totalRevenue,
           totalEmployees: employees.length,
           activeEmployees: employees.filter(e => e.isActive).length,
+          todayServiceCount: todayServices.length,
+          nextServiceText
         });
 
         // Recent bookings (last 5)
@@ -300,10 +341,10 @@ export function AdminDashboardPage() {
                   <Clock className="h-5 w-5 text-blue-600 mt-0.5" />
                   <div>
                     <p className="text-sm font-medium text-blue-800">
-                      3 servicios hoy
+                      {stats.todayServiceCount} servicios hoy
                     </p>
                     <p className="text-xs text-blue-600 mt-1">
-                      Próximo a las 14:00
+                      {stats.nextServiceText}
                     </p>
                   </div>
                 </div>

@@ -75,7 +75,8 @@ public class AdminOrdersController : ControllerBase
                 Total = o.Total,
                 OrderStatus = o.OrderStatus,
                 RecurrenceType = o.RecurrenceType,
-                CreatedAt = o.CreatedAt
+                CreatedAt = o.CreatedAt,
+                ScheduledDate = o.Meetings.OrderBy(m => m.ScheduledStart).Select(m => (DateTime?)m.ScheduledStart).FirstOrDefault()
             })
             .ToListAsync();
     }
@@ -565,6 +566,7 @@ public record OrderSummaryDto
     public OrderStatus OrderStatus { get; init; }
     public RecurrenceType RecurrenceType { get; init; }
     public DateTime CreatedAt { get; init; }
+    public DateTime? ScheduledDate { get; init; }
 }
 
 public record MeetingSummaryDto
