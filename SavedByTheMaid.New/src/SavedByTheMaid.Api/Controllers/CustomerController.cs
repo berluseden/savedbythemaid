@@ -2,13 +2,14 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SavedByTheMaid.Api.Services;
 using SavedByTheMaid.Infrastructure.Data;
 using SavedByTheMaid.Domain.Enums;
 
 namespace SavedByTheMaid.Api.Controllers;
 
 /// <summary>
-/// API para el portal del cliente autenticado
+/// API for the authenticated customer portal
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -17,17 +18,19 @@ public class CustomerController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<CustomerController> _logger;
+    private readonly ISchedulingService _schedulingService;
 
-    public CustomerController(ApplicationDbContext context, ILogger<CustomerController> logger)
+    public CustomerController(ApplicationDbContext context, ILogger<CustomerController> logger, ISchedulingService schedulingService)
     {
         _context = context;
         _logger = logger;
+        _schedulingService = schedulingService;
     }
 
     private string? GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
 
     /// <summary>
-    /// Obtiene las órdenes del cliente actual
+    /// Gets the current customer's orders
     /// </summary>
     [HttpGet("my-orders")]
     public async Task<ActionResult<CustomerOrdersResponse>> GetMyOrders(
@@ -93,7 +96,7 @@ public class CustomerController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene una orden específica del cliente
+    /// Gets a specific customer order
     /// </summary>
     [HttpGet("my-orders/{id}")]
     public async Task<ActionResult<CustomerOrderDetailDto>> GetOrderDetail(int id)
@@ -154,7 +157,7 @@ public class CustomerController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene estadísticas del cliente
+    /// Gets customer statistics
     /// </summary>
     [HttpGet("stats")]
     public async Task<ActionResult<CustomerStatsDto>> GetStats()
@@ -197,7 +200,7 @@ public class CustomerController : ControllerBase
     }
 
     /// <summary>
-    /// Cancela una orden del cliente (solo si está pendiente o confirmada)
+    /// Cancels a customer order (only if pending or confirmed)
     /// </summary>
     [HttpPost("my-orders/{id}/cancel")]
     public async Task<IActionResult> CancelOrder(int id, [FromBody] CustomerCancelRequest request)
@@ -207,6 +210,7 @@ public class CustomerController : ControllerBase
             return Unauthorized();
 
         var order = await _context.ServiceOrders
+            .Include(o => o.Meetings)
             .FirstOrDefaultAsync(o => o.Id == id && o.CustomerId == userId && !o.IsDeleted);
 
         if (order == null)
@@ -220,9 +224,25 @@ public class CustomerController : ControllerBase
             ? $"Cancelled by customer: {request.Reason}"
             : $"{order.SpecialInstructions}\n\nCancelled by customer: {request.Reason}";
 
+        // Cascade: cancel all pending meetings and release their slots
+        foreach (var meet in order.Meetings.Where(m =>
+            m.Status == MeetStatus.Scheduled ||
+            m.Status == MeetStatus.Assigned ||
+            m.Status == MeetStatus.Rescheduled))
+        {
+            meet.Status = MeetStatus.Cancelled;
+            meet.CancellationReason = $"Order cancelled by customer: {request.Reason}";
+
+            if (meet.AssignedEmployeeId.HasValue)
+            {
+                await _schedulingService.ReleaseSlotsAsync(meet.Id, OccupancyType.Meeting);
+            }
+        }
+
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Order {OrderId} cancelled by customer {UserId}", id, userId);
+        _logger.LogInformation("Order {OrderId} cancelled by customer {UserId} - {MeetCount} meetings cancelled",
+            id, userId, order.Meetings.Count(m => m.Status == MeetStatus.Cancelled));
 
         return NoContent();
     }

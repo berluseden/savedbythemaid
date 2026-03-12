@@ -5,12 +5,12 @@ using FluentAssertions;
 namespace SavedByTheMaid.Api.Tests;
 
 /// <summary>
-/// Tests para el flujo de autenticación
-/// 
-/// BUENA PRÁCTICA:
-/// - Un test = un comportamiento específico
-/// - Nombres descriptivos: Method_Scenario_ExpectedResult
-/// - Arrange-Act-Assert claramente separados
+/// Tests for the authentication flow
+///
+/// BEST PRACTICE:
+/// - One test = one specific behavior
+/// - Descriptive names: Method_Scenario_ExpectedResult
+/// - Arrange-Act-Assert clearly separated
 /// </summary>
 public class AuthControllerTests : IClassFixture<CustomWebApplicationFactory>
 {
@@ -94,23 +94,20 @@ public class AuthControllerTests : IClassFixture<CustomWebApplicationFactory>
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
-    // NOTA: Estos tests requieren que Identity funcione correctamente con InMemory
-    // En producción real, se usaría una base de datos de test dedicada (SQL Server LocalDB o contenedor)
-    // Skip por ahora ya que la configuración de UserManager con InMemory tiene limitaciones
-    
-    [Fact(Skip = "Requiere configuración adicional de Identity con InMemory - issue conocido")]
+    [Fact]
     public async Task Login_AfterRegister_ReturnsToken()
     {
         // Arrange
         var email = $"login_test_{Guid.NewGuid()}@example.com";
         var password = "TestPassword123!";
-        
+
         // Register first
-        await _client.PostAsJsonAsync("/api/auth/register", new
+        var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", new
         {
             Email = email,
             Password = password
         });
+        registerResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         // Act - Login
         var response = await _client.PostAsJsonAsync("/api/auth/login", new
@@ -118,7 +115,7 @@ public class AuthControllerTests : IClassFixture<CustomWebApplicationFactory>
             Email = email,
             Password = password
         });
-        
+
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var content = await response.Content.ReadFromJsonAsync<AuthResponse>();
@@ -135,7 +132,7 @@ public class AuthControllerTests : IClassFixture<CustomWebApplicationFactory>
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
-    [Fact(Skip = "Requiere configuración adicional de Identity con InMemory - issue conocido")]
+    [Fact]
     public async Task Me_WithValidToken_ReturnsUserInfo()
     {
         // Arrange - Register and get token
@@ -147,11 +144,12 @@ public class AuthControllerTests : IClassFixture<CustomWebApplicationFactory>
         });
         var authResponse = await registerResponse.Content.ReadFromJsonAsync<AuthResponse>();
 
-        // Act
-        _client.DefaultRequestHeaders.Authorization = 
+        // Act - Use HttpRequestMessage to avoid mutating shared _client headers
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/auth/me");
+        request.Headers.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authResponse!.AccessToken);
-        var response = await _client.GetAsync("/api/auth/me");
-        
+        var response = await _client.SendAsync(request);
+
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var user = await response.Content.ReadFromJsonAsync<UserDto>();

@@ -3,8 +3,8 @@ using SavedByTheMaid.Domain.Common;
 namespace SavedByTheMaid.Domain.Entities;
 
 /// <summary>
-/// Relación entre habitaciones y tipos de servicio permitidos
-/// Define qué servicios son válidos en cada espacio
+/// Relationship between rooms and allowed service types
+/// Defines which services are valid for each space
 /// </summary>
 public class RoomServiceType : BaseEntity
 {
@@ -15,14 +15,14 @@ public class RoomServiceType : BaseEntity
     public virtual ServiceType? ServiceType { get; set; }
 
     /// <summary>
-    /// Tiempo base en minutos para este servicio en esta habitación
-    /// Sobrescribe el tiempo base de la habitación si está definido
+    /// Base time in minutes for this service in this room
+    /// Overrides the room's base time if defined
     /// </summary>
     public int? BaseMinutesOverride { get; set; }
 
     /// <summary>
-    /// Precio base para este servicio en esta habitación
-    /// Sobrescribe el precio base del servicio si está definido
+    /// Base price for this service in this room
+    /// Overrides the service's base price if defined
     /// </summary>
     public decimal? BasePriceOverride { get; set; }
 

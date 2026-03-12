@@ -3,7 +3,7 @@ using SavedByTheMaid.Domain.Common;
 namespace SavedByTheMaid.Domain.Entities;
 
 /// <summary>
-/// Equipamiento requerido para ciertos servicios (aspiradora industrial, escalera alta, etc.)
+/// Equipment required for certain services (industrial vacuum, tall ladder, etc.)
 /// </summary>
 public class Equipment : BaseEntity
 {
@@ -11,13 +11,13 @@ public class Equipment : BaseEntity
     public string? Description { get; set; }
     public bool IsActive { get; set; } = true;
     
-    // Navegación
+    // Navigation
     public virtual ICollection<ServiceTypeEquipment> ServiceTypes { get; set; } = new List<ServiceTypeEquipment>();
     public virtual ICollection<EmployeeEquipment> Employees { get; set; } = new List<EmployeeEquipment>();
 }
 
 /// <summary>
-/// Equipamiento requerido por un tipo de servicio
+/// Equipment required by a service type
 /// </summary>
 public class ServiceTypeEquipment : BaseEntity
 {
@@ -28,13 +28,13 @@ public class ServiceTypeEquipment : BaseEntity
     public virtual Equipment? Equipment { get; set; }
 
     /// <summary>
-    /// Si es obligatorio o recomendado
+    /// Whether it is required or recommended
     /// </summary>
     public bool IsRequired { get; set; } = true;
 }
 
 /// <summary>
-/// Equipamiento que posee o puede usar una empleada
+/// Equipment owned or usable by an employee
 /// </summary>
 public class EmployeeEquipment : BaseEntity
 {
@@ -45,7 +45,7 @@ public class EmployeeEquipment : BaseEntity
     public virtual Equipment? Equipment { get; set; }
 
     /// <summary>
-    /// Si la empleada tiene este equipo disponible actualmente
+    /// Whether the employee currently has this equipment available
     /// </summary>
     public bool IsAvailable { get; set; } = true;
 }

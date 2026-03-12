@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
-  <!-- Para acceso desde tests -->
+  <!-- For access from tests -->
   <ItemGroup>
     <InternalsVisibleTo Include="SavedByTheMaid.Api.Tests" />
   </ItemGroup>
@@ -20,7 +20,7 @@
     <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0" />
   </ItemGroup>
 
-  <!-- EF Core Design solo para desarrollo local (migraciones) -->
+  <!-- EF Core Design for local development only (migrations) -->
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.1">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

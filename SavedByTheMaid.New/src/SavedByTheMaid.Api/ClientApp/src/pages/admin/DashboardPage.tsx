@@ -123,8 +123,7 @@ export function AdminDashboardPage() {
         // Recent bookings (last 5)
         setRecentBookings(orders.slice(0, 5));
       } catch (err) {
-        setError('Error al cargar datos del dashboard');
-        console.error(err);
+        setError('Error loading dashboard data');
       } finally {
         setIsLoading(false);
       }
@@ -150,8 +149,8 @@ export function AdminDashboardPage() {
     };
     const labels: Record<string, string> = {
       Pending: 'Pending',
-      Confirmed: 'Confirmada',
-      InProgress: 'En Progreso',
+      Confirmed: 'Confirmed',
+      InProgress: 'In Progress',
       Completed: 'Completed',
       Cancelled: 'Cancelled',
     };
@@ -178,7 +177,7 @@ export function AdminDashboardPage() {
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600">Resumen de tu negocio</p>
+          <p className="text-gray-600">Business overview</p>
         </div>
 
         {/* Stats Grid */}
@@ -197,7 +196,7 @@ export function AdminDashboardPage() {
             <div className="mt-4 flex items-center gap-2">
               <span className="flex items-center text-sm text-green-600">
                 <ArrowUpRight className="h-4 w-4" />
-                Datos reales
+                Real data
               </span>
             </div>
           </div>
@@ -216,7 +215,7 @@ export function AdminDashboardPage() {
             <div className="mt-4 flex items-center gap-2">
               <span className="flex items-center text-sm text-green-600">
                 <TrendingUp className="h-4 w-4" />
-                Desde inicio
+                All time
               </span>
             </div>
           </div>
@@ -265,7 +264,7 @@ export function AdminDashboardPage() {
         {error && (
           <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg">
             {error}
-            <button onClick={() => setError('')} className="ml-2 underline">Cerrar</button>
+            <button onClick={() => setError('')} className="ml-2 underline">Close</button>
           </div>
         )}
 
@@ -277,7 +276,7 @@ export function AdminDashboardPage() {
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-gray-900">Recent Bookings</h2>
                 <a href="/admin/bookings" className="text-sm text-[#00205B] hover:text-[#001440]">
-                  Ver todas →
+                  View all →
                 </a>
               </div>
             </div>
@@ -288,9 +287,9 @@ export function AdminDashboardPage() {
                     <th className="px-6 py-3 font-medium">ID</th>
                     <th className="px-6 py-3 font-medium">Customer</th>
                     <th className="px-6 py-3 font-medium">Service</th>
-                    <th className="px-6 py-3 font-medium">Fecha</th>
+                    <th className="px-6 py-3 font-medium">Date</th>
                     <th className="px-6 py-3 font-medium">Status</th>
-                    <th className="px-6 py-3 font-medium text-right">Monto</th>
+                    <th className="px-6 py-3 font-medium text-right">Amount</th>
                   </tr>
                 </thead>
                 <tbody>

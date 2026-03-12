@@ -3,39 +3,39 @@ using SavedByTheMaid.Domain.Enums;
 namespace SavedByTheMaid.Domain.Services;
 
 /// <summary>
-/// Máquina de estados para OrderStatus.
-/// Define las transiciones válidas entre estados de una orden.
+/// State machine for OrderStatus.
+/// Defines the valid transitions between order states.
 /// </summary>
 public static class OrderStateMachine
 {
     /// <summary>
-    /// Diccionario de transiciones válidas para cada estado de orden.
-    /// Los estados terminales (Completed, Cancelled, NoShow) no tienen transiciones.
+    /// Dictionary of valid transitions for each order state.
+    /// Terminal states (Completed, Cancelled, NoShow) have no transitions.
     /// </summary>
     private static readonly Dictionary<OrderStatus, OrderStatus[]> ValidTransitions = new()
     {
-        // PendingReview: Orden nueva pendiente de revisión por admin
+        // PendingReview: New order pending admin review
         [OrderStatus.PendingReview] = new[] { OrderStatus.Confirmed, OrderStatus.Cancelled },
         
-        // Draft (deprecated): Se comporta igual que PendingReview para compatibilidad
+        // Draft (deprecated): Behaves the same as PendingReview for compatibility
         #pragma warning disable CS0618 // Type or member is obsolete
         [OrderStatus.Draft] = new[] { OrderStatus.Confirmed, OrderStatus.Cancelled },
         #pragma warning restore CS0618
         
-        // Confirmed: Orden confirmada, puede iniciar, cancelarse o marcar NoShow
+        // Confirmed: Confirmed order, can start, be cancelled, or marked NoShow
         [OrderStatus.Confirmed] = new[] { OrderStatus.InProgress, OrderStatus.Cancelled, OrderStatus.NoShow },
         
-        // InProgress: Servicio en ejecución, puede completarse o cancelarse
+        // InProgress: Service in progress, can be completed or cancelled
         [OrderStatus.InProgress] = new[] { OrderStatus.Completed, OrderStatus.Cancelled },
         
-        // Estados terminales - no tienen transiciones permitidas
+        // Terminal states - no allowed transitions
         [OrderStatus.Completed] = Array.Empty<OrderStatus>(),
         [OrderStatus.Cancelled] = Array.Empty<OrderStatus>(),
         [OrderStatus.NoShow] = Array.Empty<OrderStatus>()
     };
 
     /// <summary>
-    /// Estados considerados como finales (no permiten más transiciones)
+    /// States considered final (no further transitions allowed)
     /// </summary>
     public static readonly OrderStatus[] FinalStates = new[]
     {
@@ -45,7 +45,7 @@ public static class OrderStateMachine
     };
 
     /// <summary>
-    /// Estados considerados como activos (orden en proceso)
+    /// States considered active (order in progress)
     /// </summary>
     public static readonly OrderStatus[] ActiveStates = new[]
     {
@@ -55,11 +55,11 @@ public static class OrderStateMachine
     };
 
     /// <summary>
-    /// Verifica si una transición de estado es válida.
+    /// Checks whether a state transition is valid.
     /// </summary>
-    /// <param name="from">Estado actual de la orden</param>
-    /// <param name="to">Estado destino propuesto</param>
-    /// <returns>True si la transición es válida, false en caso contrario</returns>
+    /// <param name="from">Current order state</param>
+    /// <param name="to">Proposed target state</param>
+    /// <returns>True if the transition is valid, false otherwise</returns>
     public static bool CanTransition(OrderStatus from, OrderStatus to)
     {
         if (!ValidTransitions.TryGetValue(from, out var allowed))
@@ -69,10 +69,10 @@ public static class OrderStateMachine
     }
 
     /// <summary>
-    /// Obtiene todos los estados a los que se puede transicionar desde el estado actual.
+    /// Gets all states that can be transitioned to from the current state.
     /// </summary>
-    /// <param name="current">Estado actual de la orden</param>
-    /// <returns>Array de estados permitidos, o vacío si es estado terminal</returns>
+    /// <param name="current">Current order state</param>
+    /// <returns>Array of allowed states, or empty if it is a terminal state</returns>
     public static OrderStatus[] GetAllowedTransitions(OrderStatus current)
     {
         return ValidTransitions.TryGetValue(current, out var allowed)
@@ -81,76 +81,76 @@ public static class OrderStateMachine
     }
 
     /// <summary>
-    /// Verifica si un estado es terminal (no permite más transiciones).
+    /// Checks whether a state is terminal (no further transitions allowed).
     /// </summary>
-    /// <param name="status">Estado a verificar</param>
-    /// <returns>True si es estado terminal</returns>
+    /// <param name="status">State to check</param>
+    /// <returns>True if it is a terminal state</returns>
     public static bool IsFinalState(OrderStatus status)
     {
         return FinalStates.Contains(status);
     }
 
     /// <summary>
-    /// Verifica si un estado es activo (orden en proceso, no terminal).
+    /// Checks whether a state is active (order in progress, not terminal).
     /// </summary>
-    /// <param name="status">Estado a verificar</param>
-    /// <returns>True si es estado activo</returns>
+    /// <param name="status">State to check</param>
+    /// <returns>True if it is an active state</returns>
     public static bool IsActiveState(OrderStatus status)
     {
         return ActiveStates.Contains(status);
     }
 
     /// <summary>
-    /// Valida una transición y lanza excepción si no es válida.
+    /// Validates a transition and throws an exception if it is not valid.
     /// </summary>
-    /// <param name="from">Estado actual</param>
-    /// <param name="to">Estado destino</param>
-    /// <exception cref="InvalidOperationException">Si la transición no es válida</exception>
+    /// <param name="from">Current state</param>
+    /// <param name="to">Target state</param>
+    /// <exception cref="InvalidOperationException">If the transition is not valid</exception>
     public static void ValidateTransition(OrderStatus from, OrderStatus to)
     {
         if (!CanTransition(from, to))
         {
             throw new InvalidOperationException(
-                $"Transición de estado inválida: {from} -> {to}. " +
-                $"Transiciones permitidas desde {from}: [{string.Join(", ", GetAllowedTransitions(from))}]");
+                $"Invalid state transition: {from} -> {to}. " +
+                $"Allowed transitions from {from}: [{string.Join(", ", GetAllowedTransitions(from))}]");
         }
     }
 }
 
 /// <summary>
-/// Máquina de estados para MeetStatus.
-/// Define las transiciones válidas entre estados de una cita de servicio.
+/// State machine for MeetStatus.
+/// Defines the valid transitions between service appointment states.
 /// </summary>
 public static class MeetStateMachine
 {
     /// <summary>
-    /// Diccionario de transiciones válidas para cada estado de cita.
+    /// Dictionary of valid transitions for each appointment state.
     /// </summary>
     private static readonly Dictionary<MeetStatus, MeetStatus[]> ValidTransitions = new()
     {
-        // Scheduled: Cita programada, puede asignarse, cancelarse o reprogramarse
+        // Scheduled: Scheduled appointment, can be assigned, cancelled, or rescheduled
         [MeetStatus.Scheduled] = new[] { MeetStatus.Assigned, MeetStatus.Cancelled, MeetStatus.Rescheduled },
         
-        // Assigned: Empleada asignada, puede iniciar camino, cancelarse o reprogramarse
+        // Assigned: Employee assigned, can start traveling, be cancelled, or rescheduled
         [MeetStatus.Assigned] = new[] { MeetStatus.OnTheWay, MeetStatus.Cancelled, MeetStatus.Rescheduled },
         
-        // OnTheWay: Empleada en camino, puede iniciar servicio o cancelarse
+        // OnTheWay: Employee on the way, can start service or be cancelled
         [MeetStatus.OnTheWay] = new[] { MeetStatus.InProgress, MeetStatus.Cancelled, MeetStatus.NoShow },
         
-        // InProgress: Servicio en ejecución, puede completarse o cancelarse
+        // InProgress: Service in progress, can be completed or cancelled
         [MeetStatus.InProgress] = new[] { MeetStatus.Completed, MeetStatus.Cancelled },
         
-        // Rescheduled: Reprogramada, vuelve a estado Scheduled cuando se confirma nueva fecha
+        // Rescheduled: Rescheduled, returns to Scheduled state when a new date is confirmed
         [MeetStatus.Rescheduled] = new[] { MeetStatus.Scheduled, MeetStatus.Assigned, MeetStatus.Cancelled },
         
-        // Estados terminales
+        // Terminal states
         [MeetStatus.Completed] = Array.Empty<MeetStatus>(),
         [MeetStatus.Cancelled] = Array.Empty<MeetStatus>(),
         [MeetStatus.NoShow] = Array.Empty<MeetStatus>()
     };
 
     /// <summary>
-    /// Estados considerados como finales
+    /// States considered final
     /// </summary>
     public static readonly MeetStatus[] FinalStates = new[]
     {
@@ -160,7 +160,7 @@ public static class MeetStateMachine
     };
 
     /// <summary>
-    /// Estados considerados como activos
+    /// States considered active
     /// </summary>
     public static readonly MeetStatus[] ActiveStates = new[]
     {
@@ -172,7 +172,7 @@ public static class MeetStateMachine
     };
 
     /// <summary>
-    /// Verifica si una transición de estado es válida.
+    /// Checks whether a state transition is valid.
     /// </summary>
     public static bool CanTransition(MeetStatus from, MeetStatus to)
     {
@@ -183,7 +183,7 @@ public static class MeetStateMachine
     }
 
     /// <summary>
-    /// Obtiene todos los estados a los que se puede transicionar desde el estado actual.
+    /// Gets all states that can be transitioned to from the current state.
     /// </summary>
     public static MeetStatus[] GetAllowedTransitions(MeetStatus current)
     {
@@ -193,7 +193,7 @@ public static class MeetStateMachine
     }
 
     /// <summary>
-    /// Verifica si un estado es terminal.
+    /// Checks whether a state is terminal.
     /// </summary>
     public static bool IsFinalState(MeetStatus status)
     {
@@ -201,7 +201,7 @@ public static class MeetStateMachine
     }
 
     /// <summary>
-    /// Verifica si un estado es activo.
+    /// Checks whether a state is active.
     /// </summary>
     public static bool IsActiveState(MeetStatus status)
     {
@@ -209,15 +209,15 @@ public static class MeetStateMachine
     }
 
     /// <summary>
-    /// Valida una transición y lanza excepción si no es válida.
+    /// Validates a transition and throws an exception if it is not valid.
     /// </summary>
     public static void ValidateTransition(MeetStatus from, MeetStatus to)
     {
         if (!CanTransition(from, to))
         {
             throw new InvalidOperationException(
-                $"Transición de estado inválida: {from} -> {to}. " +
-                $"Transiciones permitidas desde {from}: [{string.Join(", ", GetAllowedTransitions(from))}]");
+                $"Invalid state transition: {from} -> {to}. " +
+                $"Allowed transitions from {from}: [{string.Join(", ", GetAllowedTransitions(from))}]");
         }
     }
 }

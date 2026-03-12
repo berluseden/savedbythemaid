@@ -48,7 +48,7 @@ export default function BookingSuccessPage() {
   const [copied, setCopied] = useState(false);
   const [countdown, setCountdown] = useState(5);
 
-  // Refrescar el contexto de auth si hay token guardado (usuario recién creado)
+  // Refresh auth context if there's a stored token (newly created user)
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token && !isAuthenticated) {

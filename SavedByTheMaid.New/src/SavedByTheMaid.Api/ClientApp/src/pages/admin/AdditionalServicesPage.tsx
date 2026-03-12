@@ -51,8 +51,7 @@ export function AdminAdditionalServicesPage() {
       const response = await api.get<AdditionalService[]>('/admin/additionalservices');
       setServices(response.data);
     } catch (err) {
-      setError('Error al cargar servicios adicionales');
-      console.error(err);
+      setError('Error loading additional services');
     } finally {
       setIsLoading(false);
     }
@@ -72,8 +71,7 @@ export function AdminAdditionalServicesPage() {
       await fetchServices();
       closeModal();
     } catch (err) {
-      setError('Error al guardar el servicio adicional');
-      console.error(err);
+      setError('Error saving additional service');
     } finally {
       setSaving(false);
     }
@@ -97,8 +95,7 @@ export function AdminAdditionalServicesPage() {
       await fetchServices();
       setDeleteConfirm(null);
     } catch (err) {
-      setError('Error al eliminar el servicio');
-      console.error(err);
+      setError('Error deleting service');
     }
   };
 
@@ -113,8 +110,7 @@ export function AdminAdditionalServicesPage() {
       });
       await fetchServices();
     } catch (err) {
-      setError('Error al actualizar el servicio');
-      console.error(err);
+      setError('Error updating service');
     }
   };
 
@@ -166,7 +162,7 @@ export function AdminAdditionalServicesPage() {
         {error && (
           <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg">
             {error}
-            <button onClick={() => setError('')} className="ml-2 underline">Cerrar</button>
+            <button onClick={() => setError('')} className="ml-2 underline">Close</button>
           </div>
         )}
 
@@ -175,7 +171,7 @@ export function AdminAdditionalServicesPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
           <input
             type="search"
-            placeholder="Buscar servicios adicionales..."
+            placeholder="Search additional services..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
@@ -212,7 +208,7 @@ export function AdminAdditionalServicesPage() {
           <div className="bg-white rounded-lg p-4 border">
             <div className="flex items-center gap-2">
               <Clock className="h-5 w-5 text-emerald-500" />
-              <p className="text-sm text-gray-500">Tiempo Prom.</p>
+              <p className="text-sm text-gray-500">Avg. Time</p>
             </div>
             <p className="text-2xl font-bold text-emerald-600 mt-1">
               {services.length > 0 ? Math.round(services.reduce((acc, s) => acc + s.additionalMinutes, 0) / services.length) : 0} min
@@ -241,7 +237,7 @@ export function AdminAdditionalServicesPage() {
                         ? 'text-green-600 hover:bg-green-50'
                         : 'text-gray-400 hover:bg-gray-50'
                     }`}
-                    title={service.isActive ? 'Desactivar' : 'Activar'}
+                    title={service.isActive ? 'Deactivate' : 'Activate'}
                   >
                     {service.isActive ? (
                       <ToggleRight className="h-5 w-5" />
@@ -277,7 +273,7 @@ export function AdminAdditionalServicesPage() {
                   <p className="font-semibold text-[#001440]">{formatCurrency(service.price)}</p>
                 </div>
                 <div className="text-center p-2 bg-purple-50 rounded-lg">
-                  <p className="text-purple-600 text-xs">Tiempo</p>
+                  <p className="text-purple-600 text-xs">Time</p>
                   <p className="font-semibold text-purple-700 flex items-center justify-center gap-1">
                     <Clock className="h-3 w-3" />
                     {service.additionalMinutes}m
@@ -334,7 +330,7 @@ export function AdminAdditionalServicesPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
             <div className="flex items-center justify-between p-6 border-b">
               <h2 className="text-xl font-semibold text-gray-900">
-                {editingService ? 'Edit Additional Service' : 'New Service Adicional'}
+                {editingService ? 'Edit Additional Service' : 'New Additional Service'}
               </h2>
               <button onClick={closeModal} className="p-2 text-gray-400 hover:text-gray-600">
                 <X className="h-5 w-5" />
@@ -348,7 +344,7 @@ export function AdminAdditionalServicesPage() {
                   type="text"
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  placeholder="Ej: Limpieza de refrigerador"
+                  placeholder="E.g.: Refrigerator cleaning"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                   required
                 />
@@ -367,7 +363,7 @@ export function AdminAdditionalServicesPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Precio ($) *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Price ($) *</label>
                   <input
                     type="number"
                     min="0"
@@ -379,7 +375,7 @@ export function AdminAdditionalServicesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Minutos extra</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Extra minutes</label>
                   <input
                     type="number"
                     min="0"

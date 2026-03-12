@@ -3,38 +3,38 @@ namespace SavedByTheMaid.Domain.Enums;
 public enum OrderStatus
 {
     /// <summary>
-    /// Orden pendiente de revisión por administrador (estado inicial desde web)
+    /// Order pending admin review (initial state from web)
     /// </summary>
     PendingReview = 0,
     
     /// <summary>
-    /// Borrador - Orden creada pero no finalizada (deprecated, usar PendingReview)
+    /// Draft - Order created but not finalized (deprecated, use PendingReview)
     /// </summary>
-    [Obsolete("Use PendingReview para nuevas órdenes")]
+    [Obsolete("Use PendingReview for new orders")]
     Draft = 1,
     
     /// <summary>
-    /// Orden confirmada y lista para ejecutarse
+    /// Order confirmed and ready to be executed
     /// </summary>
     Confirmed = 2,
     
     /// <summary>
-    /// Servicio en progreso
+    /// Service in progress
     /// </summary>
     InProgress = 3,
     
     /// <summary>
-    /// Servicio completado exitosamente
+    /// Service completed successfully
     /// </summary>
     Completed = 4,
     
     /// <summary>
-    /// Orden cancelada
+    /// Order cancelled
     /// </summary>
     Cancelled = 5,
     
     /// <summary>
-    /// Cliente no se presentó o no permitió acceso
+    /// Customer did not show up or did not allow access
     /// </summary>
     NoShow = 6
 }
@@ -89,19 +89,19 @@ public enum DayOfWeekFlag
 }
 
 /// <summary>
-/// Tipo de bloqueo/tiempo libre de empleada
+/// Type of employee block/time off
 /// </summary>
 public enum TimeOffType
 {
-    TimeOff = 0,        // Permiso general
-    Vacation = 1,       // Vacaciones
-    Sick = 2,           // Enfermedad
+    TimeOff = 0,        // General leave
+    Vacation = 1,       // Vacation
+    Sick = 2,           // Sick leave
     Personal = 3,       // Personal
-    ManualBlock = 4     // Bloqueo manual por admin
+    ManualBlock = 4     // Manual block by admin
 }
 
 /// <summary>
-/// Estado de aprobación de tiempo libre
+/// Time off approval status
 /// </summary>
 public enum TimeOffStatus
 {
@@ -111,7 +111,7 @@ public enum TimeOffStatus
 }
 
 /// <summary>
-/// Estado de ajuste por incidencia en ServiceMeet
+/// Incident adjustment status in ServiceMeet
 /// </summary>
 public enum AdjustmentStatus
 {
@@ -122,21 +122,21 @@ public enum AdjustmentStatus
 }
 
 /// <summary>
-/// Tipo de condición para multiplicadores de precio
+/// Condition type for price multipliers
 /// </summary>
 public enum MultiplierConditionType
 {
-    SquareFootage = 0,      // Por m²/sq ft
-    DirtLevel = 1,          // Nivel de suciedad (ligero/normal/alto)
-    HasPets = 2,            // Tiene mascotas
-    FirstTime = 3,          // Primera vez (vs recurrente)
-    FloorLevel = 4,         // Piso del inmueble
-    NoElevator = 5,         // Sin ascensor
-    ExtraRooms = 6          // Habitaciones adicionales
+    SquareFootage = 0,      // By sq ft/m²
+    DirtLevel = 1,          // Dirt level (light/normal/heavy)
+    HasPets = 2,            // Has pets
+    FirstTime = 3,          // First time (vs recurring)
+    FloorLevel = 4,         // Building floor level
+    NoElevator = 5,         // No elevator
+    ExtraRooms = 6          // Extra rooms
 }
 
 /// <summary>
-/// Nivel de suciedad del lugar
+/// Dirt level of the place
 /// </summary>
 public enum DirtLevel
 {
@@ -146,18 +146,18 @@ public enum DirtLevel
 }
 
 /// <summary>
-/// Tipo de ocupación de slot para modelo anti-colisión.
-/// SoftReserve es temporal y expira, Meeting es permanente.
+/// Slot occupancy type for the anti-collision model.
+/// SoftReserve is temporary and expires, Meeting is permanent.
 /// </summary>
 public enum OccupancyType
 {
     /// <summary>
-    /// Reserva temporal que expira después de cierto tiempo
+    /// Temporary reservation that expires after a certain time
     /// </summary>
     SoftReserve = 0,
     
     /// <summary>
-    /// Cita confirmada (ServiceMeet)
+    /// Confirmed appointment (ServiceMeet)
     /// </summary>
     Meeting = 1
 }

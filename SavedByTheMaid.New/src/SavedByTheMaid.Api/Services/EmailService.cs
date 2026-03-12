@@ -137,7 +137,7 @@ public class EmailService : IEmailService
         var fromEmail = _config["Email:FromEmail"] ?? "noreply@savedbytemaid.com";
         var fromName = _config["Email:FromName"] ?? "SavedByTheMaid";
 
-        // Si no hay configuración SMTP, solo log (desarrollo)
+        // If there is no SMTP configuration, just log (development)
         if (string.IsNullOrEmpty(smtpHost) || string.IsNullOrEmpty(smtpUser))
         {
             _logger.LogInformation(

@@ -7,8 +7,8 @@ using SavedByTheMaid.Domain.Enums;
 namespace SavedByTheMaid.Infrastructure.Data;
 
 /// <summary>
-/// Seed completo de datos maestros para MVP
-/// Idempotente: puede ejecutarse múltiples veces sin duplicar
+/// Full seed of master data for MVP
+/// Idempotent: can be executed multiple times without duplicating
 /// </summary>
 public class DataSeeder
 {
@@ -23,58 +23,58 @@ public class DataSeeder
 
     public async Task SeedAllAsync()
     {
-        _logger.LogInformation("Iniciando seed de datos maestros...");
+        _logger.LogInformation("Starting master data seed...");
 
         try
         {
-            // 0. Crear tablas adicionales si no existen (SlotOccupancy, StatusHistory)
+            // 0. Create additional tables if they don't exist (SlotOccupancy, StatusHistory)
             await EnsureAdditionalTablesAsync();
 
-            // 1. Limpiar duplicados
+            // 1. Clean duplicates
             await CleanDuplicatesAsync();
 
             // 2. Service Types
             await SeedServiceTypesAsync();
 
-            // 3. Cleaning Places y Rooms
+            // 3. Cleaning Places and Rooms
             await SeedCleaningPlacesAsync();
 
             // 4. Additional Services
             await SeedAdditionalServicesAsync();
 
-            // 5. Service Areas y ZIP Codes
+            // 5. Service Areas and ZIP Codes
             await SeedServiceAreasAsync();
 
             // 6. Equipment
             await SeedEquipmentAsync();
 
-            // 7. Employees de ejemplo
+            // 7. Sample Employees
             await SeedEmployeesAsync();
 
-            // 8. Employee Schedules y Service Areas
+            // 8. Employee Schedules and Service Areas
             await SeedEmployeeSchedulesAsync();
 
             // 9. Recurrence Discounts
             await SeedRecurrenceDiscountsAsync();
 
-            _logger.LogInformation("Seed de datos maestros completado exitosamente");
+            _logger.LogInformation("Master data seed completed successfully");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error durante el seed de datos");
+            _logger.LogError(ex, "Error during data seed");
             throw;
         }
     }
 
     /// <summary>
-    /// Crea tablas adicionales (SlotOccupancy, StatusHistory) si no existen.
-    /// Esto es idempotente y seguro para ejecutar múltiples veces.
+    /// Creates additional tables (SlotOccupancy, StatusHistory) if they don't exist.
+    /// This is idempotent and safe to execute multiple times.
     /// </summary>
     private async Task EnsureAdditionalTablesAsync()
     {
-        _logger.LogInformation("Verificando tablas adicionales...");
+        _logger.LogInformation("Checking additional tables...");
 
-        // SlotOccupancies - Anti-colisión
+        // SlotOccupancies - Anti-collision
         await _context.Database.ExecuteSqlRawAsync(@"
             CREATE TABLE IF NOT EXISTS SlotOccupancies (
                 Id INT AUTO_INCREMENT PRIMARY KEY,
@@ -97,7 +97,7 @@ public class DataSeeder
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         ");
 
-        // OrderStatusHistories - Auditoría de órdenes
+        // OrderStatusHistories - Order auditing
         await _context.Database.ExecuteSqlRawAsync(@"
             CREATE TABLE IF NOT EXISTS OrderStatusHistories (
                 Id INT AUTO_INCREMENT PRIMARY KEY,
@@ -120,7 +120,7 @@ public class DataSeeder
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         ");
 
-        // MeetStatusHistories - Auditoría de citas
+        // MeetStatusHistories - Appointment auditing
         await _context.Database.ExecuteSqlRawAsync(@"
             CREATE TABLE IF NOT EXISTS MeetStatusHistories (
                 Id INT AUTO_INCREMENT PRIMARY KEY,
@@ -143,23 +143,23 @@ public class DataSeeder
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         ");
 
-        _logger.LogInformation("Tablas adicionales verificadas/creadas");
+        _logger.LogInformation("Additional tables verified/created");
     }
 
     private async Task CleanDuplicatesAsync()
     {
-        _logger.LogInformation("Limpiando duplicados...");
+        _logger.LogInformation("Cleaning duplicates...");
 
-        // Eliminar usuario admin obsoleto sin FirstName
+        // Delete obsolete admin user without FirstName
         var obsoleteAdmin = await _context.Users
             .FirstOrDefaultAsync(u => u.Email == "admin@savedbythemaid.com" && u.FirstName == null);
         if (obsoleteAdmin != null)
         {
             _context.Users.Remove(obsoleteAdmin);
-            _logger.LogInformation("Usuario admin obsoleto eliminado");
+            _logger.LogInformation("Obsolete admin user deleted");
         }
 
-        // Eliminar ServiceAreas duplicadas - cargar en memoria primero
+        // Delete duplicate ServiceAreas - load into memory first
         var allAreas = await _context.ServiceAreas.ToListAsync();
         var duplicateGroups = allAreas
             .GroupBy(sa => sa.Name)
@@ -171,7 +171,7 @@ public class DataSeeder
             var toKeep = group.First();
             var toRemove = group.Skip(1).ToList();
             _context.ServiceAreas.RemoveRange(toRemove);
-            _logger.LogInformation("Eliminadas {Count} áreas duplicadas de '{Name}'", toRemove.Count, group.Key);
+            _logger.LogInformation("Deleted {Count} duplicate areas for '{Name}'", toRemove.Count, group.Key);
         }
 
         await _context.SaveChangesAsync();
@@ -183,8 +183,8 @@ public class DataSeeder
         {
             new ServiceType
             {
-                Name = "Limpieza Regular",
-                Description = "Limpieza estándar de mantenimiento semanal o quincenal",
+                Name = "Regular Cleaning",
+                Description = "Standard weekly or biweekly maintenance cleaning",
                 Cost = 45.00m,
                 Price = 75.00m,
                 PricePerBedroom = 15.00m,
@@ -196,8 +196,8 @@ public class DataSeeder
             },
             new ServiceType
             {
-                Name = "Limpieza Profunda",
-                Description = "Limpieza detallada a fondo incluyendo áreas difíciles",
+                Name = "Deep Cleaning",
+                Description = "Thorough detailed cleaning including hard-to-reach areas",
                 Cost = 90.00m,
                 Price = 150.00m,
                 PricePerBedroom = 25.00m,
@@ -209,8 +209,8 @@ public class DataSeeder
             },
             new ServiceType
             {
-                Name = "Mudanza (Move In/Out)",
-                Description = "Limpieza completa para mudanzas o entrega de propiedad",
+                Name = "Move In/Out",
+                Description = "Complete cleaning for moves or property handover",
                 Cost = 120.00m,
                 Price = 200.00m,
                 PricePerBedroom = 30.00m,
@@ -222,8 +222,8 @@ public class DataSeeder
             },
             new ServiceType
             {
-                Name = "Post-Construcción",
-                Description = "Limpieza después de remodelación o construcción",
+                Name = "Post-Construction",
+                Description = "Cleaning after remodeling or construction",
                 Cost = 150.00m,
                 Price = 250.00m,
                 PricePerBedroom = 35.00m,
@@ -243,7 +243,7 @@ public class DataSeeder
             if (!exists)
             {
                 _context.ServiceTypes.Add(serviceType);
-                _logger.LogInformation("Tipo de servicio creado: {Name}", serviceType.Name);
+                _logger.LogInformation("Service type created: {Name}", serviceType.Name);
             }
         }
 
@@ -254,29 +254,29 @@ public class DataSeeder
     {
         var places = new[]
         {
-            new { Name = "Casa/Apartamento", Description = "Residencia unifamiliar o apartamento", Rooms = new[] {
-                ("Recámara", "Limpieza de dormitorio incluyendo cama y closet", 25, 15.00m),
-                ("Baño", "Limpieza completa de sanitarios, ducha, lavabo", 20, 10.00m),
-                ("Sala", "Limpieza de área de estar y muebles", 20, 12.00m),
-                ("Cocina", "Limpieza de cocina, electrodomésticos, gabinetes", 30, 18.00m),
-                ("Comedor", "Limpieza de área de comedor", 15, 10.00m),
-                ("Oficina", "Limpieza de oficina en casa o estudio", 20, 12.00m),
-                ("Garaje", "Limpieza de garaje o estacionamiento", 25, 15.00m)
+            new { Name = "House/Apartment", Description = "Single-family home or apartment", Rooms = new[] {
+                ("Bedroom", "Bedroom cleaning including bed and closet", 25, 15.00m),
+                ("Bathroom", "Full cleaning of toilet, shower, and sink", 20, 10.00m),
+                ("Living Room", "Cleaning of living area and furniture", 20, 12.00m),
+                ("Kitchen", "Kitchen cleaning, appliances, and cabinets", 30, 18.00m),
+                ("Dining Room", "Dining area cleaning", 15, 10.00m),
+                ("Office", "Home office or study cleaning", 20, 12.00m),
+                ("Garage", "Garage or parking area cleaning", 25, 15.00m)
             }},
-            new { Name = "Oficina Comercial", Description = "Espacio de oficina o comercio", Rooms = new[] {
-                ("Área de Trabajo", "Limpieza de escritorios y áreas de trabajo", 20, 12.00m),
-                ("Sala de Reuniones", "Limpieza de salas de conferencias", 20, 15.00m),
-                ("Baño Comercial", "Limpieza de sanitarios comerciales", 25, 12.00m),
-                ("Cocina/Break Room", "Limpieza de área de descanso", 25, 15.00m),
-                ("Recepción", "Limpieza de área de recepción", 15, 10.00m),
-                ("Almacén", "Limpieza de área de almacenamiento", 20, 12.00m)
+            new { Name = "Commercial Office", Description = "Office or commercial space", Rooms = new[] {
+                ("Work Area", "Desk and work area cleaning", 20, 12.00m),
+                ("Meeting Room", "Conference room cleaning", 20, 15.00m),
+                ("Commercial Bathroom", "Commercial restroom cleaning", 25, 12.00m),
+                ("Kitchen/Break Room", "Break area cleaning", 25, 15.00m),
+                ("Reception", "Reception area cleaning", 15, 10.00m),
+                ("Storage Room", "Storage area cleaning", 20, 12.00m)
             }},
-            new { Name = "Airbnb/Vacation Rental", Description = "Propiedad de renta vacacional", Rooms = new[] {
-                ("Recámara", "Limpieza profunda post-huésped", 30, 18.00m),
-                ("Baño", "Sanitización completa post-huésped", 25, 15.00m),
-                ("Sala/Living", "Limpieza y reorganización", 25, 15.00m),
-                ("Cocina", "Limpieza y reabastecimiento", 35, 20.00m),
-                ("Área Exterior", "Limpieza de patio o balcón", 20, 12.00m)
+            new { Name = "Airbnb/Vacation Rental", Description = "Vacation rental property", Rooms = new[] {
+                ("Bedroom", "Deep post-guest cleaning", 30, 18.00m),
+                ("Bathroom", "Full post-guest sanitization", 25, 15.00m),
+                ("Living Room", "Cleaning and reorganization", 25, 15.00m),
+                ("Kitchen", "Cleaning and restocking", 35, 20.00m),
+                ("Outdoor Area", "Patio or balcony cleaning", 20, 12.00m)
             }}
         };
 
@@ -296,10 +296,10 @@ public class DataSeeder
                 };
                 _context.CleaningPlaces.Add(place);
                 await _context.SaveChangesAsync();
-                _logger.LogInformation("Tipo de inmueble creado: {Name}", place.Name);
+                _logger.LogInformation("Property type created: {Name}", place.Name);
             }
 
-            // Agregar rooms
+            // Add rooms
             foreach (var (name, desc, minutes, price) in placeData.Rooms)
             {
                 var roomExists = place.Rooms?.Any(r => r.Name == name) ?? false;
@@ -328,64 +328,64 @@ public class DataSeeder
         {
             new AdditionalServiceType
             {
-                Title = "Limpieza de Horno",
-                Description = "Limpieza profunda interior del horno",
+                Title = "Oven Cleaning",
+                Description = "Deep interior oven cleaning",
                 Price = 25.00m,
                 AdditionalMinutes = 30,
                 IsActive = true
             },
             new AdditionalServiceType
             {
-                Title = "Limpieza de Refrigerador",
-                Description = "Limpieza interior completa del refrigerador",
+                Title = "Refrigerator Cleaning",
+                Description = "Complete interior refrigerator cleaning",
                 Price = 30.00m,
                 AdditionalMinutes = 40,
                 IsActive = true
             },
             new AdditionalServiceType
             {
-                Title = "Interior de Gabinetes",
-                Description = "Limpieza interior de gabinetes de cocina",
+                Title = "Inside Cabinets",
+                Description = "Interior cleaning of kitchen cabinets",
                 Price = 40.00m,
                 AdditionalMinutes = 45,
                 IsActive = true
             },
             new AdditionalServiceType
             {
-                Title = "Limpieza de Ventanas",
-                Description = "Limpieza interior y exterior de ventanas",
+                Title = "Window Cleaning",
+                Description = "Interior and exterior window cleaning",
                 Price = 50.00m,
                 AdditionalMinutes = 60,
                 IsActive = true
             },
             new AdditionalServiceType
             {
-                Title = "Lavandería",
-                Description = "Lavado, secado y doblado de ropa",
+                Title = "Laundry",
+                Description = "Washing, drying, and folding clothes",
                 Price = 35.00m,
                 AdditionalMinutes = 90,
                 IsActive = true
             },
             new AdditionalServiceType
             {
-                Title = "Organización de Closet",
-                Description = "Organización y limpieza de armarios",
+                Title = "Closet Organization",
+                Description = "Closet organization and cleaning",
                 Price = 45.00m,
                 AdditionalMinutes = 60,
                 IsActive = true
             },
             new AdditionalServiceType
             {
-                Title = "Limpieza de Alfombras",
-                Description = "Limpieza profunda de alfombras y tapetes",
+                Title = "Carpet Cleaning",
+                Description = "Deep cleaning of carpets and rugs",
                 Price = 60.00m,
                 AdditionalMinutes = 75,
                 IsActive = true
             },
             new AdditionalServiceType
             {
-                Title = "Limpieza de Paredes",
-                Description = "Limpieza y manchas en paredes",
+                Title = "Wall Cleaning",
+                Description = "Wall cleaning and stain removal",
                 Price = 40.00m,
                 AdditionalMinutes = 50,
                 IsActive = true
@@ -400,7 +400,7 @@ public class DataSeeder
             if (!exists)
             {
                 _context.AdditionalServiceTypes.Add(service);
-                _logger.LogInformation("Servicio adicional creado: {Title}", service.Title);
+                _logger.LogInformation("Additional service created: {Title}", service.Title);
             }
         }
 
@@ -409,7 +409,7 @@ public class DataSeeder
 
     private async Task SeedServiceAreasAsync()
     {
-        // Áreas de Miami con ZIPs completos
+        // Miami areas with full ZIP codes
         var miamiAreas = new[]
         {
             new { Name = "Miami Beach", ZipCodes = new[] {
@@ -461,18 +461,18 @@ public class DataSeeder
                 area = new ServiceArea
                 {
                     Name = areaData.Name,
-                    Description = $"Área de servicio en {areaData.Name}",
+                    Description = $"Service area in {areaData.Name}",
                     IsActive = true
                 };
                 _context.ServiceAreas.Add(area);
                 await _context.SaveChangesAsync();
-                _logger.LogInformation("Área de servicio creada: {Name}", area.Name);
+                _logger.LogInformation("Service area created: {Name}", area.Name);
             }
 
-            // Agregar ZIP codes (solo si no existe globalmente para evitar duplicados)
+            // Add ZIP codes (only if not already globally assigned to avoid duplicates)
             foreach (var zipCode in areaData.ZipCodes)
             {
-                // Verificar si el ZIP ya existe en CUALQUIER área
+                // Check if the ZIP already exists in ANY area
                 var zipExistsGlobally = await _context.ServiceAreaZips
                     .AnyAsync(saz => saz.ZipCode == zipCode);
 
@@ -492,7 +492,7 @@ public class DataSeeder
         }
 
         await _context.SaveChangesAsync();
-        _logger.LogInformation("Service Areas y ZIPs de Miami seed completado");
+        _logger.LogInformation("Miami Service Areas and ZIPs seed completed");
     }
 
     private async Task SeedEquipmentAsync()
@@ -501,38 +501,38 @@ public class DataSeeder
         {
             new Equipment
             {
-                Name = "Aspiradora Industrial",
-                Description = "Aspiradora de alta potencia para uso comercial",
+                Name = "Industrial Vacuum",
+                Description = "High-power vacuum for commercial use",
                 IsActive = true
             },
             new Equipment
             {
-                Name = "Mopa de Vapor",
-                Description = "Sistema de limpieza con vapor para pisos",
+                Name = "Steam Mop",
+                Description = "Steam cleaning system for floors",
                 IsActive = true
             },
             new Equipment
             {
-                Name = "Kit de Limpieza de Ventanas",
-                Description = "Herramientas especializadas para limpieza de ventanas",
+                Name = "Window Cleaning Kit",
+                Description = "Specialized tools for window cleaning",
                 IsActive = true
             },
             new Equipment
             {
-                Name = "Lavadora de Alfombras",
-                Description = "Máquina para limpieza profunda de alfombras",
+                Name = "Carpet Washer",
+                Description = "Machine for deep carpet cleaning",
                 IsActive = true
             },
             new Equipment
             {
                 Name = "Kit Eco-Friendly",
-                Description = "Productos de limpieza ecológicos y biodegradables",
+                Description = "Eco-friendly and biodegradable cleaning products",
                 IsActive = true
             },
             new Equipment
             {
-                Name = "Escalera Telescópica",
-                Description = "Escalera profesional para áreas altas",
+                Name = "Telescopic Ladder",
+                Description = "Professional ladder for high areas",
                 IsActive = true
             }
         };
@@ -545,7 +545,7 @@ public class DataSeeder
             if (!exists)
             {
                 _context.Equipment.Add(item);
-                _logger.LogInformation("Equipamiento creado: {Name}", item.Name);
+                _logger.LogInformation("Equipment created: {Name}", item.Name);
             }
         }
 
@@ -554,11 +554,11 @@ public class DataSeeder
 
     private async Task SeedEmployeesAsync()
     {
-        // Solo crear empleados de ejemplo si no existen
+        // Only create sample employees if none exist
         var employeeCount = await _context.Employees.CountAsync();
         if (employeeCount >= 3)
         {
-            _logger.LogInformation("Ya existen empleados, saltando seed de empleados de ejemplo");
+            _logger.LogInformation("Employees already exist, skipping sample employee seed");
             return;
         }
 
@@ -604,7 +604,7 @@ public class DataSeeder
             if (!exists)
             {
                 _context.Employees.Add(employee);
-                _logger.LogInformation("Empleado creado: {Name}", $"{employee.FirstName} {employee.LastName}");
+                _logger.LogInformation("Employee created: {Name}", $"{employee.FirstName} {employee.LastName}");
             }
         }
 
@@ -613,7 +613,7 @@ public class DataSeeder
 
     private async Task SeedEmployeeSchedulesAsync()
     {
-        _logger.LogInformation("Configurando horarios y áreas de servicio para empleados...");
+        _logger.LogInformation("Configuring schedules and service areas for employees...");
 
         var employees = await _context.Employees
             .Include(e => e.Schedules)
@@ -623,18 +623,18 @@ public class DataSeeder
 
         if (!employees.Any())
         {
-            _logger.LogWarning("No hay empleados para configurar horarios");
+            _logger.LogWarning("No employees found to configure schedules");
             return;
         }
 
-        // Obtener todas las áreas de servicio activas
+        // Get all active service areas
         var serviceAreas = await _context.ServiceAreas
             .Where(sa => !sa.IsDeleted)
             .ToListAsync();
 
         foreach (var employee in employees)
         {
-            // Crear horarios para lunes a viernes (8am - 5pm)
+            // Create schedules for Monday through Friday (8am - 5pm)
             for (int day = 1; day <= 5; day++) // Monday = 1, Friday = 5
             {
                 var schedule = employee.Schedules.FirstOrDefault(s => s.DayOfWeek == (DayOfWeek)day);
@@ -650,7 +650,7 @@ public class DataSeeder
                 }
             }
 
-            // Asignar TODAS las áreas de servicio a cada empleada
+            // Assign ALL service areas to each employee
             foreach (var area in serviceAreas)
             {
                 if (!employee.ServiceAreas.Any(sa => sa.ServiceAreaId == area.Id))
@@ -663,12 +663,12 @@ public class DataSeeder
                 }
             }
 
-            _logger.LogInformation("Configurado horario y {Count} áreas para: {Name}", 
+            _logger.LogInformation("Configured schedule and {Count} areas for: {Name}", 
                 serviceAreas.Count, $"{employee.FirstName} {employee.LastName}");
         }
 
         await _context.SaveChangesAsync();
-        _logger.LogInformation("Horarios y áreas de servicio configurados exitosamente");
+        _logger.LogInformation("Schedules and service areas configured successfully");
     }
 
     private async Task SeedRecurrenceDiscountsAsync()
@@ -703,7 +703,7 @@ public class DataSeeder
             if (!exists)
             {
                 _context.RecurrenceDiscounts.Add(discount);
-                _logger.LogInformation("Descuento de recurrencia creado: {Type} - {Percent}%", 
+                _logger.LogInformation("Recurrence discount created: {Type} - {Percent}%", 
                     discount.RecurrenceType, discount.DiscountPercent);
             }
         }

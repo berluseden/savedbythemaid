@@ -1,7 +1,7 @@
 namespace SavedByTheMaid.Api.Auth;
 
 /// <summary>
-/// Roles del sistema
+/// System roles
 /// </summary>
 public static class Roles
 {
@@ -13,7 +13,7 @@ public static class Roles
 }
 
 /// <summary>
-/// Políticas de autorización
+/// Authorization policies
 /// </summary>
 public static class Policies
 {

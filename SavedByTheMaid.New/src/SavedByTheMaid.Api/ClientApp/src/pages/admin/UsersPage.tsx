@@ -79,8 +79,8 @@ export function AdminUsersPage() {
       ]);
       setUsers(usersRes.data);
       setRoles(rolesRes.data);
-    } catch (error) {
-      console.error('Error fetching data:', error);
+    } catch {
+      // Error handled by API interceptor
     } finally {
       setIsLoading(false);
     }
@@ -172,7 +172,7 @@ export function AdminUsersPage() {
     if (!passwordUserId) return;
 
     try {
-      await api.post(`/admin/users/${passwordUserId}/reset-password`, {
+      await api.put(`/admin/users/${passwordUserId}/password`, {
         newPassword,
       });
       setShowPasswordModal(false);
@@ -380,8 +380,8 @@ export function AdminUsersPage() {
             </h3>
             <p className="mt-2 text-sm text-gray-500">
               {searchTerm || filterRole !== 'all' || filterStatus !== 'all'
-                ? 'No se encontraron usuarios con los filtros aplicados'
-                : 'Comienza creando tu primer usuario'}
+                ? 'No users found matching the applied filters'
+                : 'Start by creating your first user'}
             </p>
           </div>
         ) : (
@@ -390,19 +390,19 @@ export function AdminUsersPage() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Usuario
+                    User
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Contacto
+                    Contact
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     Roles
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Estado
+                    Status
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Acciones
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -456,7 +456,7 @@ export function AdminUsersPage() {
                         ))}
                         {user.roles.length === 0 && (
                           <span className="text-sm text-gray-400 italic">
-                            Sin roles
+                            No roles
                           </span>
                         )}
                       </div>
@@ -472,12 +472,12 @@ export function AdminUsersPage() {
                         {user.isActive ? (
                           <>
                             <UserCheck className="h-3 w-3" />
-                            Activo
+                            Active
                           </>
                         ) : (
                           <>
                             <UserX className="h-3 w-3" />
-                            Inactivo
+                            Inactive
                           </>
                         )}
                       </span>
@@ -501,7 +501,7 @@ export function AdminUsersPage() {
                         <button
                           onClick={() => handleDeleteUser(user)}
                           className="rounded-lg p-2 text-gray-500 hover:bg-red-50 hover:text-red-600"
-                          title="Desactivar usuario"
+                          title="Deactivate user"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -540,7 +540,7 @@ export function AdminUsersPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Nombre
+                      First Name
                     </label>
                     <input
                       type="text"
@@ -556,7 +556,7 @@ export function AdminUsersPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Apellido
+                      Last Name
                     </label>
                     <input
                       type="text"
@@ -718,7 +718,7 @@ export function AdminUsersPage() {
               <form onSubmit={handleResetPassword} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nueva Password *
+                    New Password *
                   </label>
                   <input
                     type="password"
@@ -745,7 +745,7 @@ export function AdminUsersPage() {
                     type="submit"
                     className="rounded-lg bg-[#00205B] px-4 py-2 text-sm font-medium text-white hover:bg-[#001440]"
                   >
-                    Cambiar
+                    Change
                   </button>
                 </div>
               </form>
@@ -772,7 +772,7 @@ export function AdminUsersPage() {
               {/* Existing Roles */}
               <div className="mb-4">
                 <h3 className="text-sm font-medium text-gray-700 mb-2">
-                  Roles existentes
+                  Existing roles
                 </h3>
                 <div className="space-y-2">
                   {roles.map((role) => (
@@ -793,7 +793,7 @@ export function AdminUsersPage() {
                         </button>
                       )}
                       {['Admin', 'Employee', 'Customer'].includes(role.name) && (
-                        <span className="text-xs text-gray-400">Sistema</span>
+                        <span className="text-xs text-gray-400">System</span>
                       )}
                     </div>
                   ))}
@@ -823,7 +823,7 @@ export function AdminUsersPage() {
                     type="submit"
                     className="rounded-lg bg-[#00205B] px-4 py-2 text-sm font-medium text-white hover:bg-[#001440]"
                   >
-                    Crear
+                    Create
                   </button>
                 </div>
               </form>
@@ -834,7 +834,7 @@ export function AdminUsersPage() {
                   onClick={() => setShowRoleModal(false)}
                   className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                 >
-                  Cerrar
+                  Close
                 </button>
               </div>
             </div>

@@ -6,117 +6,119 @@ using SavedByTheMaid.Infrastructure.Data;
 namespace SavedByTheMaid.Api.Services;
 
 /// <summary>
-/// Servicio de programación que maneja la validación de conflictos y gestión de SlotOccupancy.
-/// Implementa el modelo anti-colisión usando la tabla SlotOccupancy con UNIQUE(EmployeeId, SlotStart).
+/// Scheduling service that handles conflict validation and SlotOccupancy management.
+/// Implements the anti-collision model using the SlotOccupancy table with UNIQUE(EmployeeId, SlotStart).
 /// </summary>
 public interface ISchedulingService
 {
     /// <summary>
-    /// Verifica si existe conflicto para un empleado en un rango horario.
+    /// Checks whether a conflict exists for an employee in a given time range.
     /// </summary>
-    /// <param name="employeeId">ID del empleado a verificar</param>
-    /// <param name="start">Inicio del rango horario</param>
-    /// <param name="end">Fin del rango horario</param>
-    /// <param name="excludeMeetingId">ID del meeting a excluir (para reschedule del mismo meeting)</param>
-    /// <returns>null si no hay conflicto, SchedulingConflict con detalles si existe</returns>
+    /// <param name="employeeId">ID of the employee to check</param>
+    /// <param name="start">Start of the time range</param>
+    /// <param name="end">End of the time range</param>
+    /// <param name="excludeMeetingId">ID of the meeting to exclude (for rescheduling the same meeting)</param>
+    /// <returns>null if there is no conflict, SchedulingConflict with details if one exists</returns>
     Task<SchedulingConflict?> CheckConflictsAsync(int employeeId, DateTime start, DateTime end, int? excludeMeetingId = null);
 
     /// <summary>
-    /// Adquiere slots en SlotOccupancy para un empleado en un rango horario.
-    /// Los slots se crean con granularidad de 30 minutos.
+    /// Acquires slots in SlotOccupancy for an employee in a given time range.
+    /// Slots are created with 30-minute granularity.
     /// </summary>
-    /// <param name="employeeId">ID del empleado</param>
-    /// <param name="start">Inicio del rango</param>
-    /// <param name="end">Fin del rango</param>
-    /// <param name="type">Tipo de ocupación (SoftReserve o Meeting)</param>
-    /// <param name="referenceId">ID de referencia (SoftReserve o ServiceMeet)</param>
-    /// <param name="expiresAt">Fecha de expiración (solo para SoftReserve)</param>
+    /// <param name="employeeId">ID of the employee</param>
+    /// <param name="start">Start of the range</param>
+    /// <param name="end">End of the range</param>
+    /// <param name="type">Occupancy type (SoftReserve or Meeting)</param>
+    /// <param name="referenceId">Reference ID (SoftReserve or ServiceMeet)</param>
+    /// <param name="expiresAt">Expiration date (only for SoftReserve)</param>
     Task AcquireSlotsAsync(int employeeId, DateTime start, DateTime end, OccupancyType type, int referenceId, DateTime? expiresAt = null);
 
     /// <summary>
-    /// Libera slots de SlotOccupancy por referenceId y tipo.
+    /// Releases SlotOccupancy slots by referenceId and type.
     /// </summary>
-    /// <param name="referenceId">ID de referencia</param>
-    /// <param name="type">Tipo de ocupación</param>
+    /// <param name="referenceId">Reference ID</param>
+    /// <param name="type">Occupancy type</param>
     Task ReleaseSlotsAsync(int referenceId, OccupancyType type);
 
     /// <summary>
-    /// Transfiere slots de un empleado a otro (para reasignación).
+    /// Transfers slots from one employee to another (for reassignment).
+    /// Verifies the new employee has no conflicts before transferring.
     /// </summary>
-    /// <param name="referenceId">ID de referencia del meeting</param>
-    /// <param name="type">Tipo de ocupación</param>
-    /// <param name="newEmployeeId">Nuevo empleado al que transferir</param>
-    Task TransferSlotsAsync(int referenceId, OccupancyType type, int newEmployeeId);
+    /// <param name="referenceId">Meeting reference ID</param>
+    /// <param name="type">Occupancy type</param>
+    /// <param name="newEmployeeId">New employee to transfer to</param>
+    /// <returns>Conflict if transfer would cause double-booking, null on success</returns>
+    Task<SchedulingConflict?> TransferSlotsAsync(int referenceId, OccupancyType type, int newEmployeeId);
 }
 
 /// <summary>
-/// Resultado de verificación de conflicto con detalles del mismo.
+/// Conflict verification result with details.
 /// </summary>
 public record SchedulingConflict
 {
     /// <summary>
-    /// Tipo de conflicto detectado
+    /// Detected conflict type
     /// </summary>
     public ConflictType Type { get; init; }
 
     /// <summary>
-    /// Mensaje descriptivo del conflicto
+    /// Descriptive conflict message
     /// </summary>
     public string Message { get; init; } = string.Empty;
 
     /// <summary>
-    /// ID de la entidad en conflicto (Meeting, TimeOff, etc.)
+    /// ID of the conflicting entity (Meeting, TimeOff, etc.)
     /// </summary>
     public int? ConflictingEntityId { get; init; }
 
     /// <summary>
-    /// Inicio del rango en conflicto
+    /// Start of the conflicting range
     /// </summary>
     public DateTime? ConflictStart { get; init; }
 
     /// <summary>
-    /// Fin del rango en conflicto
+    /// End of the conflicting range
     /// </summary>
     public DateTime? ConflictEnd { get; init; }
 
     /// <summary>
-    /// ID del empleado afectado
+    /// ID of the affected employee
     /// </summary>
     public int EmployeeId { get; init; }
 
     /// <summary>
-    /// Nombre del empleado (si está disponible)
+    /// Employee name (if available)
     /// </summary>
     public string? EmployeeName { get; init; }
 
     /// <summary>
-    /// Detalles adicionales del conflicto
+    /// Additional conflict details
     /// </summary>
     public string? Details { get; init; }
 }
 
 /// <summary>
-/// Tipos de conflicto posibles
+/// Possible conflict types
 /// </summary>
 public enum ConflictType
 {
     /// <summary>
-    /// Conflicto con otro meeting/reserva existente
+    /// Conflict with another existing meeting/reservation
     /// </summary>
     ExistingBooking = 0,
 
     /// <summary>
-    /// Conflicto con tiempo libre aprobado del empleado
+    /// Conflict with the employee's approved time off
     /// </summary>
     TimeOff = 1,
 
     /// <summary>
-    /// Empleado no disponible en el área de servicio
+    /// Employee not available in the service area
     /// </summary>
     AreaMismatch = 2,
 
     /// <summary>
-    /// Empleado inactivo o no válido
+    /// Inactive or invalid employee
     /// </summary>
     EmployeeUnavailable = 3
 }
@@ -136,10 +138,10 @@ public class SchedulingService : ISchedulingService
     public async Task<SchedulingConflict?> CheckConflictsAsync(int employeeId, DateTime start, DateTime end, int? excludeMeetingId = null)
     {
         _logger.LogInformation(
-            "Verificando conflictos para empleado {EmployeeId} en rango {Start} - {End}, excluyendo meeting {ExcludeMeetingId}",
+            "Checking conflicts for employee {EmployeeId} in range {Start} - {End}, excluding meeting {ExcludeMeetingId}",
             employeeId, start, end, excludeMeetingId);
 
-        // Verificar que el empleado existe y está activo
+        // Verify that the employee exists and is active
         var employee = await _context.Employees
             .AsNoTracking()
             .FirstOrDefaultAsync(e => e.Id == employeeId && !e.IsDeleted);
@@ -149,7 +151,7 @@ public class SchedulingService : ISchedulingService
             return new SchedulingConflict
             {
                 Type = ConflictType.EmployeeUnavailable,
-                Message = "El empleado especificado no existe",
+                Message = "The specified employee does not exist",
                 EmployeeId = employeeId
             };
         }
@@ -159,18 +161,28 @@ public class SchedulingService : ISchedulingService
             return new SchedulingConflict
             {
                 Type = ConflictType.EmployeeUnavailable,
-                Message = $"El empleado {employee.FirstName} {employee.LastName} está inactivo",
+                Message = $"Employee {employee.FirstName} {employee.LastName} is inactive",
                 EmployeeId = employeeId,
                 EmployeeName = $"{employee.FirstName} {employee.LastName}"
             };
         }
 
-        // 1. Verificar conflictos en SlotOccupancy
+        // 0. Expand range by BufferMinutes from employee schedule for that day
+        var dayOfWeek = start.DayOfWeek;
+        var schedule = await _context.EmployeeSchedules
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.EmployeeId == employeeId && s.DayOfWeek == dayOfWeek && s.IsAvailable && !s.IsDeleted);
+
+        var bufferMinutes = schedule?.BufferMinutes ?? 0;
+        var bufferedStart = start.AddMinutes(-bufferMinutes);
+        var bufferedEnd = end.AddMinutes(bufferMinutes);
+
+        // 1. Check conflicts in SlotOccupancy (using buffered range)
         var slotConflictQuery = _context.SlotOccupancies
             .Where(s => s.EmployeeId == employeeId && !s.IsDeleted)
-            .Where(s => s.SlotStart < end && s.SlotEnd > start);
+            .Where(s => s.SlotStart < bufferedEnd && s.SlotEnd > bufferedStart);
 
-        // Excluir el meeting actual si es un reschedule
+        // Exclude the current meeting if this is a reschedule
         if (excludeMeetingId.HasValue)
         {
             slotConflictQuery = slotConflictQuery.Where(s => 
@@ -183,15 +195,15 @@ public class SchedulingService : ISchedulingService
 
         if (existingSlot != null)
         {
-            // Obtener detalles del meeting o reserve en conflicto
+            // Get details of the conflicting meeting or reservation
             string details = existingSlot.OccupancyType == OccupancyType.Meeting
                 ? await GetMeetingDetailsAsync(existingSlot.ReferenceId)
-                : $"Reserva temporal (expira: {existingSlot.ExpiresAt:HH:mm})";
+                : $"Temporary reservation (expires: {existingSlot.ExpiresAt:HH:mm})";
 
             return new SchedulingConflict
             {
                 Type = ConflictType.ExistingBooking,
-                Message = $"El empleado ya tiene una {(existingSlot.OccupancyType == OccupancyType.Meeting ? "cita" : "reserva")} en ese horario",
+                Message = $"The employee already has a {(existingSlot.OccupancyType == OccupancyType.Meeting ? "meeting" : "reservation")} at that time",
                 ConflictingEntityId = existingSlot.ReferenceId,
                 ConflictStart = existingSlot.SlotStart,
                 ConflictEnd = existingSlot.SlotEnd,
@@ -201,29 +213,29 @@ public class SchedulingService : ISchedulingService
             };
         }
 
-        // 2. Verificar conflictos con EmployeeTimeOff aprobados
+        // 2. Check conflicts with approved EmployeeTimeOff
         var timeOffConflict = await _context.EmployeeTimeOffs
             .AsNoTracking()
             .Where(t => t.EmployeeId == employeeId && !t.IsDeleted)
             .Where(t => t.Status == TimeOffStatus.Approved)
-            .Where(t => t.StartDateTime < end && t.EndDateTime > start)
+            .Where(t => t.StartDateTime < bufferedEnd && t.EndDateTime > bufferedStart)
             .FirstOrDefaultAsync();
 
         if (timeOffConflict != null)
         {
             string timeOffType = timeOffConflict.Type switch
             {
-                TimeOffType.Vacation => "vacaciones",
-                TimeOffType.Sick => "licencia médica",
-                TimeOffType.Personal => "permiso personal",
-                TimeOffType.ManualBlock => "bloqueo manual",
-                _ => "tiempo libre"
+                TimeOffType.Vacation => "vacation",
+                TimeOffType.Sick => "sick leave",
+                TimeOffType.Personal => "personal leave",
+                TimeOffType.ManualBlock => "manual block",
+                _ => "time off"
             };
 
             return new SchedulingConflict
             {
                 Type = ConflictType.TimeOff,
-                Message = $"El empleado tiene {timeOffType} aprobado en ese horario",
+                Message = $"The employee has approved {timeOffType} at that time",
                 ConflictingEntityId = timeOffConflict.Id,
                 ConflictStart = timeOffConflict.StartDateTime,
                 ConflictEnd = timeOffConflict.EndDateTime,
@@ -233,14 +245,54 @@ public class SchedulingService : ISchedulingService
             };
         }
 
-        _logger.LogInformation("No se encontraron conflictos para empleado {EmployeeId}", employeeId);
-        return null; // Sin conflictos
+        // 3. Enforce MaxDailyHours and MaxDailyServices limits
+        var serviceDate = start.Date;
+        var nextDate = serviceDate.AddDays(1);
+        var durationMinutes = (end - start).TotalMinutes;
+
+        // Count existing meetings for that day (excluding cancelled/noshow)
+        var dailyMeetings = await _context.ServiceMeets
+            .AsNoTracking()
+            .Where(m => m.AssignedEmployeeId == employeeId && !m.IsDeleted)
+            .Where(m => m.ScheduledStart >= serviceDate && m.ScheduledStart < nextDate)
+            .Where(m => m.Status != MeetStatus.Cancelled && m.Status != MeetStatus.NoShow)
+            .Where(m => excludeMeetingId == null || m.Id != excludeMeetingId)
+            .ToListAsync();
+
+        if (employee.MaxDailyServices > 0 && dailyMeetings.Count >= employee.MaxDailyServices)
+        {
+            return new SchedulingConflict
+            {
+                Type = ConflictType.EmployeeUnavailable,
+                Message = $"The employee has reached the maximum of {employee.MaxDailyServices} daily services",
+                EmployeeId = employeeId,
+                EmployeeName = $"{employee.FirstName} {employee.LastName}"
+            };
+        }
+
+        if (employee.MaxDailyHours > 0)
+        {
+            var existingMinutes = dailyMeetings.Sum(m => (m.ScheduledEnd - m.ScheduledStart).TotalMinutes);
+            if (existingMinutes + durationMinutes > employee.MaxDailyHours * 60)
+            {
+                return new SchedulingConflict
+                {
+                    Type = ConflictType.EmployeeUnavailable,
+                    Message = $"The employee would exceed the maximum of {employee.MaxDailyHours} daily hours",
+                    EmployeeId = employeeId,
+                    EmployeeName = $"{employee.FirstName} {employee.LastName}"
+                };
+            }
+        }
+
+        _logger.LogInformation("No conflicts found for employee {EmployeeId}", employeeId);
+        return null; // No conflicts
     }
 
     public async Task AcquireSlotsAsync(int employeeId, DateTime start, DateTime end, OccupancyType type, int referenceId, DateTime? expiresAt = null)
     {
         _logger.LogInformation(
-            "Adquiriendo slots para empleado {EmployeeId}, rango {Start} - {End}, tipo {Type}, ref {ReferenceId}",
+            "Acquiring slots for employee {EmployeeId}, range {Start} - {End}, type {Type}, ref {ReferenceId}",
             employeeId, start, end, type, referenceId);
 
         var slots = CalculateSlots(start, end);
@@ -258,13 +310,13 @@ public class SchedulingService : ISchedulingService
 
         _context.SlotOccupancies.AddRange(slotOccupancies);
         
-        // No llamamos SaveChanges aquí - se debe llamar dentro de una transacción externa
-        _logger.LogInformation("Se prepararon {Count} slots para inserción", slotOccupancies.Count);
+        // We do not call SaveChanges here - it should be called within an external transaction
+        _logger.LogInformation("Prepared {Count} slots for insertion", slotOccupancies.Count);
     }
 
     public async Task ReleaseSlotsAsync(int referenceId, OccupancyType type)
     {
-        _logger.LogInformation("Liberando slots para referencia {ReferenceId}, tipo {Type}", referenceId, type);
+        _logger.LogInformation("Releasing slots for reference {ReferenceId}, type {Type}", referenceId, type);
 
         var slotsToRemove = await _context.SlotOccupancies
             .Where(s => s.ReferenceId == referenceId && s.OccupancyType == type && !s.IsDeleted)
@@ -273,23 +325,40 @@ public class SchedulingService : ISchedulingService
         if (slotsToRemove.Any())
         {
             _context.SlotOccupancies.RemoveRange(slotsToRemove);
-            _logger.LogInformation("Se marcaron {Count} slots para eliminación", slotsToRemove.Count);
+            _logger.LogInformation("Marked {Count} slots for deletion", slotsToRemove.Count);
         }
         else
         {
-            _logger.LogWarning("No se encontraron slots para liberar con referencia {ReferenceId}", referenceId);
+            _logger.LogWarning("No slots found to release for reference {ReferenceId}", referenceId);
         }
     }
 
-    public async Task TransferSlotsAsync(int referenceId, OccupancyType type, int newEmployeeId)
+    public async Task<SchedulingConflict?> TransferSlotsAsync(int referenceId, OccupancyType type, int newEmployeeId)
     {
         _logger.LogInformation(
-            "Transfiriendo slots de referencia {ReferenceId} a empleado {NewEmployeeId}",
+            "Transferring slots for reference {ReferenceId} to employee {NewEmployeeId}",
             referenceId, newEmployeeId);
 
         var slotsToTransfer = await _context.SlotOccupancies
             .Where(s => s.ReferenceId == referenceId && s.OccupancyType == type && !s.IsDeleted)
             .ToListAsync();
+
+        if (!slotsToTransfer.Any())
+        {
+            _logger.LogWarning("No slots found to transfer for reference {ReferenceId}", referenceId);
+            return null;
+        }
+
+        // Verify new employee has no conflicts in the slot time range
+        var earliest = slotsToTransfer.Min(s => s.SlotStart);
+        var latest = slotsToTransfer.Max(s => s.SlotEnd);
+        var conflict = await CheckConflictsAsync(newEmployeeId, earliest, latest);
+        if (conflict != null)
+        {
+            _logger.LogWarning("Transfer blocked: conflict for employee {EmployeeId} in {Start}-{End}",
+                newEmployeeId, earliest, latest);
+            return conflict;
+        }
 
         foreach (var slot in slotsToTransfer)
         {
@@ -297,12 +366,13 @@ public class SchedulingService : ISchedulingService
             slot.UpdatedAt = DateTime.UtcNow;
         }
 
-        _logger.LogInformation("Se transfirieron {Count} slots al empleado {NewEmployeeId}", 
+        _logger.LogInformation("Transferred {Count} slots to employee {NewEmployeeId}",
             slotsToTransfer.Count, newEmployeeId);
+        return null;
     }
 
     /// <summary>
-    /// Calcula los slots de 30 minutos para un rango de tiempo.
+    /// Calculates the 30-minute slots for a time range.
     /// </summary>
     private static List<(DateTime Start, DateTime End)> CalculateSlots(DateTime start, DateTime end)
     {
@@ -320,7 +390,7 @@ public class SchedulingService : ISchedulingService
     }
 
     /// <summary>
-    /// Normaliza una fecha/hora al límite de slot más cercano hacia abajo.
+    /// Normalizes a date/time down to the nearest slot boundary.
     /// </summary>
     private static DateTime NormalizeToSlotBoundary(DateTime dateTime)
     {
@@ -338,8 +408,8 @@ public class SchedulingService : ISchedulingService
             .FirstOrDefaultAsync(m => m.Id == meetingId);
 
         if (meeting == null)
-            return "Cita no encontrada";
+            return "Meeting not found";
 
-        return $"Cita #{meeting.Id} ({meeting.ScheduledStart:HH:mm} - {meeting.ScheduledEnd:HH:mm}) - {meeting.ServiceOrder?.Address ?? "Sin dirección"}";
+        return $"Meeting #{meeting.Id} ({meeting.ScheduledStart:HH:mm} - {meeting.ScheduledEnd:HH:mm}) - {meeting.ServiceOrder?.Address ?? "No address"}";
     }
 }

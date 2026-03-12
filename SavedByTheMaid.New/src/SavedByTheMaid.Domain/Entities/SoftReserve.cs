@@ -4,49 +4,54 @@ using SavedByTheMaid.Domain.Enums;
 namespace SavedByTheMaid.Domain.Entities;
 
 /// <summary>
-/// Reserva temporal para evitar colisiones durante el checkout
-/// Se convierte en reserva confirmada al completar el pago
+/// Temporary reservation to avoid collisions during checkout.
+/// Becomes a confirmed reservation upon payment completion.
 /// </summary>
 public class SoftReserve : BaseEntity
 {
     /// <summary>
-    /// ID de sesión del navegador para vincular reservas anónimas
+    /// Browser session ID to link anonymous reservations
     /// </summary>
     public required string SessionId { get; set; }
 
     /// <summary>
-    /// Usuario que hizo la reserva (opcional si es anónimo)
+    /// User who made the reservation (optional if anonymous)
     /// </summary>
     public string? CustomerId { get; set; }
     public virtual ApplicationUser? Customer { get; set; }
 
     /// <summary>
-    /// Empleada reservada
+    /// Reserved employee
     /// </summary>
     public int EmployeeId { get; set; }
     public virtual Employee? Employee { get; set; }
 
     /// <summary>
-    /// Zona de servicio
+    /// Service area
     /// </summary>
     public int ServiceAreaId { get; set; }
     public virtual ServiceArea? ServiceArea { get; set; }
 
     /// <summary>
-    /// Horario reservado
+    /// Reserved time slot
     /// </summary>
     public DateTime ScheduledStart { get; set; }
     public DateTime ScheduledEnd { get; set; }
 
     /// <summary>
-    /// Cuándo expira esta reserva temporal (típicamente 15-30 minutos)
+    /// When this temporary reservation expires (typically 15-30 minutes)
     /// </summary>
     public DateTime ExpiresAt { get; set; }
 
     public SoftReserveStatus Status { get; set; } = SoftReserveStatus.Active;
 
     /// <summary>
-    /// Si la reserva fue confirmada, referencia a la orden
+    /// Number of times this reservation has been extended (max 2)
+    /// </summary>
+    public int ExtensionCount { get; set; } = 0;
+
+    /// <summary>
+    /// If the reservation was confirmed, reference to the order
     /// </summary>
     public int? ServiceOrderId { get; set; }
     public virtual ServiceOrder? ServiceOrder { get; set; }

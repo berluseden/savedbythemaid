@@ -63,7 +63,7 @@ interface Employee {
 const statusConfig: Record<OrderStatus, { label: string; color: string; bgColor: string }> = {
   PendingReview: { label: 'Pending Review', color: 'text-orange-700', bgColor: 'bg-orange-100' },
   Draft: { label: 'Draft', color: 'text-gray-700', bgColor: 'bg-gray-100' },
-  Confirmed: { label: 'Confirmada', color: 'text-blue-700', bgColor: 'bg-blue-100' },
+  Confirmed: { label: 'Confirmed', color: 'text-blue-700', bgColor: 'bg-blue-100' },
   InProgress: { label: 'In Progress', color: 'text-purple-700', bgColor: 'bg-purple-100' },
   Completed: { label: 'Completed', color: 'text-green-700', bgColor: 'bg-green-100' },
   Cancelled: { label: 'Cancelled', color: 'text-red-700', bgColor: 'bg-red-100' },
@@ -74,7 +74,7 @@ const meetStatusConfig: Record<MeetStatus, { label: string; color: string; bgCol
   Scheduled: { label: 'Scheduled', color: 'text-gray-700', bgColor: 'bg-gray-100' },
   Assigned: { label: 'Assigned', color: 'text-blue-700', bgColor: 'bg-blue-100' },
   OnTheWay: { label: 'On The Way', color: 'text-cyan-700', bgColor: 'bg-cyan-100' },
-  InProgress: { label: 'En Curso', color: 'text-purple-700', bgColor: 'bg-purple-100' },
+  InProgress: { label: 'In Progress', color: 'text-purple-700', bgColor: 'bg-purple-100' },
   Completed: { label: 'Completed', color: 'text-green-700', bgColor: 'bg-green-100' },
   Cancelled: { label: 'Cancelled', color: 'text-red-700', bgColor: 'bg-red-100' },
   Rescheduled: { label: 'Rescheduled', color: 'text-orange-700', bgColor: 'bg-orange-100' },
@@ -110,8 +110,8 @@ export function AdminBookingsPage() {
     try {
       const response = await api.get<Employee[]>('/admin/employees');
       setEmployees(response.data.filter(e => e.isActive));
-    } catch (err) {
-      console.error('Error loading employees:', err);
+    } catch {
+      // Error handled by API interceptor
     }
   };
 
@@ -119,8 +119,8 @@ export function AdminBookingsPage() {
     try {
       const response = await api.get<MeetingSummary[]>(`/admin/orders/meetings?orderId=${orderId}`);
       setMeetings(response.data);
-    } catch (err) {
-      console.error('Error loading meetings:', err);
+    } catch {
+      // Error handled by API interceptor
       setMeetings([]);
     }
   };
@@ -132,8 +132,7 @@ export function AdminBookingsPage() {
       const response = await api.get<OrderSummary[]>('/admin/orders', { params });
       setBookings(response.data);
     } catch (err) {
-      setError('Error al cargar las reservas');
-      console.error(err);
+      setError('Error loading bookings');
     } finally {
       setIsLoading(false);
     }
@@ -147,19 +146,17 @@ export function AdminBookingsPage() {
         setSelectedBooking(prev => prev ? { ...prev, orderStatus: newStatus } : null);
       }
     } catch (err) {
-      setError('Error al actualizar el estado');
-      console.error(err);
+      setError('Error updating status');
     }
   };
 
   const cancelOrder = async (bookingId: number) => {
     try {
-      await api.post(`/admin/orders/${bookingId}/cancel`, { reason: 'Cancelado por administrador' });
+      await api.post(`/admin/orders/${bookingId}/cancel`, { reason: 'Cancelled by administrator' });
       await fetchBookings();
       setSelectedBooking(null);
     } catch (err) {
-      setError('Error al cancelar la orden');
-      console.error(err);
+      setError('Error canceling order');
     }
   };
 
@@ -171,8 +168,7 @@ export function AdminBookingsPage() {
       }
       setAssigningMeetingId(null);
     } catch (err) {
-      setError('Error al asignar empleado');
-      console.error(err);
+      setError('Error assigning employee');
     }
   };
 
@@ -183,8 +179,7 @@ export function AdminBookingsPage() {
         await fetchMeetings(selectedBooking.id);
       }
     } catch (err) {
-      setError('Error al actualizar estado de cita');
-      console.error(err);
+      setError('Error updating appointment status');
     }
   };
 
@@ -241,7 +236,7 @@ export function AdminBookingsPage() {
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Bookings</h1>
-          <p className="text-gray-600">Gestiona todas las reservas de limpieza</p>
+          <p className="text-gray-600">Manage all cleaning bookings</p>
         </div>
 
         {/* Stats */}
@@ -267,7 +262,7 @@ export function AdminBookingsPage() {
         {error && (
           <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg">
             {error}
-            <button onClick={() => setError('')} className="ml-2 underline">Cerrar</button>
+            <button onClick={() => setError('')} className="ml-2 underline">Close</button>
           </div>
         )}
 
@@ -294,7 +289,7 @@ export function AdminBookingsPage() {
             onChange={(e) => setFilterStatus(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
           >
-            <option value="all">Todos los estados</option>
+            <option value="all">All statuses</option>
             {Object.entries(statusConfig).map(([status, config]) => (
               <option key={status} value={status}>
                 {config.label}
@@ -310,13 +305,13 @@ export function AdminBookingsPage() {
               <thead>
                 <tr className="text-left text-sm text-gray-500 bg-gray-50 border-b">
                   <th className="px-6 py-3 font-medium">Confirmation</th>
-                  <th className="px-6 py-3 font-medium">Cliente</th>
-                  <th className="px-6 py-3 font-medium">Servicio</th>
-                  <th className="px-6 py-3 font-medium">Fecha</th>
-                  <th className="px-6 py-3 font-medium">Estado</th>
+                  <th className="px-6 py-3 font-medium">Customer</th>
+                  <th className="px-6 py-3 font-medium">Service</th>
+                  <th className="px-6 py-3 font-medium">Date</th>
+                  <th className="px-6 py-3 font-medium">Status</th>
                   <th className="px-6 py-3 font-medium">Phone</th>
                   <th className="px-6 py-3 font-medium text-right">Total</th>
-                  <th className="px-6 py-3 font-medium text-right">Acciones</th>
+                  <th className="px-6 py-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -355,7 +350,7 @@ export function AdminBookingsPage() {
                         <button
                           onClick={() => setSelectedBooking(booking)}
                           className="p-2 text-gray-400 hover:text-[#00205B] hover:bg-[#FFE44D]/10 rounded-lg"
-                          title="Ver detalles"
+                          title="View details"
                         >
                           <Eye className="h-4 w-4" />
                         </button>
@@ -364,14 +359,14 @@ export function AdminBookingsPage() {
                             <button
                               onClick={() => updateBookingStatus(booking.id, 'Confirmed')}
                               className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg"
-                              title="Aprobar y Confirmar"
+                              title="Approve and Confirm"
                             >
                               <CheckCircle className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => cancelOrder(booking.id)}
                               className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                              title="Rechazar"
+                              title="Reject"
                             >
                               <XCircle className="h-4 w-4" />
                             </button>
@@ -381,7 +376,7 @@ export function AdminBookingsPage() {
                           <button
                             onClick={() => updateBookingStatus(booking.id, 'InProgress')}
                             className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg"
-                            title="Iniciar"
+                            title="Start"
                           >
                             <AlertCircle className="h-4 w-4" />
                           </button>
@@ -390,7 +385,7 @@ export function AdminBookingsPage() {
                           <button
                             onClick={() => updateBookingStatus(booking.id, 'Completed')}
                             className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg"
-                            title="Completar"
+                            title="Complete"
                           >
                             <CheckCircle className="h-4 w-4" />
                           </button>
@@ -407,8 +402,8 @@ export function AdminBookingsPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-6 py-4 border-t">
               <p className="text-sm text-gray-500">
-                Mostrando {(currentPage - 1) * itemsPerPage + 1} -{' '}
-                {Math.min(currentPage * itemsPerPage, filteredBookings.length)} de{' '}
+                Showing {(currentPage - 1) * itemsPerPage + 1} -{' '}
+                {Math.min(currentPage * itemsPerPage, filteredBookings.length)} of{' '}
                 {filteredBookings.length}
               </p>
               <div className="flex gap-2">
@@ -433,7 +428,7 @@ export function AdminBookingsPage() {
 
         {filteredBookings.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-500">No se encontraron reservas</p>
+            <p className="text-gray-500">No bookings found</p>
           </div>
         )}
       </div>
@@ -470,7 +465,7 @@ export function AdminBookingsPage() {
                 <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                   <div className="flex items-center gap-3">
                     <User className="h-5 w-5 text-gray-400" />
-                    <span className="text-gray-900">{selectedBooking.contactName || 'Sin nombre'}</span>
+                    <span className="text-gray-900">{selectedBooking.contactName || 'No name'}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <Phone className="h-5 w-5 text-gray-400" />
@@ -488,18 +483,18 @@ export function AdminBookingsPage() {
 
               {/* Service Info */}
               <div>
-                <h3 className="text-sm font-medium text-gray-500 mb-3">Detalles del Servicio</h3>
+                <h3 className="text-sm font-medium text-gray-500 mb-3">Service Details</h3>
                 <div className="bg-gray-50 rounded-lg p-4 grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs text-gray-500">Tipo de Servicio</p>
+                    <p className="text-xs text-gray-500">Service Type</p>
                     <p className="font-medium text-gray-900">{selectedBooking.serviceTypeName || '-'}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Zona de Servicio</p>
+                    <p className="text-xs text-gray-500">Service Area</p>
                     <p className="font-medium text-gray-900">{selectedBooking.serviceAreaName || '-'}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Recurrencia</p>
+                    <p className="text-xs text-gray-500">Recurrence</p>
                     <p className="font-medium text-gray-900">{selectedBooking.recurrenceType}</p>
                   </div>
                   <div>
@@ -516,14 +511,14 @@ export function AdminBookingsPage() {
                   <div className="flex items-center gap-3">
                     <Calendar className="h-5 w-5 text-gray-400" />
                     <div>
-                      <p className="text-xs text-gray-500">Creada</p>
+                      <p className="text-xs text-gray-500">Created</p>
                       <p className="font-medium text-gray-900">{formatDate(selectedBooking.createdAt)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <Clock className="h-5 w-5 text-gray-400" />
                     <div>
-                      <p className="text-xs text-gray-500">Estado de Pago</p>
+                      <p className="text-xs text-gray-500">Payment Status</p>
                       <p className="font-medium text-gray-900">{selectedBooking.paymentStatus}</p>
                     </div>
                   </div>
@@ -538,7 +533,7 @@ export function AdminBookingsPage() {
                 </h3>
                 {meetings.length === 0 ? (
                   <div className="bg-gray-50 rounded-lg p-4 text-center text-gray-500 text-sm">
-                    No hay citas programadas para esta orden
+                    No scheduled appointments for this order
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -557,22 +552,22 @@ export function AdminBookingsPage() {
                             </div>
                             <div className="grid grid-cols-2 gap-3 text-sm">
                               <div>
-                                <p className="text-xs text-gray-500">Inicio Programado</p>
+                                <p className="text-xs text-gray-500">Scheduled Start</p>
                                 <p className="font-medium text-gray-900">{formatDateTime(meeting.scheduledStart)}</p>
                               </div>
                               <div>
-                                <p className="text-xs text-gray-500">Fin Programado</p>
+                                <p className="text-xs text-gray-500">Scheduled End</p>
                                 <p className="font-medium text-gray-900">{formatDateTime(meeting.scheduledEnd)}</p>
                               </div>
                               {meeting.actualStart && (
                                 <div>
-                                  <p className="text-xs text-gray-500">Inicio Real</p>
+                                  <p className="text-xs text-gray-500">Actual Start</p>
                                   <p className="font-medium text-green-700">{formatDateTime(meeting.actualStart)}</p>
                                 </div>
                               )}
                               {meeting.actualEnd && (
                                 <div>
-                                  <p className="text-xs text-gray-500">Fin Real</p>
+                                  <p className="text-xs text-gray-500">Actual End</p>
                                   <p className="font-medium text-green-700">{formatDateTime(meeting.actualEnd)}</p>
                                 </div>
                               )}
@@ -582,7 +577,7 @@ export function AdminBookingsPage() {
 
                         {/* Employee Assignment */}
                         <div className="pt-3 border-t border-gray-200">
-                          <p className="text-xs text-gray-500 mb-2">Empleado Asignado</p>
+                          <p className="text-xs text-gray-500 mb-2">Assigned Employee</p>
                           {assigningMeetingId === meeting.id ? (
                             <div className="flex gap-2">
                               <select
@@ -590,7 +585,7 @@ export function AdminBookingsPage() {
                                 className="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#00205B]"
                                 defaultValue=""
                               >
-                                <option value="" disabled>Seleccionar empleado...</option>
+                                <option value="" disabled>Select employee...</option>
                                 {employees.map((emp) => (
                                   <option key={emp.id} value={emp.id}>
                                     {emp.firstName} {emp.lastName}
@@ -601,7 +596,7 @@ export function AdminBookingsPage() {
                                 onClick={() => setAssigningMeetingId(null)}
                                 className="px-3 py-2 border rounded-lg hover:bg-gray-100"
                               >
-                                Cancelar
+                                Cancel
                               </button>
                             </div>
                           ) : (
@@ -609,14 +604,14 @@ export function AdminBookingsPage() {
                               <div className="flex items-center gap-2">
                                 <User className="h-4 w-4 text-gray-400" />
                                 <span className="font-medium text-gray-900">
-                                  {meeting.employeeName || 'Sin asignar'}
+                                  {meeting.employeeName || 'Unassigned'}
                                 </span>
                               </div>
                               <button
                                 onClick={() => setAssigningMeetingId(meeting.id)}
                                 className="text-sm text-[#00205B] hover:text-[#001440] font-medium"
                               >
-                                {meeting.employeeId ? 'Cambiar' : 'Asignar'}
+                                {meeting.employeeId ? 'Change' : 'Assign'}
                               </button>
                             </div>
                           )}
@@ -631,7 +626,7 @@ export function AdminBookingsPage() {
                                 className="flex-1 px-3 py-1.5 bg-purple-500 text-white rounded text-sm hover:bg-purple-600 flex items-center justify-center gap-1"
                               >
                                 <PlayCircle className="h-4 w-4" />
-                                Iniciar
+                                Start
                               </button>
                             )}
                             {meeting.status === 'InProgress' && (
@@ -640,7 +635,7 @@ export function AdminBookingsPage() {
                                 className="flex-1 px-3 py-1.5 bg-green-500 text-white rounded text-sm hover:bg-green-600 flex items-center justify-center gap-1"
                               >
                                 <CheckCircle className="h-4 w-4" />
-                                Completar
+                                Complete
                               </button>
                             )}
                             {(meeting.status === 'Scheduled' || meeting.status === 'Assigned') && (
@@ -649,7 +644,7 @@ export function AdminBookingsPage() {
                                 className="px-3 py-1.5 bg-red-500 text-white rounded text-sm hover:bg-red-600 flex items-center justify-center gap-1"
                               >
                                 <XCircle className="h-4 w-4" />
-                                Cancelar
+                                Cancel
                               </button>
                             )}
                           </div>
@@ -668,13 +663,13 @@ export function AdminBookingsPage() {
                       onClick={() => updateBookingStatus(selectedBooking.id, 'Confirmed')}
                       className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
                     >
-                      Confirmar Reserva
+                      Confirm Booking
                     </button>
                     <button
                       onClick={() => cancelOrder(selectedBooking.id)}
                       className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
                     >
-                      Cancelar Reserva
+                      Cancel Booking
                     </button>
                   </>
                 )}
@@ -683,7 +678,7 @@ export function AdminBookingsPage() {
                     onClick={() => updateBookingStatus(selectedBooking.id, 'InProgress')}
                     className="flex-1 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
                   >
-                    Iniciar Servicio
+                    Start Service
                   </button>
                 )}
                 {selectedBooking.orderStatus === 'InProgress' && (
@@ -691,14 +686,14 @@ export function AdminBookingsPage() {
                     onClick={() => updateBookingStatus(selectedBooking.id, 'Completed')}
                     className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
                   >
-                    Marcar como Completado
+                    Mark as Completed
                   </button>
                 )}
                 <button
                   onClick={() => setSelectedBooking(null)}
                   className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  Cerrar
+                  Close
                 </button>
               </div>
             </div>

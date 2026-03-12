@@ -121,7 +121,11 @@ export function UserDashboardPage() {
         setAvailableSlots([]);
         return;
       }
-      const response = await api.get<{ slots: AvailableSlot[] }>(`/booking/availability?zipCode=${booking.zipCode}&date=${date}`);
+      const response = await api.post<{ slots: AvailableSlot[] }>('/booking/availability', {
+        zipCode: booking.zipCode,
+        date,
+        estimatedMinutes: booking.estimatedDuration || 120,
+      });
       setAvailableSlots(response.data.slots || []);
     } catch { setAvailableSlots([]); }
     finally { setIsLoadingSlots(false); }
@@ -136,8 +140,7 @@ export function UserDashboardPage() {
       setRescheduleBookingId(null);
       queryClient.invalidateQueries({ queryKey: ['customer'] });
     } catch (err: unknown) {
-      // error handled inline
-      console.error(err instanceof Error ? err.message : 'Failed to reschedule');
+      // Error handled by API interceptor
     } finally { setIsRescheduling(false); }
   };
 

@@ -59,8 +59,7 @@ export function AdminServicesPage() {
       const response = await api.get<ServiceType[]>('/admin/service-types');
       setServices(response.data);
     } catch (err) {
-      setError('Error al cargar los servicios');
-      console.error(err);
+      setError('Error loading services');
     } finally {
       setIsLoading(false);
     }
@@ -80,8 +79,7 @@ export function AdminServicesPage() {
       await fetchServices();
       closeModal();
     } catch (err) {
-      setError('Error al guardar el servicio');
-      console.error(err);
+      setError('Error saving service');
     } finally {
       setSaving(false);
     }
@@ -110,8 +108,7 @@ export function AdminServicesPage() {
       await fetchServices();
       setDeleteConfirm(null);
     } catch (err) {
-      setError('Error al eliminar el servicio');
-      console.error(err);
+      setError('Error deleting service');
     }
   };
 
@@ -123,8 +120,7 @@ export function AdminServicesPage() {
       });
       await fetchServices();
     } catch (err) {
-      setError('Error al actualizar el servicio');
-      console.error(err);
+      setError('Error updating service');
     }
   };
 
@@ -191,7 +187,7 @@ export function AdminServicesPage() {
         {error && (
           <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg">
             {error}
-            <button onClick={() => setError('')} className="ml-2 underline">Cerrar</button>
+            <button onClick={() => setError('')} className="ml-2 underline">Close</button>
           </div>
         )}
 
@@ -250,7 +246,7 @@ export function AdminServicesPage() {
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">{service.name}</h3>
                   <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                    Orden: {service.displayOrder}
+                    Order: {service.displayOrder}
                   </span>
                 </div>
                 <div className="relative">
@@ -270,14 +266,14 @@ export function AdminServicesPage() {
                         className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                       >
                         <Edit2 className="h-4 w-4" />
-                        Editar
+                        Edit
                       </button>
                       <button
                         onClick={() => handleDelete(service.id)}
                         className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                       >
                         <Trash2 className="h-4 w-4" />
-                        Eliminar
+                        Delete
                       </button>
                     </div>
                   )}
@@ -375,7 +371,7 @@ export function AdminServicesPage() {
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Precio Base ($) *
+                      Base Price ($) *
                     </label>
                     <input
                       type="number"
@@ -424,7 +420,7 @@ export function AdminServicesPage() {
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Base (minutos)
+                      Base (minutes)
                     </label>
                     <input
                       type="number"

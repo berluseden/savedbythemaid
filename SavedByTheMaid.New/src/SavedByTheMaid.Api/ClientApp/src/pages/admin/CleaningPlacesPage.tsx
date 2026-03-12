@@ -66,8 +66,7 @@ export function AdminCleaningPlacesPage() {
       const response = await api.get<CleaningPlace[]>('/admin/cleaningplaces');
       setPlaces(response.data);
     } catch (err) {
-      setError('Error al cargar tipos de inmueble');
-      console.error(err);
+      setError('Error loading property types');
     } finally {
       setIsLoading(false);
     }
@@ -100,8 +99,7 @@ export function AdminCleaningPlacesPage() {
       await fetchPlaces();
       closePlaceModal();
     } catch (err) {
-      setError('Error al guardar el property type');
-      console.error(err);
+      setError('Error saving property type');
     } finally {
       setSaving(false);
     }
@@ -123,8 +121,7 @@ export function AdminCleaningPlacesPage() {
       await fetchPlaces();
       setDeleteConfirm(null);
     } catch (err) {
-      setError('Error al eliminar el property type');
-      console.error(err);
+      setError('Error deleting property type');
     }
   };
 
@@ -151,7 +148,6 @@ export function AdminCleaningPlacesPage() {
       closeRoomModal();
     } catch (err) {
       setError('Error saving room');
-      console.error(err);
     } finally {
       setSaving(false);
     }
@@ -185,7 +181,6 @@ export function AdminCleaningPlacesPage() {
       setDeleteConfirm(null);
     } catch (err) {
       setError('Error deleting room');
-      console.error(err);
     }
   };
 
@@ -222,7 +217,7 @@ export function AdminCleaningPlacesPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Property Types</h1>
-            <p className="text-gray-600">Gestiona los tipos de propiedades y sus rooms</p>
+            <p className="text-gray-600">Manage property types and their rooms</p>
           </div>
           <button
             onClick={() => setShowModal(true)}
@@ -236,7 +231,7 @@ export function AdminCleaningPlacesPage() {
         {error && (
           <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg">
             {error}
-            <button onClick={() => setError('')} className="ml-2 underline">Cerrar</button>
+            <button onClick={() => setError('')} className="ml-2 underline">Close</button>
           </div>
         )}
 
@@ -259,7 +254,7 @@ export function AdminCleaningPlacesPage() {
             <p className="text-2xl font-bold text-gray-900">{places.length}</p>
           </div>
           <div className="bg-white rounded-lg p-4 border">
-            <p className="text-sm text-gray-500">Activos</p>
+            <p className="text-sm text-gray-500">Active</p>
             <p className="text-2xl font-bold text-green-600">
               {places.filter(p => p.isActive).length}
             </p>
@@ -271,7 +266,7 @@ export function AdminCleaningPlacesPage() {
             </p>
           </div>
           <div className="bg-white rounded-lg p-4 border">
-            <p className="text-sm text-gray-500">Hab. Activas</p>
+            <p className="text-sm text-gray-500">Active Rooms</p>
             <p className="text-2xl font-bold text-purple-600">
               {places.reduce((acc, p) => acc + p.rooms.filter(r => r.isActive).length, 0)}
             </p>
@@ -309,7 +304,7 @@ export function AdminCleaningPlacesPage() {
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                     place.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
                   }`}>
-                    {place.isActive ? 'Activo' : 'Inactivo'}
+                    {place.isActive ? 'Active' : 'Inactive'}
                   </span>
                   <button
                     onClick={() => handleAddRoom(place.id)}
@@ -366,7 +361,7 @@ export function AdminCleaningPlacesPage() {
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                             room.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
                           }`}>
-                            {room.isActive ? 'Activo' : 'Inactivo'}
+                            {room.isActive ? 'Active' : 'Inactive'}
                           </span>
                           <button
                             onClick={() => handleEditRoom(place.id, room)}
@@ -389,12 +384,12 @@ export function AdminCleaningPlacesPage() {
 
               {expandedPlaces.has(place.id) && place.rooms.length === 0 && (
                 <div className="border-t p-4 text-center text-gray-500 text-sm">
-                  No hay rooms configuradas.{' '}
+                  No rooms configured.{' '}
                   <button
                     onClick={() => handleAddRoom(place.id)}
                     className="text-[#00205B] hover:underline"
                   >
-                    Agregar una
+                    Add one
                   </button>
                 </div>
               )}
@@ -447,7 +442,7 @@ export function AdminCleaningPlacesPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
             <div className="flex items-center justify-between p-6 border-b">
               <h2 className="text-xl font-semibold text-gray-900">
-                {editingPlace ? 'Edit Property Type' : 'New Type de Inmueble'}
+                {editingPlace ? 'Edit Property Type' : 'New Property Type'}
               </h2>
               <button onClick={closePlaceModal} className="p-2 text-gray-400 hover:text-gray-600">
                 <X className="h-5 w-5" />
@@ -484,7 +479,7 @@ export function AdminCleaningPlacesPage() {
                     onChange={(e) => setPlaceForm({ ...placeForm, isActive: e.target.checked })}
                     className="w-4 h-4 text-[#00205B] border-gray-300 rounded focus:ring-[#00205B]"
                   />
-                  <span className="text-sm text-gray-700">Activo</span>
+                  <span className="text-sm text-gray-700">Active</span>
                 </label>
               )}
 
@@ -501,7 +496,7 @@ export function AdminCleaningPlacesPage() {
                   disabled={saving}
                   className="flex-1 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] disabled:opacity-50"
                 >
-                  {saving ? 'Saving...' : editingPlace ? 'Save' : 'Crear'}
+                  {saving ? 'Saving...' : editingPlace ? 'Save' : 'Create'}
                 </button>
               </div>
             </form>
@@ -546,7 +541,7 @@ export function AdminCleaningPlacesPage() {
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Minutos base</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Base minutes</label>
                   <input
                     type="number"
                     min="5"
@@ -557,7 +552,7 @@ export function AdminCleaningPlacesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Precio base ($)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Base price ($)</label>
                   <input
                     type="number"
                     min="0"
@@ -568,7 +563,7 @@ export function AdminCleaningPlacesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Orden</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Order</label>
                   <input
                     type="number"
                     min="0"
@@ -587,7 +582,7 @@ export function AdminCleaningPlacesPage() {
                     onChange={(e) => setRoomForm({ ...roomForm, isActive: e.target.checked })}
                     className="w-4 h-4 text-[#00205B] border-gray-300 rounded focus:ring-[#00205B]"
                   />
-                  <span className="text-sm text-gray-700">Activo</span>
+                  <span className="text-sm text-gray-700">Active</span>
                 </label>
               )}
 
@@ -604,7 +599,7 @@ export function AdminCleaningPlacesPage() {
                   disabled={saving}
                   className="flex-1 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] disabled:opacity-50"
                 >
-                  {saving ? 'Saving...' : editingRoom ? 'Save' : 'Crear'}
+                  {saving ? 'Saving...' : editingRoom ? 'Save' : 'Create'}
                 </button>
               </div>
             </form>

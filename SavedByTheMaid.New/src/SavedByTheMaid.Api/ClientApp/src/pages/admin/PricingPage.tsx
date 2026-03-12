@@ -3,116 +3,213 @@ import {
   Plus,
   Edit2,
   Trash2,
-  Home,
-  Bath,
-  Square,
-  MapPin,
+  X,
   Percent,
+  Settings,
+  Repeat,
 } from 'lucide-react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
+import api from '../../lib/api';
 
-// Types
-interface RoomPricing {
-  id: string;
-  roomType: string;
-  pricePerUnit: number;
-  minUnits: number;
-  maxUnits: number;
-}
-
-interface SizePricing {
-  id: string;
-  minSqFt: number;
-  maxSqFt: number;
-  multiplier: number;
-  label: string;
-}
-
-interface AdditionalService {
-  id: string;
+// Backend types
+interface PriceMultiplier {
+  id: number;
   name: string;
-  price: number;
-  duration: number;
+  description: string | null;
+  conditionType: number;
+  factor: number;
+  minValue: number | null;
+  maxValue: number | null;
+  appliesToTime: boolean;
+  appliesToPrice: boolean;
+  serviceTypeId: number | null;
+  serviceType: { id: number; name: string } | null;
+  displayOrder: number;
   isActive: boolean;
 }
 
-interface ZonePricing {
-  id: string;
-  zipCode: string;
-  zoneName: string;
-  priceMultiplier: number;
+interface RecurrenceDiscount {
+  id: number;
+  recurrenceType: number;
+  discountPercent: number;
   isActive: boolean;
 }
+
+const CONDITION_TYPES = [
+  { value: 0, label: 'Square Footage', description: 'Multiplier based on property size (sq ft)' },
+  { value: 1, label: 'Dirt Level', description: 'Multiplier based on cleaning intensity needed' },
+  { value: 2, label: 'Has Pets', description: 'Adjustment for homes with pets' },
+  { value: 3, label: 'First Time', description: 'First-time cleaning surcharge' },
+  { value: 4, label: 'Floor Level', description: 'Multiplier based on floor number' },
+  { value: 5, label: 'No Elevator', description: 'Surcharge for no elevator access' },
+  { value: 6, label: 'Extra Rooms', description: 'Additional rooms multiplier' },
+];
+
+const RECURRENCE_TYPES = [
+  { value: 0, label: 'One-time' },
+  { value: 1, label: 'Weekly' },
+  { value: 2, label: 'Bi-Weekly' },
+  { value: 3, label: 'Monthly' },
+];
+
+type ActiveTab = 'multipliers' | 'recurrence';
 
 export function AdminPricingPage() {
-  const [activeTab, setActiveTab] = useState<'rooms' | 'size' | 'addons' | 'zones'>('rooms');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('multipliers');
   const [isLoading, setIsLoading] = useState(true);
-  
-  // State for each pricing type
-  const [roomPricing, setRoomPricing] = useState<RoomPricing[]>([]);
-  const [sizePricing, setSizePricing] = useState<SizePricing[]>([]);
-  const [additionalServices, setAdditionalServices] = useState<AdditionalService[]>([]);
-  const [zonePricing, setZonePricing] = useState<ZonePricing[]>([]);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const fetchPricingData = async () => {
-    setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Room pricing
-    setRoomPricing([
-      { id: '1', roomType: 'Bedrooms', pricePerUnit: 15, minUnits: 1, maxUnits: 10 },
-      { id: '2', roomType: 'Bathrooms', pricePerUnit: 20, minUnits: 1, maxUnits: 6 },
-      { id: '3', roomType: 'Half Baths', pricePerUnit: 10, minUnits: 0, maxUnits: 4 },
-    ]);
-    
-    // Size pricing
-    setSizePricing([
-      { id: '1', minSqFt: 0, maxSqFt: 1000, multiplier: 1.0, label: 'Small' },
-      { id: '2', minSqFt: 1001, maxSqFt: 2000, multiplier: 1.2, label: 'Medium' },
-      { id: '3', minSqFt: 2001, maxSqFt: 3500, multiplier: 1.5, label: 'Large' },
-      { id: '4', minSqFt: 3501, maxSqFt: 99999, multiplier: 2.0, label: 'Extra Large' },
-    ]);
-    
-    // Additional services
-    setAdditionalServices([
-      { id: '1', name: 'Inside refrigerator', price: 35, duration: 30, isActive: true },
-      { id: '2', name: 'Interior de horno', price: 25, duration: 20, isActive: true },
-      { id: '3', name: 'Interior de gabinetes', price: 45, duration: 45, isActive: true },
-      { id: '4', name: 'Lavado de ropa (1 carga)', price: 20, duration: 60, isActive: true },
-      { id: '5', name: 'Lavado de platos', price: 15, duration: 20, isActive: true },
-      { id: '6', name: 'Linen change', price: 10, duration: 15, isActive: true },
-      { id: '7', name: 'Window cleaning (per window)', price: 8, duration: 10, isActive: false },
-      { id: '8', name: 'Garage cleaning', price: 75, duration: 60, isActive: true },
-    ]);
-    
-    // Zone pricing
-    setZonePricing([
-      { id: '1', zipCode: '33101', zoneName: 'Downtown Miami', priceMultiplier: 1.0, isActive: true },
-      { id: '2', zipCode: '33139', zoneName: 'Miami Beach', priceMultiplier: 1.15, isActive: true },
-      { id: '3', zipCode: '33125', zoneName: 'Little Havana', priceMultiplier: 0.95, isActive: true },
-      { id: '4', zipCode: '33133', zoneName: 'Coconut Grove', priceMultiplier: 1.2, isActive: true },
-      { id: '5', zipCode: '33154', zoneName: 'Bal Harbour', priceMultiplier: 1.3, isActive: true },
-    ]);
-    
-    setIsLoading(false);
-  };
+  // Multipliers state
+  const [multipliers, setMultipliers] = useState<PriceMultiplier[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [editingMultiplier, setEditingMultiplier] = useState<PriceMultiplier | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+
+  const [form, setForm] = useState({
+    name: '',
+    description: '',
+    conditionType: 0,
+    factor: 1.0,
+    minValue: '' as string | number,
+    maxValue: '' as string | number,
+    appliesToTime: true,
+    appliesToPrice: true,
+    serviceTypeId: null as number | null,
+    displayOrder: 0,
+    isActive: true,
+  });
+
+  // Recurrence discounts state
+  const [discounts, setDiscounts] = useState<RecurrenceDiscount[]>([]);
+  const [discountForm, setDiscountForm] = useState({
+    recurrenceType: 1,
+    discountPercent: 0,
+  });
 
   useEffect(() => {
-    // call async loader from effect to avoid synchronous setState inside effect body
-    (async () => {
-      await fetchPricingData();
-    })();
+    fetchData();
   }, []);
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const [multipliersRes, discountsRes] = await Promise.all([
+        api.get<PriceMultiplier[]>('/admin/pricemultipliers'),
+        api.get<RecurrenceDiscount[]>('/admin/pricemultipliers/recurrence-discounts'),
+      ]);
+      setMultipliers(multipliersRes.data);
+      setDiscounts(discountsRes.data);
+    } catch {
+      setError('Error loading pricing data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const tabs = [
-    { id: 'rooms', label: 'By Room', icon: Home },
-    { id: 'size', label: 'By Size', icon: Square },
-    { id: 'addons', label: 'Additional Services', icon: Plus },
-    { id: 'zones', label: 'By Zone', icon: MapPin },
-  ];
+  // Multiplier CRUD
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+
+    const payload = {
+      name: form.name,
+      description: form.description || null,
+      conditionType: form.conditionType,
+      factor: form.factor,
+      minValue: form.minValue !== '' ? Number(form.minValue) : null,
+      maxValue: form.maxValue !== '' ? Number(form.maxValue) : null,
+      appliesToTime: form.appliesToTime,
+      appliesToPrice: form.appliesToPrice,
+      serviceTypeId: form.serviceTypeId,
+      displayOrder: form.displayOrder,
+      isActive: form.isActive,
+    };
+
+    try {
+      if (editingMultiplier) {
+        await api.put(`/admin/pricemultipliers/${editingMultiplier.id}`, payload);
+      } else {
+        await api.post('/admin/pricemultipliers', payload);
+      }
+      await fetchData();
+      closeModal();
+    } catch {
+      setError('Error saving multiplier');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEdit = (m: PriceMultiplier) => {
+    setEditingMultiplier(m);
+    setForm({
+      name: m.name,
+      description: m.description || '',
+      conditionType: m.conditionType,
+      factor: m.factor,
+      minValue: m.minValue ?? '',
+      maxValue: m.maxValue ?? '',
+      appliesToTime: m.appliesToTime,
+      appliesToPrice: m.appliesToPrice,
+      serviceTypeId: m.serviceTypeId,
+      displayOrder: m.displayOrder,
+      isActive: m.isActive,
+    });
+    setShowModal(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      await api.delete(`/admin/pricemultipliers/${id}`);
+      await fetchData();
+      setDeleteConfirm(null);
+    } catch {
+      setError('Error deleting multiplier');
+    }
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setEditingMultiplier(null);
+    setForm({
+      name: '', description: '', conditionType: 0, factor: 1.0,
+      minValue: '', maxValue: '', appliesToTime: true, appliesToPrice: true,
+      serviceTypeId: null, displayOrder: 0, isActive: true,
+    });
+  };
+
+  // Recurrence discounts
+  const handleSaveDiscount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await api.post('/admin/pricemultipliers/recurrence-discounts', discountForm);
+      await fetchData();
+      setDiscountForm({ recurrenceType: 1, discountPercent: 0 });
+    } catch {
+      setError('Error saving discount');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const getConditionLabel = (type: number) =>
+    CONDITION_TYPES.find(c => c.value === type)?.label || `Type ${type}`;
+
+  const formatFactor = (factor: number) => {
+    const pct = ((factor - 1) * 100).toFixed(0);
+    if (factor > 1) return `+${pct}%`;
+    if (factor < 1) return `${pct}%`;
+    return 'Base (×1.0)';
+  };
+
+  // Group multipliers by conditionType
+  const grouped = CONDITION_TYPES.map(ct => ({
+    ...ct,
+    items: multipliers.filter(m => m.conditionType === ct.value),
+  })).filter(g => g.items.length > 0);
 
   if (isLoading) {
     return (
@@ -128,274 +225,410 @@ export function AdminPricingPage() {
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pricing Configuration</h1>
-          <p className="text-gray-600">Manage service rates and pricing</p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Pricing Configuration</h1>
+            <p className="text-gray-600">Manage price multipliers and recurrence discounts</p>
+          </div>
+          {activeTab === 'multipliers' && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] transition-colors"
+            >
+              <Plus className="h-5 w-5" />
+              New Multiplier
+            </button>
+          )}
         </div>
+
+        {error && (
+          <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg">
+            {error}
+            <button onClick={() => setError('')} className="ml-2 underline">Close</button>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="border-b border-gray-200">
           <nav className="flex gap-8">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as 'rooms' | 'size' | 'addons' | 'zones')}
-                className={`flex items-center gap-2 pb-4 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-[#00205B] text-[#00205B]'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <tab.icon className="h-4 w-4" />
-                {tab.label}
-              </button>
-            ))}
+            <button
+              onClick={() => setActiveTab('multipliers')}
+              className={`flex items-center gap-2 pb-4 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'multipliers'
+                  ? 'border-[#00205B] text-[#00205B]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Settings className="h-4 w-4" />
+              Price Multipliers ({multipliers.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('recurrence')}
+              className={`flex items-center gap-2 pb-4 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'recurrence'
+                  ? 'border-[#00205B] text-[#00205B]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Repeat className="h-4 w-4" />
+              Recurrence Discounts ({discounts.length})
+            </button>
           </nav>
         </div>
 
-        {/* Content */}
-        <div className="bg-white rounded-xl shadow-sm border">
-          {/* Room Pricing Tab */}
-          {activeTab === 'rooms' && (
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Prices by Room</h2>
-                  <p className="text-sm text-gray-600">Additional price per room type</p>
-                </div>
-              </div>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Tipo</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Price per Unit</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Minimum</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Maximum</th>
-                      <th className="text-right py-3 px-4 font-medium text-gray-600">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {roomPricing.map((item) => (
-                      <tr key={item.id} className="border-b last:border-0">
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            {item.roomType === 'Bedrooms' ? <Home className="h-4 w-4 text-gray-400" /> : <Bath className="h-4 w-4 text-gray-400" />}
-                            <span className="font-medium text-gray-900">{item.roomType}</span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="text-gray-900 font-medium">{formatCurrency(item.pricePerUnit)}</span>
-                        </td>
-                        <td className="py-4 px-4 text-gray-600">{item.minUnits}</td>
-                        <td className="py-4 px-4 text-gray-600">{item.maxUnits}</td>
-                        <td className="py-4 px-4 text-right">
-                          <button className="p-2 text-gray-400 hover:text-[#00205B] hover:bg-[#FFE44D]/10 rounded-lg">
-                            <Edit2 className="h-4 w-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Size Pricing Tab */}
-          {activeTab === 'size' && (
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Prices by Size</h2>
-                  <p className="text-sm text-gray-600">Price multiplier by square footage</p>
-                </div>
-              </div>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Category</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Range (sq ft)</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Multiplier</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Example (base $100)</th>
-                      <th className="text-right py-3 px-4 font-medium text-gray-600">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sizePricing.map((item) => (
-                      <tr key={item.id} className="border-b last:border-0">
-                        <td className="py-4 px-4">
-                          <span className="font-medium text-gray-900">{item.label}</span>
-                        </td>
-                        <td className="py-4 px-4 text-gray-600">
-                          {item.minSqFt.toLocaleString()} - {item.maxSqFt > 10000 ? '∞' : item.maxSqFt.toLocaleString()}
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-[#FFE44D]/10 text-[#001440] rounded font-medium">
-                            <Percent className="h-3 w-3" />
-                            {(item.multiplier * 100).toFixed(0)}%
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 text-gray-900 font-medium">
-                          {formatCurrency(100 * item.multiplier)}
-                        </td>
-                        <td className="py-4 px-4 text-right">
-                          <button className="p-2 text-gray-400 hover:text-[#00205B] hover:bg-[#FFE44D]/10 rounded-lg">
-                            <Edit2 className="h-4 w-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Additional Services Tab */}
-          {activeTab === 'addons' && (
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Additional Services</h2>
-                  <p className="text-sm text-gray-600">Extras que los clientes pueden agregar</p>
-                </div>
-                <button className="inline-flex items-center gap-2 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] transition-colors">
-                  <Plus className="h-4 w-4" />
-                  Add Service
+        {/* Multipliers Tab */}
+        {activeTab === 'multipliers' && (
+          <div className="space-y-6">
+            {grouped.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-xl border">
+                <Settings className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">No price multipliers configured</p>
+                <button
+                  onClick={() => setShowModal(true)}
+                  className="mt-4 text-[#00205B] hover:underline"
+                >
+                  Create the first one
                 </button>
               </div>
-              
-              <div className="grid gap-4">
-                {additionalServices.map((service) => (
-                  <div
-                    key={service.id}
-                    className={`flex items-center justify-between p-4 border rounded-lg ${
-                      service.isActive ? 'bg-white' : 'bg-gray-50 opacity-60'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div>
-                        <h3 className="font-medium text-gray-900">{service.name}</h3>
-                        <p className="text-sm text-gray-500">{service.duration} additional min</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <span className="text-lg font-semibold text-gray-900">{formatCurrency(service.price)}</span>
-                      <button
-                        onClick={() => {
-                          setAdditionalServices(prev =>
-                            prev.map(s => s.id === service.id ? { ...s, isActive: !s.isActive } : s)
-                          );
-                        }}
-                        className={`relative w-12 h-6 rounded-full transition-colors ${
-                          service.isActive ? 'bg-green-500' : 'bg-gray-300'
-                        }`}
-                      >
-                        <span
-                          className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                            service.isActive ? 'left-7' : 'left-1'
-                          }`}
-                        />
-                      </button>
-                      <button className="p-2 text-gray-400 hover:text-[#00205B] hover:bg-[#FFE44D]/10 rounded-lg">
-                        <Edit2 className="h-4 w-4" />
-                      </button>
-                      <button className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
+            ) : (
+              grouped.map((group) => (
+                <div key={group.value} className="bg-white rounded-xl shadow-sm border">
+                  <div className="px-6 py-4 border-b bg-gray-50 rounded-t-xl">
+                    <h3 className="font-semibold text-gray-900">{group.label}</h3>
+                    <p className="text-sm text-gray-500">{group.description}</p>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Zone Pricing Tab */}
-          {activeTab === 'zones' && (
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Prices by Zone</h2>
-                  <p className="text-sm text-gray-600">Price adjustments by location</p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-3 px-6 font-medium text-gray-600 text-sm">Name</th>
+                          <th className="text-left py-3 px-6 font-medium text-gray-600 text-sm">Range</th>
+                          <th className="text-left py-3 px-6 font-medium text-gray-600 text-sm">Factor</th>
+                          <th className="text-left py-3 px-6 font-medium text-gray-600 text-sm">Applies To</th>
+                          <th className="text-left py-3 px-6 font-medium text-gray-600 text-sm">Status</th>
+                          <th className="text-right py-3 px-6 font-medium text-gray-600 text-sm">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {group.items.map((m) => (
+                          <tr key={m.id} className={`border-b last:border-0 ${!m.isActive ? 'opacity-50' : ''}`}>
+                            <td className="py-4 px-6">
+                              <p className="font-medium text-gray-900">{m.name}</p>
+                              {m.description && <p className="text-xs text-gray-500">{m.description}</p>}
+                            </td>
+                            <td className="py-4 px-6 text-sm text-gray-600">
+                              {m.minValue != null || m.maxValue != null ? (
+                                <>
+                                  {m.minValue != null ? m.minValue : '—'} → {m.maxValue != null ? m.maxValue : '∞'}
+                                </>
+                              ) : (
+                                <span className="text-gray-400">—</span>
+                              )}
+                            </td>
+                            <td className="py-4 px-6">
+                              <span className={`inline-flex items-center gap-1 px-2 py-1 rounded font-medium text-sm ${
+                                m.factor > 1
+                                  ? 'bg-amber-50 text-amber-700'
+                                  : m.factor < 1
+                                    ? 'bg-green-50 text-green-700'
+                                    : 'bg-gray-50 text-gray-700'
+                              }`}>
+                                <Percent className="h-3 w-3" />
+                                {formatFactor(m.factor)} (×{m.factor})
+                              </span>
+                            </td>
+                            <td className="py-4 px-6 text-sm">
+                              <div className="flex gap-2">
+                                {m.appliesToPrice && (
+                                  <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded">Price</span>
+                                )}
+                                {m.appliesToTime && (
+                                  <span className="px-2 py-0.5 bg-purple-50 text-purple-700 text-xs rounded">Time</span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-4 px-6">
+                              <span className={`text-sm ${m.isActive ? 'text-green-600' : 'text-gray-400'}`}>
+                                {m.isActive ? 'Active' : 'Inactive'}
+                              </span>
+                            </td>
+                            <td className="py-4 px-6 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  onClick={() => handleEdit(m)}
+                                  className="p-2 text-gray-400 hover:text-[#00205B] hover:bg-[#FFE44D]/10 rounded-lg"
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => setDeleteConfirm(m.id)}
+                                  className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-                <button className="inline-flex items-center gap-2 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] transition-colors">
-                  <Plus className="h-4 w-4" />
-                  Add Zone
-                </button>
-              </div>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Zip Code</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Zone</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Multiplier</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Estado</th>
-                      <th className="text-right py-3 px-4 font-medium text-gray-600">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {zonePricing.map((zone) => (
-                      <tr key={zone.id} className={`border-b last:border-0 ${!zone.isActive ? 'opacity-50' : ''}`}>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-gray-400" />
-                            <span className="font-mono font-medium text-gray-900">{zone.zipCode}</span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4 text-gray-600">{zone.zoneName}</td>
-                        <td className="py-4 px-4">
-                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded font-medium ${
-                            zone.priceMultiplier > 1 
-                              ? 'bg-amber-50 text-amber-700' 
-                              : zone.priceMultiplier < 1 
-                                ? 'bg-green-50 text-green-700'
-                                : 'bg-gray-50 text-gray-700'
-                          }`}>
-                            {zone.priceMultiplier > 1 ? '+' : ''}{((zone.priceMultiplier - 1) * 100).toFixed(0)}%
-                          </span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className={`text-sm ${zone.isActive ? 'text-green-600' : 'text-gray-400'}`}>
-                            {zone.isActive ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 text-right">
-                          <button className="p-2 text-gray-400 hover:text-[#00205B] hover:bg-[#FFE44D]/10 rounded-lg">
-                            <Edit2 className="h-4 w-4" />
-                          </button>
-                          <button className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Quick Summary */}
-        <div className="bg-gradient-to-r from-[#FFE44D]/50 to-blue-600 rounded-xl p-6 text-white">
-          <h3 className="text-lg font-semibold mb-2">💡 How pricing is calculated</h3>
-          <p className="text-sky-100 text-sm">
-            Final Price = (Base Service Price + Room Price + Bathroom Price) × Size Multiplier × Zone Multiplier + Additional Services
-          </p>
-          <div className="mt-4 p-4 bg-white/10 rounded-lg">
-            <p className="text-sm font-medium">Example:</p>
-            <p className="text-xs text-sky-100 mt-1">
-              Regular Cleaning ($85) + 3 bedrooms ($45) + 2 bathrooms ($40) = $170 × 1.2 (medium) × 1.15 (Miami Beach) + Inside refrigerator ($35) = <strong className="text-white">$269.60</strong>
-            </p>
+              ))
+            )}
           </div>
+        )}
+
+        {/* Recurrence Discounts Tab */}
+        {activeTab === 'recurrence' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-sm border p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">Current Discounts</h3>
+              {discounts.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">No recurrence discounts configured</p>
+              ) : (
+                <div className="grid gap-3 md:grid-cols-3">
+                  {discounts.map((d) => (
+                    <div key={d.id} className="p-4 border rounded-lg">
+                      <p className="text-sm text-gray-500">
+                        {RECURRENCE_TYPES.find(r => r.value === d.recurrenceType)?.label || `Type ${d.recurrenceType}`}
+                      </p>
+                      <p className="text-2xl font-bold text-[#00205B]">{d.discountPercent}%</p>
+                      <p className="text-xs text-gray-400">discount</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">Add / Update Discount</h3>
+              <form onSubmit={handleSaveDiscount} className="flex flex-col sm:flex-row gap-4 items-end">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Recurrence Type</label>
+                  <select
+                    value={discountForm.recurrenceType}
+                    onChange={(e) => setDiscountForm({ ...discountForm, recurrenceType: parseInt(e.target.value) })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+                  >
+                    {RECURRENCE_TYPES.filter(r => r.value !== 0).map(r => (
+                      <option key={r.value} value={r.value}>{r.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Discount (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                    value={discountForm.discountPercent}
+                    onChange={(e) => setDiscountForm({ ...discountForm, discountPercent: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-6 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] disabled:opacity-50"
+                >
+                  {saving ? 'Saving...' : 'Save'}
+                </button>
+              </form>
+              <p className="text-xs text-gray-400 mt-3">
+                If a discount for this recurrence type already exists, it will be updated.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Formula Info */}
+        <div className="bg-gradient-to-r from-[#00205B] to-blue-600 rounded-xl p-6 text-white">
+          <h3 className="text-lg font-semibold mb-2">How pricing is calculated</h3>
+          <p className="text-blue-100 text-sm">
+            Final Price = (Base Service Price + Room Prices) × Condition Multipliers − Recurrence Discount
+          </p>
+          <p className="text-xs text-blue-200 mt-2">
+            Each active multiplier whose condition matches the booking is applied. Multipliers that apply to time affect estimated duration; those that apply to price affect cost.
+          </p>
         </div>
       </div>
+
+      {/* Delete Confirmation */}
+      {deleteConfirm !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete multiplier?</h3>
+            <p className="text-gray-600 mb-6">This action cannot be undone.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(deleteConfirm)}
+                className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create/Edit Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-xl font-semibold text-gray-900">
+                {editingMultiplier ? 'Edit Multiplier' : 'New Multiplier'}
+              </h2>
+              <button onClick={closeModal} className="p-2 text-gray-400 hover:text-gray-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="E.g.: Large area surcharge"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                <input
+                  type="text"
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  placeholder="Optional description"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Condition Type *</label>
+                <select
+                  value={form.conditionType}
+                  onChange={(e) => setForm({ ...form, conditionType: parseInt(e.target.value) })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+                >
+                  {CONDITION_TYPES.map(ct => (
+                    <option key={ct.value} value={ct.value}>{ct.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Factor *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={form.factor}
+                    onChange={(e) => setForm({ ...form, factor: parseFloat(e.target.value) || 1 })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+                    required
+                  />
+                  <p className="text-xs text-gray-400 mt-1">1.0 = no change, 1.2 = +20%</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Min Value</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={form.minValue}
+                    onChange={(e) => setForm({ ...form, minValue: e.target.value === '' ? '' : parseFloat(e.target.value) })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Max Value</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={form.maxValue}
+                    onChange={(e) => setForm({ ...form, maxValue: e.target.value === '' ? '' : parseFloat(e.target.value) })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.appliesToPrice}
+                    onChange={(e) => setForm({ ...form, appliesToPrice: e.target.checked })}
+                    className="w-4 h-4 text-[#00205B] border-gray-300 rounded focus:ring-[#00205B]"
+                  />
+                  <span className="text-sm text-gray-700">Applies to price</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.appliesToTime}
+                    onChange={(e) => setForm({ ...form, appliesToTime: e.target.checked })}
+                    className="w-4 h-4 text-[#00205B] border-gray-300 rounded focus:ring-[#00205B]"
+                  />
+                  <span className="text-sm text-gray-700">Applies to time</span>
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Display Order</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.displayOrder}
+                  onChange={(e) => setForm({ ...form, displayOrder: parseInt(e.target.value) || 0 })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+                />
+              </div>
+
+              {editingMultiplier && (
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.isActive}
+                    onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
+                    className="w-4 h-4 text-[#00205B] border-gray-300 rounded focus:ring-[#00205B]"
+                  />
+                  <span className="text-sm text-gray-700">Active</span>
+                </label>
+              )}
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] disabled:opacity-50"
+                >
+                  {saving ? 'Saving...' : editingMultiplier ? 'Save' : 'Create'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

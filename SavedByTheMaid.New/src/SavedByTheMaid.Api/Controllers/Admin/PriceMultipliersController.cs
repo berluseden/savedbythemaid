@@ -106,7 +106,7 @@ public class PriceMultipliersController : ControllerBase
     [HttpPost("recurrence-discounts")]
     public async Task<ActionResult<RecurrenceDiscount>> CreateRecurrenceDiscount(CreateRecurrenceDiscountRequest request)
     {
-        // Verificar que no exista ya para ese tipo
+        // Check if one already exists for this recurrence type
         var existing = await _context.RecurrenceDiscounts
             .FirstOrDefaultAsync(d => d.RecurrenceType == request.RecurrenceType && !d.IsDeleted);
 

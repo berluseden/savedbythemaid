@@ -8,7 +8,7 @@ namespace SavedByTheMaid.Infrastructure.Extensions;
 public static class DatabaseExtensions
 {
     /// <summary>
-    /// Aplica migraciones pendientes y ejecuta seeds iniciales
+    /// Applies pending migrations and runs initial seeds
     /// </summary>
     public static async Task ApplyDatabaseMigrationsAsync(this IServiceProvider services)
     {
@@ -18,72 +18,72 @@ public static class DatabaseExtensions
 
         try
         {
-            logger.LogInformation("Verificando conexión a base de datos...");
-            
-            // Verificar conexión
+            logger.LogInformation("Verifying database connection...");
+
+            // Verify connection
             var canConnect = await context.Database.CanConnectAsync();
             if (!canConnect)
             {
-                logger.LogError("No se puede conectar a la base de datos");
-                throw new InvalidOperationException("No se puede conectar a la base de datos");
+                logger.LogError("Cannot connect to the database");
+                throw new InvalidOperationException("Cannot connect to the database");
             }
 
-            logger.LogInformation("Verificando esquema de base de datos...");
+            logger.LogInformation("Verifying database schema...");
 
-            // Si el proveedor no es relacional (ej. InMemory en tests), usamos EnsureCreated
+            // If the provider is not relational (e.g. InMemory in tests), use EnsureCreated
             if (!context.Database.IsRelational())
             {
-                logger.LogWarning("Proveedor de base de datos no relacional detectado. Usando EnsureCreatedAsync() para entorno de pruebas.");
+                logger.LogWarning("Non-relational database provider detected. Using EnsureCreatedAsync() for test environment.");
                 var created = await context.Database.EnsureCreatedAsync();
                 if (created)
                 {
-                    logger.LogInformation("Esquema de base de datos (InMemory) creado exitosamente");
+                    logger.LogInformation("Database schema (InMemory) created successfully");
                 }
                 else
                 {
-                    logger.LogInformation("El esquema de base de datos ya existe (InMemory)");
+                    logger.LogInformation("Database schema already exists (InMemory)");
                 }
 
-                // Evitar ejecutar correcciones SQL específicas de providers relacionales
+                // Avoid running relational-provider-specific SQL fixes
                 return;
             }
 
-            // Verificar si hay migraciones disponibles (solo para proveedores relacionales)
+            // Check if migrations are available (only for relational providers)
             var appliedMigrations = await context.Database.GetAppliedMigrationsAsync();
             var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
 
             if (!appliedMigrations.Any() && !pendingMigrations.Any())
             {
-                // No hay migraciones creadas, usar EnsureCreated
-                logger.LogWarning("No se encontraron migraciones. Creando esquema con EnsureCreated()");
+                // No migrations found, use EnsureCreated
+                logger.LogWarning("No migrations found. Creating schema with EnsureCreated()");
                 var created = await context.Database.EnsureCreatedAsync();
                 if (created)
                 {
-                    logger.LogInformation("Esquema de base de datos creado exitosamente");
+                    logger.LogInformation("Database schema created successfully");
                 }
                 else
                 {
-                    logger.LogInformation("El esquema de base de datos ya existe");
+                    logger.LogInformation("Database schema already exists");
                 }
             }
             else if (pendingMigrations.Any())
             {
-                // Hay migraciones pendientes, aplicarlas
-                logger.LogInformation("Migraciones pendientes: {Migrations}", string.Join(", ", pendingMigrations));
+                // There are pending migrations, apply them
+                logger.LogInformation("Pending migrations: {Migrations}", string.Join(", ", pendingMigrations));
                 await context.Database.MigrateAsync();
-                logger.LogInformation("Migraciones aplicadas exitosamente");
+                logger.LogInformation("Migrations applied successfully");
             }
             else
             {
-                logger.LogInformation("No hay migraciones pendientes. Esquema actualizado.");
+                logger.LogInformation("No pending migrations. Schema is up to date.");
             }
 
-            // Aplicar correcciones manuales si la columna PaymentStatus existe
+            // Apply manual fixes if the PaymentStatus column exists
             await ApplyManualFixesAsync(context, logger);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error aplicando migraciones");
+            logger.LogError(ex, "Error applying migrations");
             throw;
         }
     }
@@ -92,7 +92,7 @@ public static class DatabaseExtensions
     {
         try
         {
-            // Verificar si la columna PaymentStatus existe
+            // Check if the PaymentStatus column exists
             var columnExists = await context.Database.ExecuteSqlRawAsync(@"
                 SELECT COUNT(*) 
                 FROM INFORMATION_SCHEMA.COLUMNS 
@@ -102,13 +102,13 @@ public static class DatabaseExtensions
 
             if (columnExists)
             {
-                logger.LogWarning("Columna PaymentStatus detectada, eliminando...");
+                logger.LogWarning("PaymentStatus column detected, removing...");
                 await context.Database.ExecuteSqlRawAsync(@"
                     ALTER TABLE ServiceOrders DROP COLUMN IF EXISTS PaymentStatus");
-                logger.LogInformation("Columna PaymentStatus eliminada");
+                logger.LogInformation("PaymentStatus column removed");
             }
 
-            // Verificar y crear índice IX_ServiceOrders_CreatedAt
+            // Verify and create index IX_ServiceOrders_CreatedAt
             var hasCreatedAtIndex = await context.Database.ExecuteSqlRawAsync(@"
                 SELECT COUNT(*) 
                 FROM INFORMATION_SCHEMA.STATISTICS 
@@ -118,14 +118,14 @@ public static class DatabaseExtensions
 
             if (!hasCreatedAtIndex)
             {
-                logger.LogInformation("Creando índice IX_ServiceOrders_CreatedAt...");
+                logger.LogInformation("Creating index IX_ServiceOrders_CreatedAt...");
                 await context.Database.ExecuteSqlRawAsync(@"
                     CREATE INDEX IX_ServiceOrders_CreatedAt 
                     ON ServiceOrders(CreatedAt DESC)");
-                logger.LogInformation("Índice IX_ServiceOrders_CreatedAt creado");
+                logger.LogInformation("Index IX_ServiceOrders_CreatedAt created");
             }
 
-            // Verificar y crear índice compuesto
+            // Verify and create composite index
             var hasCompositeIndex = await context.Database.ExecuteSqlRawAsync(@"
                 SELECT COUNT(*) 
                 FROM INFORMATION_SCHEMA.STATISTICS 
@@ -135,19 +135,19 @@ public static class DatabaseExtensions
 
             if (!hasCompositeIndex)
             {
-                logger.LogInformation("Creando índice IX_ServiceOrders_OrderStatus_CreatedAt...");
+                logger.LogInformation("Creating index IX_ServiceOrders_OrderStatus_CreatedAt...");
                 await context.Database.ExecuteSqlRawAsync(@"
                     CREATE INDEX IX_ServiceOrders_OrderStatus_CreatedAt 
                     ON ServiceOrders(OrderStatus, CreatedAt DESC)");
-                logger.LogInformation("Índice IX_ServiceOrders_OrderStatus_CreatedAt creado");
+                logger.LogInformation("Index IX_ServiceOrders_OrderStatus_CreatedAt created");
             }
 
-            logger.LogInformation("Correcciones manuales aplicadas exitosamente");
+            logger.LogInformation("Manual fixes applied successfully");
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error aplicando correcciones manuales");
-            // No lanzar excepción, permitir que la app continúe
+            logger.LogError(ex, "Error applying manual fixes");
+            // Do not throw exception, allow the app to continue
         }
     }
 }

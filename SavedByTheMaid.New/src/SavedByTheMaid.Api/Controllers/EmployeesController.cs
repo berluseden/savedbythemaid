@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SavedByTheMaid.Api.Auth;
 using SavedByTheMaid.Infrastructure.Data;
 using SavedByTheMaid.Domain.Entities;
 
@@ -54,6 +56,7 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = Policies.AdminOnly)]
     public async Task<ActionResult<Employee>> CreateEmployee(CreateEmployeeRequest request)
     {
         var employee = new Employee
@@ -85,12 +88,18 @@ public class EmployeesController : ControllerBase
     }
 
     [HttpPost("{id}/schedule")]
+    [Authorize(Policy = Policies.AdminOnly)]
     public async Task<ActionResult<EmployeeSchedule>> AddSchedule(int id, CreateScheduleRequest request)
     {
         var employee = await _context.Employees.FindAsync(id);
         if (employee == null || employee.IsDeleted)
         {
             return NotFound();
+        }
+
+        if (request.EndTime <= request.StartTime)
+        {
+            return BadRequest(new { message = "EndTime must be greater than StartTime" });
         }
 
         var schedule = new EmployeeSchedule

@@ -4,14 +4,14 @@ using SavedByTheMaid.Domain.Enums;
 namespace SavedByTheMaid.Domain.Entities;
 
 /// <summary>
-/// Orden de servicio de limpieza
+/// Cleaning service order
 /// </summary>
 public class ServiceOrder : BaseAuditableEntity
 {
     public string? CustomerId { get; set; }
     public virtual ApplicationUser? Customer { get; set; }
 
-    // Ubicación
+    // Location
     public int? ServiceAreaId { get; set; }
     public virtual ServiceArea? ServiceArea { get; set; }
     public required string ZipCode { get; set; }
@@ -20,14 +20,14 @@ public class ServiceOrder : BaseAuditableEntity
     public string? City { get; set; }
     public string? State { get; set; }
 
-    // Tipo de servicio
+    // Service type
     public int ServiceTypeId { get; set; }
     public virtual ServiceType? ServiceType { get; set; }
 
     public int? CleaningPlaceId { get; set; }
     public virtual CleaningPlace? CleaningPlace { get; set; }
 
-    // Detalles del lugar
+    // Place details
     public int Bedrooms { get; set; } = 1;
     public int Bathrooms { get; set; } = 1;
     public int? SquareFootage { get; set; }
@@ -36,43 +36,43 @@ public class ServiceOrder : BaseAuditableEntity
     public int? FloorLevel { get; set; }
     public bool HasElevator { get; set; } = true;
 
-    // Montos
+    // Amounts
     public decimal Subtotal { get; set; }
     public decimal Tax { get; set; }
     public decimal Discount { get; set; }
     public decimal Total { get; set; }
 
-    // Estados
+    // Statuses
     public OrderStatus OrderStatus { get; set; } = OrderStatus.Draft;
     public OrderSource Source { get; set; } = OrderSource.Website;
 
-    // Recurrencia
+    // Recurrence
     public RecurrenceType RecurrenceType { get; set; } = RecurrenceType.None;
     public DateTime? RecurrenceEndDate { get; set; }
     public int? MaxOccurrences { get; set; }
-    public string? RecurrencePattern { get; set; } // iCal RRULE o custom JSON
+    public string? RecurrencePattern { get; set; } // iCal RRULE or custom JSON
 
-    // Información de contacto
+    // Contact information
     public string? ContactName { get; set; }
     public string? ContactPhone { get; set; }
     public string? ContactEmail { get; set; }
     public string? SpecialInstructions { get; set; }
 
-    // Preferencias de horario
+    // Schedule preferences
     public TimeSpan? PreferredStartTime { get; set; }
     public TimeSpan? PreferredEndTime { get; set; }
 
-    // Duración estimada total (calculada)
+    // Total estimated duration (calculated)
     public int EstimatedDurationMinutes { get; set; }
 
-    // Navegación
+    // Navigation
     public virtual ICollection<ServiceOrderItem> Items { get; set; } = new List<ServiceOrderItem>();
     public virtual ICollection<ServiceMeet> Meetings { get; set; } = new List<ServiceMeet>();
     public virtual ICollection<ServiceOrderRoom> Rooms { get; set; } = new List<ServiceOrderRoom>();
 }
 
 /// <summary>
-/// Línea de detalle de una orden (servicios adicionales, etc.)
+/// Order detail line item (additional services, etc.)
 /// </summary>
 public class ServiceOrderItem : BaseEntity
 {
@@ -89,7 +89,7 @@ public class ServiceOrderItem : BaseEntity
 }
 
 /// <summary>
-/// Habitaciones seleccionadas en una orden
+/// Rooms selected in an order
 /// </summary>
 public class ServiceOrderRoom : BaseEntity
 {
@@ -100,17 +100,17 @@ public class ServiceOrderRoom : BaseEntity
     public virtual CleaningPlaceRoom? CleaningPlaceRoom { get; set; }
 
     /// <summary>
-    /// Cantidad de este tipo de habitación (ej: 3 recámaras)
+    /// Quantity of this room type (e.g., 3 bedrooms)
     /// </summary>
     public int Quantity { get; set; } = 1;
 
     /// <summary>
-    /// Tiempo calculado para estas habitaciones
+    /// Calculated time for these rooms
     /// </summary>
     public int CalculatedMinutes { get; set; }
 
     /// <summary>
-    /// Precio calculado para estas habitaciones
+    /// Calculated price for these rooms
     /// </summary>
     public decimal CalculatedPrice { get; set; }
 }

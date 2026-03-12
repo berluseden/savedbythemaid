@@ -1,10 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
-using SavedByTheMaid.Api.Auth;
 using SavedByTheMaid.Api.Services;
 using SavedByTheMaid.Infrastructure.Data;
 using SavedByTheMaid.Domain.Entities;
@@ -13,40 +11,37 @@ using SavedByTheMaid.Domain.Enums;
 namespace SavedByTheMaid.Api.Controllers;
 
 /// <summary>
-/// API pública para el wizard de reservas
+/// Public API for the booking wizard
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-[AllowAnonymous] // Endpoints públicos para clientes
+[AllowAnonymous]
 public class BookingController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<BookingController> _logger;
     private readonly IEmailService _emailService;
-    private readonly IJwtService _jwtService;
-    private readonly IPasswordHasher<ApplicationUser> _passwordHasher;
     private readonly ISchedulingService _schedulingService;
+    private readonly IBookingService _bookingService;
 
     public BookingController(
-        ApplicationDbContext context, 
-        ILogger<BookingController> logger, 
+        ApplicationDbContext context,
+        ILogger<BookingController> logger,
         IEmailService emailService,
-        IJwtService jwtService,
-        IPasswordHasher<ApplicationUser> passwordHasher,
-        ISchedulingService schedulingService)
+        ISchedulingService schedulingService,
+        IBookingService bookingService)
     {
         _context = context;
         _logger = logger;
         _emailService = emailService;
-        _jwtService = jwtService;
-        _passwordHasher = passwordHasher;
         _schedulingService = schedulingService;
+        _bookingService = bookingService;
     }
 
-    #region Step 1 - Dirección y Cobertura
+    #region Step 1 - Address and Coverage
 
     /// <summary>
-    /// Verifica si un ZIP code tiene cobertura y devuelve la zona de servicio
+    /// Checks if a ZIP code has coverage and returns the service area
     /// </summary>
     [HttpGet("coverage/{zipCode}")]
     public async Task<ActionResult<CoverageResponse>> CheckCoverage(string zipCode)
@@ -60,7 +55,7 @@ public class BookingController : ControllerBase
             return Ok(new CoverageResponse
             {
                 IsCovered = false,
-                Message = "Lo sentimos, aún no damos servicio en esta zona."
+                Message = "Sorry, we don't cover this area yet."
             });
         }
 
@@ -72,16 +67,16 @@ public class BookingController : ControllerBase
             City = serviceAreaZip.City,
             State = serviceAreaZip.State,
             County = serviceAreaZip.County,
-            Message = $"¡Excelente! Damos servicio en {serviceAreaZip.City ?? "tu zona"}, {serviceAreaZip.State ?? ""}."
+            Message = $"Great! We service {serviceAreaZip.City ?? "your area"}, {serviceAreaZip.State ?? ""}."
         });
     }
 
     #endregion
 
-    #region Step 2 - Catálogo de Servicios
+    #region Step 2 - Service Catalog
 
     /// <summary>
-    /// Obtiene los tipos de inmueble disponibles
+    /// Gets available cleaning place types
     /// </summary>
     [HttpGet("cleaning-places")]
     public async Task<ActionResult<IEnumerable<CleaningPlaceDto>>> GetCleaningPlaces()
@@ -109,7 +104,7 @@ public class BookingController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene los tipos de servicio disponibles
+    /// Gets available service types
     /// </summary>
     [HttpGet("service-types")]
     public async Task<ActionResult<IEnumerable<ServiceTypeDto>>> GetServiceTypes()
@@ -135,7 +130,7 @@ public class BookingController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene los servicios adicionales disponibles
+    /// Gets available additional services
     /// </summary>
     [HttpGet("additional-services")]
     public async Task<ActionResult<IEnumerable<AdditionalServiceDto>>> GetAdditionalServices()
@@ -156,7 +151,7 @@ public class BookingController : ControllerBase
     }
 
     /// <summary>
-    /// Obtiene los descuentos por recurrencia
+    /// Gets recurrence discounts
     /// </summary>
     [HttpGet("recurrence-discounts")]
     public async Task<ActionResult<IEnumerable<RecurrenceDiscountDto>>> GetRecurrenceDiscounts()
@@ -176,143 +171,81 @@ public class BookingController : ControllerBase
 
     #endregion
 
-    #region Step 3 - Estimación de Precio y Tiempo
+    #region Step 3 - Price and Time Estimate
 
     /// <summary>
-    /// Calcula el precio y tiempo estimado basado en la selección del cliente
+    /// Calculates estimated price and time based on customer selection
     /// </summary>
     [HttpPost("estimate")]
     public async Task<ActionResult<EstimateResponse>> CalculateEstimate(EstimateRequest request)
     {
-        // Validar entrada
         if (request.ServiceTypeId <= 0)
-            return BadRequest("ServiceTypeId debe ser mayor a 0");
-        
+            return BadRequest("ServiceTypeId must be greater than 0");
+
         if (request.Rooms?.Any(r => r.Quantity < 0) == true)
-            return BadRequest("La cantidad de habitaciones no puede ser negativa");
-        
+            return BadRequest("Room quantity cannot be negative");
+
         if (request.SquareFootage.HasValue && (request.SquareFootage < 100 || request.SquareFootage > 50000))
-            return BadRequest("SquareFootage debe estar entre 100 y 50,000 pies cuadrados");
+            return BadRequest("SquareFootage must be between 100 and 50,000 sq ft");
 
-        // Obtener tipo de servicio
-        var serviceType = await _context.ServiceTypes.FindAsync(request.ServiceTypeId);
-        if (serviceType == null)
-            return BadRequest("Tipo de servicio no válido");
-
-        // Calcular tiempo base
-        int totalMinutes = serviceType.EstimatedMinutes;
-        decimal totalPrice = serviceType.Price;
-
-        // Agregar tiempo y precio por habitaciones
-        foreach (var room in request.Rooms)
+        var pricing = await _bookingService.CalculatePricingAsync(new PricingInput
         {
-            var roomType = await _context.CleaningPlaceRooms.FindAsync(room.RoomId);
-            if (roomType != null)
-            {
-                totalMinutes += roomType.BaseMinutes * room.Quantity;
-                totalPrice += roomType.BasePrice * room.Quantity;
-            }
-        }
+            ServiceTypeId = request.ServiceTypeId,
+            Rooms = request.Rooms?.Select(r => new RoomPricingItem(r.RoomId, r.Quantity)).ToList(),
+            Bedrooms = request.Bedrooms,
+            Bathrooms = request.Bathrooms,
+            AdditionalServiceIds = request.AdditionalServiceIds,
+            SquareFootage = request.SquareFootage,
+            DirtLevel = request.DirtLevel,
+            HasPets = request.HasPets,
+            HasElevator = request.HasElevator,
+            IsFirstTime = request.IsFirstTime,
+            RecurrenceType = request.RecurrenceType
+        });
 
-        // Agregar servicios adicionales
-        foreach (var additionalId in request.AdditionalServiceIds)
-        {
-            var additional = await _context.AdditionalServiceTypes.FindAsync(additionalId);
-            if (additional != null)
-            {
-                totalMinutes += additional.AdditionalMinutes;
-                totalPrice += additional.Price;
-            }
-        }
-
-        // Aplicar multiplicadores
-        var multipliers = await _context.PriceMultipliers
-            .Where(m => m.IsActive && !m.IsDeleted)
-            .Where(m => m.ServiceTypeId == null || m.ServiceTypeId == request.ServiceTypeId)
-            .ToListAsync();
-
-        decimal timeFactor = 1.0m;
-        decimal priceFactor = 1.0m;
-
-        foreach (var mult in multipliers)
-        {
-            bool applies = mult.ConditionType switch
-            {
-                MultiplierConditionType.SquareFootage when request.SquareFootage.HasValue =>
-                    (!mult.MinValue.HasValue || request.SquareFootage >= mult.MinValue) &&
-                    (!mult.MaxValue.HasValue || request.SquareFootage <= mult.MaxValue),
-                MultiplierConditionType.DirtLevel =>
-                    (int)request.DirtLevel == (int)(mult.MinValue ?? 1),
-                MultiplierConditionType.HasPets => request.HasPets,
-                MultiplierConditionType.FirstTime => request.IsFirstTime,
-                MultiplierConditionType.NoElevator => !request.HasElevator,
-                _ => false
-            };
-
-            if (applies)
-            {
-                if (mult.AppliesToTime) timeFactor *= mult.Factor;
-                if (mult.AppliesToPrice) priceFactor *= mult.Factor;
-            }
-        }
-
-        totalMinutes = (int)(totalMinutes * timeFactor);
-        totalPrice *= priceFactor;
-
-        // Aplicar descuento por recurrencia
-        decimal discountAmount = 0;
-        if (request.RecurrenceType != RecurrenceType.None)
-        {
-            var discount = await _context.RecurrenceDiscounts
-                .FirstOrDefaultAsync(d => d.RecurrenceType == request.RecurrenceType && d.IsActive);
-
-            if (discount != null)
-            {
-                discountAmount = totalPrice * discount.DiscountPercent;
-                totalPrice -= discountAmount;
-            }
-        }
+        if (!pricing.Success)
+            return BadRequest(new { message = pricing.Error });
 
         return Ok(new EstimateResponse
         {
-            EstimatedMinutes = totalMinutes,
-            FormattedDuration = FormatDuration(totalMinutes),
-            Subtotal = totalPrice + discountAmount,
-            Discount = discountAmount,
-            Total = totalPrice,
+            EstimatedMinutes = pricing.EstimatedMinutes,
+            FormattedDuration = FormatDuration(pricing.EstimatedMinutes),
+            Subtotal = pricing.Subtotal,
+            Discount = pricing.Discount,
+            Total = pricing.Total,
             RecurrenceType = request.RecurrenceType,
-            DiscountPercent = discountAmount > 0 ? (discountAmount / (totalPrice + discountAmount)) * 100 : 0
+            DiscountPercent = pricing.DiscountPercent
         });
     }
 
     #endregion
 
-    #region Step 4 - Disponibilidad
+    #region Step 4 - Availability
 
     /// <summary>
-    /// Obtiene los slots de tiempo disponibles para una fecha específica
+    /// Gets available time slots for a specific date
     /// </summary>
     [HttpPost("availability")]
     public async Task<ActionResult<AvailabilityResponse>> GetAvailability(AvailabilityRequest request)
     {
-        // Validar zona de servicio
+        // Validate service area
         var serviceAreaZip = await _context.ServiceAreaZips
             .FirstOrDefaultAsync(z => z.ZipCode == request.ZipCode);
 
         if (serviceAreaZip == null)
-            return BadRequest("ZIP code sin cobertura");
+            return BadRequest("ZIP code not covered");
 
         var serviceAreaId = serviceAreaZip.ServiceAreaId;
         var date = request.Date.Date;
         var dayOfWeek = date.DayOfWeek;
 
-        // Obtener empleadas que cubren esta zona
+        // Get employees covering this area
         var employeesInZone = await _context.EmployeeServiceAreas
             .Where(e => e.ServiceAreaId == serviceAreaId && !e.IsDeleted)
             .Select(e => e.EmployeeId)
             .ToListAsync();
 
-        // Obtener empleadas activas con horario ese día
+        // Get active employees with schedule for that day
         var employees = await _context.Employees
             .Where(e => e.IsActive && !e.IsDeleted)
             .Where(e => employeesInZone.Contains(e.Id))
@@ -323,7 +256,7 @@ public class BookingController : ControllerBase
                 t.EndDateTime >= date))
             .ToListAsync();
 
-        // Si se requiere equipamiento, filtrar
+        // Filter by required equipment if specified
         if (request.RequiredEquipmentIds?.Any() == true)
         {
             var employeesWithEquipment = await _context.EmployeeEquipment
@@ -342,14 +275,14 @@ public class BookingController : ControllerBase
             var schedule = employee.Schedules.FirstOrDefault();
             if (schedule == null) continue;
 
-            // Verificar si tiene time-off ese día
+            // Check if employee has time-off that day
             var hasTimeOff = employee.TimeOffs.Any(t =>
                 (t.IsAllDay) ||
                 (t.StartDateTime.Date <= date && t.EndDateTime.Date >= date));
 
             if (hasTimeOff) continue;
 
-            // Obtener citas existentes para ese día
+            // Get existing meetings for that day
             var existingMeetings = await _context.ServiceMeets
                 .Where(m => m.AssignedEmployeeId == employee.Id)
                 .Where(m => m.ScheduledStart.Date == date)
@@ -357,7 +290,7 @@ public class BookingController : ControllerBase
                 .Select(m => new { m.ScheduledStart, m.ScheduledEnd })
                 .ToListAsync();
 
-            // Obtener soft reserves activas
+            // Get active soft reserves
             var activeSoftReserves = await _context.SoftReserves
                 .Where(s => s.EmployeeId == employee.Id)
                 .Where(s => s.ScheduledStart.Date == date)
@@ -365,13 +298,14 @@ public class BookingController : ControllerBase
                 .Select(s => new { s.ScheduledStart, s.ScheduledEnd })
                 .ToListAsync();
 
-            // Combinar ocupación
+            // Combine occupancy
             var occupied = existingMeetings
                 .Concat(activeSoftReserves)
                 .Select(o => (Start: o.ScheduledStart, End: o.ScheduledEnd))
                 .ToList();
 
-            // Generar slots cada 30 minutos
+            // Generate slots every 30 minutes (accounting for buffer between services)
+            var bufferMinutes = schedule.BufferMinutes;
             var slotStart = date.Add(schedule.StartTime);
             var dayEnd = date.Add(schedule.EndTime);
             var duration = TimeSpan.FromMinutes(request.EstimatedMinutes);
@@ -380,19 +314,19 @@ public class BookingController : ControllerBase
             {
                 var slotEnd = slotStart.Add(duration);
 
-                // Verificar si no hay solapamiento
+                // Check for overlap (with buffer)
                 var hasConflict = occupied.Any(o =>
-                    slotStart < o.End && slotEnd > o.Start);
+                    slotStart < o.End.AddMinutes(bufferMinutes) && slotEnd.AddMinutes(bufferMinutes) > o.Start);
 
                 if (!hasConflict)
                 {
-                    // Verificar que no exista ya un slot idéntico
+                    // Check if an identical slot already exists
                     var existingSlot = slots.FirstOrDefault(s => 
                         s.StartTime == slotStart.TimeOfDay);
 
                     if (existingSlot != null)
                     {
-                        // Agregar empleada al slot existente
+                        // Add employee to existing slot
                         existingSlot.AvailableEmployeeIds.Add(employee.Id);
                     }
                     else
@@ -408,7 +342,7 @@ public class BookingController : ControllerBase
                     }
                 }
 
-                slotStart = slotStart.AddMinutes(30); // Incrementar cada 30 min
+                slotStart = slotStart.AddMinutes(30);
             }
         }
 
@@ -424,23 +358,23 @@ public class BookingController : ControllerBase
 
     #endregion
 
-    #region Step 5 - Soft Reserve (anti-colisión)
+    #region Step 5 - Soft Reserve (anti-collision)
 
     /// <summary>
-    /// Crea una reserva temporal (soft reserve) mientras el cliente completa el checkout.
-    /// Usa SlotOccupancy con constraint UNIQUE para anti-colisión a nivel de BD.
+    /// Creates a temporary reserve (soft reserve) while the customer completes checkout.
+    /// Uses SlotOccupancy with UNIQUE constraint for DB-level anti-collision.
     /// </summary>
     [HttpPost("soft-reserve")]
     public async Task<ActionResult<SoftReserveResponse>> CreateSoftReserve(CreateSoftReserveRequest request)
     {
-        // Obtener ServiceAreaId del ZipCode
+        // Get ServiceAreaId from ZipCode
         var serviceAreaZip = await _context.ServiceAreaZips
             .Include(z => z.ServiceArea)
             .FirstOrDefaultAsync(z => z.ZipCode == request.ZipCode && z.ServiceArea.IsActive);
 
         if (serviceAreaZip == null)
         {
-            return BadRequest(new { message = "Código postal no tiene cobertura." });
+            return BadRequest(new { message = "ZIP code not covered." });
         }
 
         var serviceAreaId = serviceAreaZip.ServiceAreaId;
@@ -451,7 +385,7 @@ public class BookingController : ControllerBase
         var startDateTime = request.Date.Date.Add(request.StartTime);
         var endDateTime = startDateTime.AddMinutes(request.EstimatedMinutes);
 
-        // 1. Verificar que la empleada tenga horario laboral ese día
+        // 1. Verify employee has a work schedule for that day
         var dayOfWeek = request.Date.DayOfWeek;
         var schedule = await _context.EmployeeSchedules
             .FirstOrDefaultAsync(s => 
@@ -461,20 +395,20 @@ public class BookingController : ControllerBase
 
         if (schedule == null)
         {
-            return BadRequest(new { message = "Empleada no trabaja en ese día de la semana." });
+            return BadRequest(new { message = "Employee does not work on that day." });
         }
 
-        // Verificar que el horario esté dentro del turno laboral
+        // Verify the time is within the work shift
         if (request.StartTime < schedule.StartTime || request.StartTime >= schedule.EndTime)
         {
-            return BadRequest(new { message = "Horario fuera del turno laboral de la empleada." });
+            return BadRequest(new { message = "Time is outside the employee's work shift." });
         }
 
-        // 2. Verificar conflictos usando el servicio centralizado (TimeOffs y otros Bookings)
+        // 2. Check conflicts using centralized service (TimeOffs and other Bookings)
         var conflict = await _schedulingService.CheckConflictsAsync(request.EmployeeId, startDateTime, endDateTime);
         if (conflict != null)
         {
-            _logger.LogWarning("Conflicto detectado al crear SoftReserve: {Message}", conflict.Message);
+            _logger.LogWarning("Conflict detected creating SoftReserve: {Message}", conflict.Message);
             return Conflict(new { message = conflict.Message, details = conflict.Details });
         }
 
@@ -482,7 +416,7 @@ public class BookingController : ControllerBase
 
         try
         {
-            // Crear soft reserve primero para obtener el ID
+            // Create soft reserve first to get the ID
             var softReserve = new SoftReserve
             {
                 SessionId = sessionId,
@@ -498,8 +432,8 @@ public class BookingController : ControllerBase
             _context.SoftReserves.Add(softReserve);
             await _context.SaveChangesAsync();
 
-            // Insertar filas en SlotOccupancy usando el servicio
-            // El constraint UNIQUE en (EmployeeId, SlotStart) previene double-booking
+            // Insert SlotOccupancy rows using the service
+            // UNIQUE constraint on (EmployeeId, SlotStart) prevents double-booking
             await _schedulingService.AcquireSlotsAsync(
                 request.EmployeeId, 
                 startDateTime, 
@@ -508,11 +442,11 @@ public class BookingController : ControllerBase
                 softReserve.Id, 
                 expiresAt);
 
-            // Commit transaction (AcquireSlotsAsync ya hizo SaveChanges, pero necesitamos commitear la transacción)
+            // Commit transaction
             await transaction.CommitAsync();
 
             _logger.LogInformation(
-                "SoftReserve {SoftReserveId} creado para empleada {EmployeeId}",
+                "SoftReserve {SoftReserveId} created for employee {EmployeeId}",
                 softReserve.Id, request.EmployeeId);
 
             return Ok(new SoftReserveResponse
@@ -523,17 +457,17 @@ public class BookingController : ControllerBase
                 ScheduledEnd = endDateTime,
                 ExpiresAt = softReserve.ExpiresAt,
                 TtlSeconds = ttlMinutes * 60,
-                Message = $"Horario reservado por {ttlMinutes} minutos. Complete el pago para confirmar."
+                Message = $"Time slot reserved for {ttlMinutes} minutes. Complete payment to confirm."
             });
         }
         catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
         {
-            // Constraint violation = slot ya ocupado por otro usuario
+            // Constraint violation = slot already taken by another user
             _logger.LogWarning(
-                "Conflicto de slot para empleada {EmployeeId} en {Start} - {End}",
+                "Slot conflict for employee {EmployeeId} at {Start} - {End}",
                 request.EmployeeId, startDateTime, endDateTime);
             
-            return Conflict(new { message = "Este horario ya no está disponible. Alguien más lo reservó." });
+            return Conflict(new { message = "This time slot is no longer available. Someone else has reserved it." });
         }
         catch (Exception ex)
         {
@@ -543,7 +477,7 @@ public class BookingController : ControllerBase
     }
 
     /// <summary>
-    /// Cancela una soft reserve manualmente
+    /// Cancels a soft reserve manually
     /// </summary>
     [HttpDelete("soft-reserve/{id}")]
     public async Task<IActionResult> CancelSoftReserve(int id, [FromQuery] string sessionId)
@@ -564,7 +498,7 @@ public class BookingController : ControllerBase
     }
 
     /// <summary>
-    /// Extiende el tiempo de una soft reserve
+    /// Extends the time of a soft reserve
     /// </summary>
     [HttpPost("soft-reserve/{id}/extend")]
     public async Task<ActionResult<SoftReserveResponse>> ExtendSoftReserve(int id, [FromQuery] string sessionId)
@@ -578,11 +512,27 @@ public class BookingController : ControllerBase
         if (softReserve.Status != SoftReserveStatus.Active || softReserve.ExpiresAt <= DateTime.UtcNow)
             return BadRequest(new { message = "Your time slot has expired. Please go back and select a new time." });
 
-        // Extender 10 minutos más desde la expiración actual (no desde ahora)
-        var newExpiry = softReserve.ExpiresAt > DateTime.UtcNow 
-            ? softReserve.ExpiresAt.AddMinutes(10) 
+        // Limit extensions to prevent indefinite slot blocking
+        const int maxExtensions = 2;
+        if (softReserve.ExtensionCount >= maxExtensions)
+            return BadRequest(new { message = $"Maximum of {maxExtensions} extensions reached. Please complete your booking or select a new time." });
+
+        // Extend 10 more minutes from current expiration (not from now)
+        var newExpiry = softReserve.ExpiresAt > DateTime.UtcNow
+            ? softReserve.ExpiresAt.AddMinutes(10)
             : DateTime.UtcNow.AddMinutes(10);
         softReserve.ExpiresAt = newExpiry;
+        softReserve.ExtensionCount++;
+
+        // Also extend the SlotOccupancy expiry to match
+        var slotsToExtend = await _context.SlotOccupancies
+            .Where(s => s.OccupancyType == OccupancyType.SoftReserve && s.ReferenceId == softReserve.Id)
+            .ToListAsync();
+        foreach (var slot in slotsToExtend)
+        {
+            slot.ExpiresAt = newExpiry;
+        }
+
         await _context.SaveChangesAsync();
 
         return Ok(new SoftReserveResponse
@@ -593,7 +543,7 @@ public class BookingController : ControllerBase
             ScheduledEnd = softReserve.ScheduledEnd,
             ExpiresAt = softReserve.ExpiresAt,
             TtlSeconds = (int)(softReserve.ExpiresAt - DateTime.UtcNow).TotalSeconds,
-            Message = "Reserva extendida."
+            Message = "Reservation extended."
         });
     }
 
@@ -602,7 +552,7 @@ public class BookingController : ControllerBase
     #region Step 6 - Confirm Booking
 
     /// <summary>
-    /// Confirma la reserva y crea la orden + cita
+    /// Confirms the booking: validates reserve, creates order + meeting, converts slots.
     /// </summary>
     [HttpPost("confirm")]
     public async Task<ActionResult<BookingConfirmationResponse>> ConfirmBooking(ConfirmBookingRequest request)
@@ -611,194 +561,11 @@ public class BookingController : ControllerBase
 
         try
         {
-            // Validar soft reserve
-            var softReserve = await _context.SoftReserves
-                .FirstOrDefaultAsync(s => s.Id == request.SoftReserveId && s.SessionId == request.SessionId);
-
-            if (softReserve == null)
-                return NotFound(new { message = "Your time slot reservation was not found. Please go back and select a new time." });
-
-            if (softReserve.Status != SoftReserveStatus.Active)
-                return BadRequest(new { message = "This reservation has already been processed. Please start a new booking." });
-
-            if (softReserve.ExpiresAt <= DateTime.UtcNow)
+            var result = await _bookingService.ConfirmBookingAsync(new ConfirmBookingInput
             {
-                softReserve.Status = SoftReserveStatus.Expired;
-                await _context.SaveChangesAsync();
-                return BadRequest(new { message = "Your time slot has expired. Please go back and select a new time." });
-            }
-
-            // CRÍTICO: Re-calcular pricing en backend para prevenir fraude
-            _logger.LogInformation("Re-calculating pricing for confirmation - SoftReserve {SoftReserveId}", request.SoftReserveId);
-            
-            var serviceType = await _context.ServiceTypes.FindAsync(request.ServiceTypeId);
-            if (serviceType == null)
-                return BadRequest(new { message = "Invalid service type. Please go back and select a service." });
-
-            // Precio base del servicio
-            decimal calculatedSubtotal = serviceType.Price;
-            int calculatedMinutes = serviceType.EstimatedMinutes;
-
-            // Agregar precio por habitaciones extras (bedroom - 1 porque la primera está incluida)
-            if (request.Bedrooms > 1)
-            {
-                calculatedSubtotal += (request.Bedrooms - 1) * serviceType.PricePerBedroom;
-                calculatedMinutes += (request.Bedrooms - 1) * serviceType.MinutesPerBedroom;
-            }
-
-            // Agregar precio por baños extras (bathroom - 1 porque el primero está incluido)
-            if (request.Bathrooms > 1)
-            {
-                calculatedSubtotal += (request.Bathrooms - 1) * serviceType.PricePerBathroom;
-                calculatedMinutes += (request.Bathrooms - 1) * serviceType.MinutesPerBathroom;
-            }
-
-            // Agregar servicios adicionales
-            if (request.AdditionalServiceIds?.Any() == true)
-            {
-                var additionals = await _context.AdditionalServiceTypes
-                    .Where(a => request.AdditionalServiceIds.Contains(a.Id))
-                    .ToListAsync();
-                
-                calculatedSubtotal += additionals.Sum(a => a.Price);
-                calculatedMinutes += additionals.Sum(a => a.AdditionalMinutes);
-            }
-
-            // Aplicar multiplicadores (pets, dirt level, etc.)
-            var multipliers = await _context.PriceMultipliers
-                .Where(m => m.IsActive)
-                .Where(m => m.ServiceTypeId == null || m.ServiceTypeId == request.ServiceTypeId)
-                .ToListAsync();
-
-            decimal priceFactor = 1.0m;
-            foreach (var mult in multipliers)
-            {
-                bool applies = mult.ConditionType switch
-                {
-                    MultiplierConditionType.HasPets => request.HasPets,
-                    MultiplierConditionType.DirtLevel => (int)request.DirtLevel == (int)(mult.MinValue ?? 1),
-                    MultiplierConditionType.NoElevator => !request.HasElevator,
-                    _ => false
-                };
-
-                if (applies && mult.AppliesToPrice)
-                    priceFactor *= mult.Factor;
-            }
-
-            calculatedSubtotal *= priceFactor;
-
-            // Aplicar descuento por recurrencia
-            decimal calculatedDiscount = 0;
-            if (request.RecurrenceType != RecurrenceType.None)
-            {
-                var discount = await _context.RecurrenceDiscounts
-                    .FirstOrDefaultAsync(d => d.RecurrenceType == request.RecurrenceType && d.IsActive);
-                if (discount != null)
-                {
-                    calculatedDiscount = calculatedSubtotal * discount.DiscountPercent;
-                }
-            }
-
-            decimal calculatedTotal = calculatedSubtotal - calculatedDiscount;
-
-            // SEGURIDAD: Validar que el total enviado esté cerca del calculado (tolerancia de 10%)
-            // Usamos el total recalculado en backend para prevenir fraude
-            var tolerance = calculatedTotal * 0.10m; // 10% de tolerancia
-            if (Math.Abs(request.Total - calculatedTotal) > tolerance)
-            {
-                _logger.LogWarning("Price mismatch detected - Expected: {Expected}, Received: {Received}, Tolerance: {Tolerance}", 
-                    calculatedTotal, request.Total, tolerance);
-                // NO rechazar, solo usar el total calculado en backend
-            }
-            
-            // Siempre usar el total recalculado en backend (anti-fraude)
-            var finalTotal = calculatedTotal;
-
-            // NUEVO: Crear usuario automáticamente si no existe
-            string? customerId = request.CustomerId;
-            AuthToken? authToken = null;
-            bool isNewUser = false;
-            bool isGuest = false;
-
-            if (string.IsNullOrEmpty(customerId))
-            {
-                // Verificar si el email ya existe
-                var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.ContactEmail);
-                
-                if (existingUser != null)
-                {
-                    // Usuario existe - usar su ID para la orden pero NO generar token
-                    // El usuario puede iniciar sesión después para ver sus bookings
-                    customerId = existingUser.Id;
-                    isNewUser = false;
-                    _logger.LogInformation("Booking creado para usuario existente (no logueado): {Email}", request.ContactEmail);
-                    // No retornar error - permitir booking como guest, asociado a su cuenta
-                }
-                else if (string.IsNullOrWhiteSpace(request.Password))
-                {
-                    // Email nuevo sin contraseña - GUEST CHECKOUT
-                    // Crear orden SIN CustomerId (guest)
-                    customerId = null;
-                    isNewUser = false;
-                    isGuest = true;
-                    _logger.LogInformation("Guest booking creado sin cuenta: {Email}", request.ContactEmail);
-                }
-                else
-                {
-                    // Email NUEVO - crear usuario
-                    var newUser = new ApplicationUser
-                    {
-                        Id = Guid.NewGuid().ToString(),
-                        UserName = request.ContactEmail,
-                        NormalizedUserName = request.ContactEmail.ToUpperInvariant(),
-                        Email = request.ContactEmail,
-                        NormalizedEmail = request.ContactEmail.ToUpperInvariant(),
-                        EmailConfirmed = false,
-                        PhoneNumber = request.ContactPhone,
-                        SecurityStamp = Guid.NewGuid().ToString(),
-                        FirstName = request.ContactName?.Split(' ').FirstOrDefault(),
-                        LastName = request.ContactName?.Split(' ').Skip(1).FirstOrDefault()
-                    };
-
-                    newUser.PasswordHash = _passwordHasher.HashPassword(newUser, request.Password);
-                    _context.Users.Add(newUser);
-
-                    // Asignar rol Customer
-                    var customerRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == Roles.Customer);
-                    if (customerRole != null)
-                    {
-                        _context.UserRoles.Add(new IdentityUserRole<string>
-                        {
-                            UserId = newUser.Id,
-                            RoleId = customerRole.Id
-                        });
-                    }
-
-                    customerId = newUser.Id;
-                    isNewUser = true;
-
-                    // Generar tokens JWT para auto-login
-                    var roles = new[] { Roles.Customer };
-                    var accessToken = _jwtService.GenerateAccessToken(newUser.Id, newUser.Email!, roles);
-                    var refreshToken = _jwtService.GenerateRefreshToken();
-
-                    authToken = new AuthToken
-                    {
-                        AccessToken = accessToken,
-                        RefreshToken = refreshToken,
-                        ExpiresAt = DateTime.UtcNow.AddHours(24),
-                        IsNewUser = true
-                    };
-
-                    _logger.LogInformation("Usuario creado automáticamente durante booking: {Email}", request.ContactEmail);
-                }
-            }
-
-            // Crear orden con pricing validado (estado PendingReview para revisión admin)
-            var order = new ServiceOrder
-            {
-                CustomerId = customerId,
-                ServiceAreaId = softReserve.ServiceAreaId,
+                SoftReserveId = request.SoftReserveId,
+                SessionId = request.SessionId,
+                CustomerId = request.CustomerId,
                 ZipCode = request.ZipCode,
                 Address = request.Address,
                 AddressLine2 = request.AddressLine2,
@@ -813,88 +580,36 @@ public class BookingController : ControllerBase
                 HasPets = request.HasPets,
                 FloorLevel = request.FloorLevel,
                 HasElevator = request.HasElevator,
-                Subtotal = calculatedSubtotal,
-                Tax = 0, // No tax in MVP
-                Discount = calculatedDiscount,
-                Total = calculatedTotal,
-                OrderStatus = OrderStatus.PendingReview, // Pendiente de confirmación por admin
+                AdditionalServiceIds = request.AdditionalServiceIds,
+                Rooms = request.Rooms?.Select(r => new RoomPricingItem(r.RoomId, r.Quantity)).ToList(),
+                Total = request.Total,
                 RecurrenceType = request.RecurrenceType,
                 RecurrenceEndDate = request.RecurrenceEndDate,
-                Source = OrderSource.Website,
                 ContactName = request.ContactName,
                 ContactPhone = request.ContactPhone,
                 ContactEmail = request.ContactEmail,
-                SpecialInstructions = request.SpecialInstructions,
-                PreferredStartTime = softReserve.ScheduledStart.TimeOfDay,
-                EstimatedDurationMinutes = (int)(softReserve.ScheduledEnd - softReserve.ScheduledStart).TotalMinutes
-            };
+                Password = request.Password,
+                SpecialInstructions = request.SpecialInstructions
+            });
 
-            _context.ServiceOrders.Add(order);
-            await _context.SaveChangesAsync();
-
-            // Agregar items adicionales
-            if (request.AdditionalServiceIds?.Any() == true)
+            if (!result.Success)
             {
-                foreach (var additionalId in request.AdditionalServiceIds)
-                {
-                    var additional = await _context.AdditionalServiceTypes.FindAsync(additionalId);
-                    if (additional != null)
-                    {
-                        _context.ServiceOrderItems.Add(new ServiceOrderItem
-                        {
-                            ServiceOrderId = order.Id,
-                            AdditionalServiceTypeId = additionalId,
-                            Description = additional.Title,
-                            Quantity = 1,
-                            UnitPrice = additional.Price,
-                            Total = additional.Price
-                        });
-                    }
-                }
-            }
-
-            // Crear cita (ServiceMeet)
-            var meet = new ServiceMeet
-            {
-                ServiceOrderId = order.Id,
-                AssignedEmployeeId = softReserve.EmployeeId,
-                ServiceAreaId = softReserve.ServiceAreaId,
-                ScheduledStart = softReserve.ScheduledStart,
-                ScheduledEnd = softReserve.ScheduledEnd,
-                EstimatedDurationMinutes = (int)(softReserve.ScheduledEnd - softReserve.ScheduledStart).TotalMinutes,
-                Status = MeetStatus.Scheduled // MVP: Admin confirms and assigns
-            };
-
-            _context.ServiceMeets.Add(meet);
-            // CRÍTICO: Guardar cambios para generar el ID del meeting antes de usarlo en SlotOccupancy
-            await _context.SaveChangesAsync(); 
-
-            // Actualizar soft reserve
-            softReserve.Status = SoftReserveStatus.Converted;
-            softReserve.ServiceOrderId = order.Id;
-            softReserve.CustomerId = customerId;
-
-            // Convertir SlotOccupancy de SoftReserve a Meeting
-            await ConvertSoftReserveToMeetingOccupancy(softReserve.Id, meet.Id);
-
-            await _context.SaveChangesAsync();
-
-            // Si es recurrente, crear citas futuras (se crean en estado Scheduled)
-            if (request.RecurrenceType != RecurrenceType.None)
-            {
-                await CreateRecurringMeetings(order, meet, request.RecurrenceType, request.RecurrenceEndDate);
+                if (result.IsNotFound) return NotFound(new { message = result.Error });
+                if (result.IsExpired || result.IsAlreadyProcessed) return BadRequest(new { message = result.Error });
+                return BadRequest(new { message = result.Error });
             }
 
             await transaction.CommitAsync();
 
-            _logger.LogInformation("Order confirmed - OrderId: {OrderId}, MeetId: {MeetId}, SessionId: {SessionId}, Total: {Total}", 
-                order.Id, meet.Id, request.SessionId, order.Total);
-
-            // Enviar email de confirmación
+            // Send confirmation email (fire-and-forget)
             if (!string.IsNullOrEmpty(request.ContactEmail))
             {
-                var employee = await _context.Employees.FindAsync(softReserve.EmployeeId);
-                var serviceTypeName = serviceType?.Name ?? "Cleaning Service";
+                var serviceType = await _context.ServiceTypes.FindAsync(request.ServiceTypeId);
+                var softReserve = await _context.SoftReserves
+                    .FirstOrDefaultAsync(s => s.Id == request.SoftReserveId);
+                var employee = softReserve != null
+                    ? await _context.Employees.FindAsync(softReserve.EmployeeId)
+                    : null;
 
                 _ = Task.Run(async () =>
                 {
@@ -904,38 +619,40 @@ public class BookingController : ControllerBase
                             request.ContactEmail,
                             new BookingConfirmationEmail(
                                 CustomerName: request.ContactName ?? "Valued Customer",
-                                ServiceType: serviceTypeName,
-                                ScheduledDate: meet.ScheduledStart.Date,
-                                ScheduledTime: meet.ScheduledStart.ToString("h:mm tt"),
+                                ServiceType: serviceType?.Name ?? "Cleaning Service",
+                                ScheduledDate: result.ScheduledStart.Date,
+                                ScheduledTime: result.ScheduledStart.ToString("h:mm tt"),
                                 Address: $"{request.Address}, {request.City}, {request.State} {request.ZipCode}",
-                                TotalAmount: order.Total,
+                                TotalAmount: result.Total,
                                 EmployeeName: employee != null ? $"{employee.FirstName} {employee.LastName}" : "Our professional cleaner",
-                                EstimatedDuration: meet.EstimatedDurationMinutes
+                                EstimatedDuration: (int)(result.ScheduledEnd - result.ScheduledStart).TotalMinutes
                             ));
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Failed to send confirmation email for Order {OrderId}", order.Id);
+                        _logger.LogError(ex, "Failed to send confirmation email for Order {OrderId}", result.OrderId);
                     }
                 });
             }
 
             return Ok(new BookingConfirmationResponse
             {
-                OrderId = order.Id,
-                MeetId = meet.Id,
-                ConfirmationNumber = $"SBM-{order.Id:D6}",
-                ScheduledStart = meet.ScheduledStart,
-                ScheduledEnd = meet.ScheduledEnd,
-                Total = order.Total,
-                OrderStatus = order.OrderStatus.ToString(),
-                Message = isGuest 
-                    ? "Reserva creada. Te enviaremos confirmación por email."
-                    : isNewUser 
-                        ? "¡Cuenta creada! Tu reserva está pendiente de confirmación. Te notificaremos pronto."
-                        : "Reserva recibida, pendiente de confirmación. Te contactaremos para confirmar tu cita.",
-                AuthToken = authToken,
-                IsGuest = isGuest
+                OrderId = result.OrderId,
+                MeetId = result.MeetId,
+                ConfirmationNumber = result.ConfirmationNumber,
+                ScheduledStart = result.ScheduledStart,
+                ScheduledEnd = result.ScheduledEnd,
+                Total = result.Total,
+                OrderStatus = result.OrderStatus,
+                Message = result.Message,
+                AuthToken = result.AuthToken != null ? new AuthToken
+                {
+                    AccessToken = result.AuthToken.AccessToken,
+                    RefreshToken = result.AuthToken.RefreshToken,
+                    ExpiresAt = result.AuthToken.ExpiresAt,
+                    IsNewUser = result.AuthToken.IsNewUser
+                } : null,
+                IsGuest = result.IsGuest
             });
         }
         catch (Exception ex)
@@ -951,99 +668,17 @@ public class BookingController : ControllerBase
 
 
     /// <summary>
-    /// Verifica si una excepción es violación de constraint UNIQUE
+    /// Checks if an exception is a UNIQUE constraint violation
     /// </summary>
     private static bool IsUniqueConstraintViolation(DbUpdateException ex)
     {
         // MySQL: error 1062 (Duplicate entry)
-        // Pomelo MySQL: verifica el InnerException
+        // Pomelo MySQL: checks InnerException
         var inner = ex.InnerException?.Message ?? ex.Message;
         return inner.Contains("Duplicate entry", StringComparison.OrdinalIgnoreCase) ||
                inner.Contains("UNIQUE constraint", StringComparison.OrdinalIgnoreCase) ||
                inner.Contains("duplicate key", StringComparison.OrdinalIgnoreCase) ||
                inner.Contains("1062");
-    }
-
-    /// <summary>
-    /// Convierte los slots de SoftReserve a Meeting cuando se confirma la reserva
-    /// </summary>
-    private async Task ConvertSoftReserveToMeetingOccupancy(int softReserveId, int meetId)
-    {
-        // Actualizar SlotOccupancy: cambiar tipo a Meeting, actualizar referencia y quitar expiración
-        var meetingType = (int)OccupancyType.Meeting;
-        var softReserveType = (int)OccupancyType.SoftReserve;
-        var now = DateTime.UtcNow;
-        
-        await _context.Database.ExecuteSqlAsync(
-            $"UPDATE SlotOccupancies SET OccupancyType = {meetingType}, ReferenceId = {meetId}, ExpiresAt = NULL, UpdatedAt = {now} WHERE OccupancyType = {softReserveType} AND ReferenceId = {softReserveId}");
-    }
-
-    private async Task CreateRecurringMeetings(ServiceOrder order, ServiceMeet firstMeet, 
-        RecurrenceType recurrenceType, DateTime? endDate)
-    {
-        var maxOccurrences = 8; // Horizonte de 8 semanas
-        var interval = recurrenceType switch
-        {
-            RecurrenceType.Weekly => 7,
-            RecurrenceType.BiWeekly => 14,
-            RecurrenceType.Monthly => 30,
-            _ => 0
-        };
-
-        if (interval == 0) return;
-
-        var currentStart = firstMeet.ScheduledStart.AddDays(interval);
-        var horizon = endDate ?? DateTime.UtcNow.AddDays(maxOccurrences * interval);
-        var count = 0;
-        var duration = firstMeet.EstimatedDurationMinutes;
-
-        _logger.LogInformation("Creating recurring meetings for Order {OrderId}, type {RecurrenceType}", 
-            order.Id, recurrenceType);
-
-        while (currentStart <= horizon && count < maxOccurrences)
-        {
-            var currentEnd = currentStart.AddMinutes(duration);
-
-            // Validar que la empleada no tenga conflictos en esta fecha futura
-            var hasConflict = await _context.ServiceMeets
-                .AnyAsync(m =>
-                    m.AssignedEmployeeId == firstMeet.AssignedEmployeeId &&
-                    m.Status != MeetStatus.Cancelled && m.Status != MeetStatus.NoShow &&
-                    m.ScheduledStart < currentEnd && m.ScheduledEnd > currentStart);
-
-            // Validar TimeOff
-            var hasTimeOff = await _context.EmployeeTimeOffs
-                .AnyAsync(t =>
-                    t.EmployeeId == firstMeet.AssignedEmployeeId &&
-                    t.Status == TimeOffStatus.Approved &&
-                    t.StartDateTime <= currentEnd &&
-                    t.EndDateTime >= currentStart);
-
-            // Solo crear la cita si no hay conflicto
-            if (!hasConflict && !hasTimeOff)
-            {
-                _context.ServiceMeets.Add(new ServiceMeet
-                {
-                    ServiceOrderId = order.Id,
-                    AssignedEmployeeId = firstMeet.AssignedEmployeeId,
-                    ServiceAreaId = firstMeet.ServiceAreaId,
-                    ScheduledStart = currentStart,
-                    ScheduledEnd = currentEnd,
-                    EstimatedDurationMinutes = firstMeet.EstimatedDurationMinutes,
-                    Status = MeetStatus.Scheduled
-                });
-                count++;
-            }
-            else
-            {
-                _logger.LogWarning("Skipping recurring meeting at {Date} due to conflict or TimeOff", currentStart);
-            }
-
-            currentStart = currentStart.AddDays(interval);
-        }
-
-        await _context.SaveChangesAsync();
-        _logger.LogInformation("Created {Count} recurring meetings for Order {OrderId}", count, order.Id);
     }
 
     private static string FormatDuration(int minutes)
@@ -1119,17 +754,23 @@ public record RecurrenceDiscountDto
 
 public record EstimateRequest
 {
-    [Required(ErrorMessage = "El tipo de servicio es requerido")]
-    [Range(1, int.MaxValue, ErrorMessage = "ID de tipo de servicio inválido")]
+    [Required(ErrorMessage = "Service type is required")]
+    [Range(1, int.MaxValue, ErrorMessage = "Invalid service type ID")]
     public int ServiceTypeId { get; init; }
-    
+
     public int? CleaningPlaceId { get; init; }
     public List<RoomSelection> Rooms { get; init; } = new();
     public List<int> AdditionalServiceIds { get; init; } = new();
-    
-    [Range(0, 50000, ErrorMessage = "Los pies cuadrados deben estar entre 0 y 50,000")]
+
+    [Range(1, 20, ErrorMessage = "Bedrooms must be between 1 and 20")]
+    public int Bedrooms { get; init; } = 1;
+
+    [Range(1, 20, ErrorMessage = "Bathrooms must be between 1 and 20")]
+    public int Bathrooms { get; init; } = 1;
+
+    [Range(0, 50000, ErrorMessage = "Square footage must be between 0 and 50,000")]
     public int? SquareFootage { get; init; }
-    
+
     public DirtLevel DirtLevel { get; init; } = DirtLevel.Normal;
     public bool HasPets { get; init; }
     public bool HasElevator { get; init; } = true;
@@ -1156,16 +797,16 @@ public record EstimateResponse
 
 public record AvailabilityRequest
 {
-    [Required(ErrorMessage = "El código postal es requerido")]
-    [StringLength(10, MinimumLength = 5, ErrorMessage = "El código postal debe tener entre 5 y 10 caracteres")]
-    [RegularExpression(@"^\d{5}(-\d{4})?$", ErrorMessage = "Formato de código postal inválido")]
+    [Required(ErrorMessage = "ZIP code is required")]
+    [StringLength(10, MinimumLength = 5, ErrorMessage = "ZIP code must be between 5 and 10 characters")]
+    [RegularExpression(@"^\d{5}(-\d{4})?$", ErrorMessage = "Invalid ZIP code format")]
     public string ZipCode { get; init; } = "";
     
-    [Required(ErrorMessage = "La fecha es requerida")]
+    [Required(ErrorMessage = "Date is required")]
     public DateTime Date { get; init; }
     
-    [Required(ErrorMessage = "La duración estimada es requerida")]
-    [Range(30, 480, ErrorMessage = "La duración debe estar entre 30 y 480 minutos")]
+    [Required(ErrorMessage = "Estimated duration is required")]
+    [Range(30, 480, ErrorMessage = "Duration must be between 30 and 480 minutes")]
     public int EstimatedMinutes { get; init; }
     
     public List<int>? RequiredEquipmentIds { get; init; }
@@ -1197,22 +838,22 @@ public record CreateSoftReserveRequest
     [StringLength(100)]
     public string? CustomerId { get; init; }
     
-    [Required(ErrorMessage = "El empleado es requerido")]
-    [Range(1, int.MaxValue, ErrorMessage = "ID de empleado inválido")]
+    [Required(ErrorMessage = "Employee is required")]
+    [Range(1, int.MaxValue, ErrorMessage = "Invalid employee ID")]
     public int EmployeeId { get; init; }
     
-    [Required(ErrorMessage = "El código postal es requerido")]
+    [Required(ErrorMessage = "ZIP code is required")]
     [StringLength(10, MinimumLength = 5)]
     public string ZipCode { get; init; } = "";
     
-    [Required(ErrorMessage = "La fecha es requerida")]
+    [Required(ErrorMessage = "Date is required")]
     public DateTime Date { get; init; }
     
-    [Required(ErrorMessage = "La hora de inicio es requerida")]
+    [Required(ErrorMessage = "Start time is required")]
     public TimeSpan StartTime { get; init; }
     
-    [Required(ErrorMessage = "La duración estimada es requerida")]
-    [Range(30, 480, ErrorMessage = "La duración debe estar entre 30 y 480 minutos")]
+    [Required(ErrorMessage = "Estimated duration is required")]
+    [Range(30, 480, ErrorMessage = "Duration must be between 30 and 480 minutes")]
     public int EstimatedMinutes { get; init; }
 }
 
@@ -1229,11 +870,11 @@ public record SoftReserveResponse
 
 public record ConfirmBookingRequest
 {
-    [Required(ErrorMessage = "La reserva es requerida")]
+    [Required(ErrorMessage = "Reservation is required")]
     [Range(1, int.MaxValue)]
     public int SoftReserveId { get; init; }
     
-    [Required(ErrorMessage = "El ID de sesión es requerido")]
+    [Required(ErrorMessage = "Session ID is required")]
     [StringLength(100, MinimumLength = 10)]
     public string SessionId { get; init; } = "";
     
@@ -1242,13 +883,13 @@ public record ConfirmBookingRequest
     
     public bool PaymentConfirmed { get; init; }
     
-    // Dirección
-    [Required(ErrorMessage = "El código postal es requerido")]
+    // Address
+    [Required(ErrorMessage = "ZIP code is required")]
     [StringLength(10, MinimumLength = 5)]
     public string ZipCode { get; init; } = "";
     
-    [Required(ErrorMessage = "La dirección es requerida")]
-    [StringLength(500, MinimumLength = 5, ErrorMessage = "La dirección debe tener entre 5 y 500 caracteres")]
+    [Required(ErrorMessage = "Address is required")]
+    [StringLength(500, MinimumLength = 5, ErrorMessage = "Address must be between 5 and 500 characters")]
     public string Address { get; init; } = "";
     
     [StringLength(200)]
@@ -1260,17 +901,17 @@ public record ConfirmBookingRequest
     [StringLength(50)]
     public string? State { get; init; }
     
-    // Servicio
-    [Required(ErrorMessage = "El tipo de servicio es requerido")]
+    // Service
+    [Required(ErrorMessage = "Service type is required")]
     [Range(1, int.MaxValue)]
     public int ServiceTypeId { get; init; }
     
     public int? CleaningPlaceId { get; init; }
     
-    [Range(0, 20, ErrorMessage = "Número de recámaras inválido")]
+    [Range(0, 20, ErrorMessage = "Invalid number of bedrooms")]
     public int Bedrooms { get; init; } = 1;
     
-    [Range(0, 20, ErrorMessage = "Número de baños inválido")]
+    [Range(0, 20, ErrorMessage = "Invalid number of bathrooms")]
     public int Bathrooms { get; init; } = 1;
     
     [Range(0, 50000)]
@@ -1284,8 +925,9 @@ public record ConfirmBookingRequest
     
     public bool HasElevator { get; init; } = true;
     public List<int>? AdditionalServiceIds { get; init; }
-    
-    // Montos
+    public List<RoomSelection>? Rooms { get; init; }
+
+    // Amounts
     [Range(0, 100000)]
     public decimal Subtotal { get; init; }
     
@@ -1298,24 +940,24 @@ public record ConfirmBookingRequest
     [Range(0, 100000)]
     public decimal Total { get; init; }
     
-    // Recurrencia
+    // Recurrence
     public RecurrenceType RecurrenceType { get; init; } = RecurrenceType.None;
     public DateTime? RecurrenceEndDate { get; init; }
     
-    // Contacto
+    // Contact
     [StringLength(100)]
     public string? ContactName { get; init; }
     
-    [Phone(ErrorMessage = "Formato de teléfono inválido")]
+    [Phone(ErrorMessage = "Invalid phone number format")]
     [StringLength(20)]
     public string? ContactPhone { get; init; }
     
-    [Required(ErrorMessage = "El email es requerido")]
-    [EmailAddress(ErrorMessage = "Formato de email inválido")]
+    [Required(ErrorMessage = "Email is required")]
+    [EmailAddress(ErrorMessage = "Invalid email format")]
     [StringLength(256)]
     public string ContactEmail { get; init; } = "";
     
-    // Password para crear cuenta si no existe
+    // Password to create account if user doesn't exist
     [StringLength(100, MinimumLength = 8)]
     public string? Password { get; init; }
     

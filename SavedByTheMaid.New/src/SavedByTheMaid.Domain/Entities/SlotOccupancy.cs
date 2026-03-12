@@ -4,42 +4,42 @@ using SavedByTheMaid.Domain.Enums;
 namespace SavedByTheMaid.Domain.Entities;
 
 /// <summary>
-/// Entidad de ocupación de slot que implementa el modelo de anti-colisión.
-/// El constraint UNIQUE en (EmployeeId, SlotStart) garantiza que no haya double-booking
-/// a nivel de base de datos, eliminando race conditions.
+/// Slot occupancy entity that implements the anti-collision model.
+/// The UNIQUE constraint on (EmployeeId, SlotStart) guarantees no double-booking
+/// at the database level, eliminating race conditions.
 /// </summary>
 public class SlotOccupancy : BaseEntity
 {
     /// <summary>
-    /// ID de la empleada que tiene ocupado este slot
+    /// ID of the employee who occupies this slot
     /// </summary>
     public int EmployeeId { get; set; }
     
     /// <summary>
-    /// Inicio del slot ocupado (granularidad recomendada: 30 min)
+    /// Start of the occupied slot (recommended granularity: 30 min)
     /// </summary>
     public DateTime SlotStart { get; set; }
     
     /// <summary>
-    /// Fin del slot ocupado
+    /// End of the occupied slot
     /// </summary>
     public DateTime SlotEnd { get; set; }
     
     /// <summary>
-    /// Tipo de ocupación: SoftReserve (temporal) o Meeting (confirmado)
+    /// Occupancy type: SoftReserve (temporary) or Meeting (confirmed)
     /// </summary>
     public OccupancyType OccupancyType { get; set; }
     
     /// <summary>
-    /// ID de referencia al SoftReserve o ServiceMeet según OccupancyType
+    /// Reference ID to the SoftReserve or ServiceMeet depending on OccupancyType
     /// </summary>
     public int ReferenceId { get; set; }
     
     /// <summary>
-    /// Fecha de expiración (solo aplica para SoftReserve, null para Meeting)
+    /// Expiration date (only applies to SoftReserve, null for Meeting)
     /// </summary>
     public DateTime? ExpiresAt { get; set; }
 
-    // Navegación
+    // Navigation
     public virtual Employee? Employee { get; set; }
 }

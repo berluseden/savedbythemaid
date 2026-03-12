@@ -2,13 +2,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SavedByTheMaid.Api.Auth;
 using SavedByTheMaid.Domain.Entities;
 
 namespace SavedByTheMaid.Api.Controllers.Admin;
 
 [ApiController]
 [Route("api/admin/[controller]")]
-[Authorize(Roles = "Admin")]
+[Authorize(Policy = Policies.AdminOnly)]
 public class UsersController : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager;
@@ -84,7 +85,7 @@ public class UsersController : ControllerBase
         var existingUser = await _userManager.FindByEmailAsync(request.Email);
         if (existingUser != null)
         {
-            return Conflict(new { message = "El email ya está registrado" });
+            return Conflict(new { message = "Email is already registered" });
         }
 
         var user = new ApplicationUser
@@ -212,7 +213,7 @@ public class UsersController : ControllerBase
         var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (user.Id == currentUserId)
         {
-            return BadRequest(new { message = "No puedes eliminarte a ti mismo" });
+            return BadRequest(new { message = "You cannot delete yourself" });
         }
 
         // Soft delete - just deactivate
@@ -236,6 +237,61 @@ public class UsersController : ControllerBase
             .ToListAsync();
 
         return Ok(roles);
+    }
+
+    // POST: api/admin/users/roles
+    [HttpPost("roles")]
+    public async Task<ActionResult<RoleDto>> CreateRole(CreateRoleRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return BadRequest(new { message = "Role name is required" });
+        }
+
+        if (await _roleManager.RoleExistsAsync(request.Name.Trim()))
+        {
+            return Conflict(new { message = "Role already exists" });
+        }
+
+        var role = new IdentityRole(request.Name.Trim());
+        var result = await _roleManager.CreateAsync(role);
+
+        if (!result.Succeeded)
+        {
+            return BadRequest(new { message = string.Join(", ", result.Errors.Select(e => e.Description)) });
+        }
+
+        return CreatedAtAction(nameof(GetRoles), new RoleDto
+        {
+            Id = role.Id,
+            Name = role.Name ?? ""
+        });
+    }
+
+    // DELETE: api/admin/users/roles/{id}
+    [HttpDelete("roles/{id}")]
+    public async Task<IActionResult> DeleteRole(string id)
+    {
+        var role = await _roleManager.FindByIdAsync(id);
+        if (role == null)
+        {
+            return NotFound();
+        }
+
+        // Check if any users are assigned to this role
+        var usersInRole = await _userManager.GetUsersInRoleAsync(role.Name ?? "");
+        if (usersInRole.Any())
+        {
+            return BadRequest(new { message = $"Cannot delete role '{role.Name}' because {usersInRole.Count} user(s) are assigned to it" });
+        }
+
+        var result = await _roleManager.DeleteAsync(role);
+        if (!result.Succeeded)
+        {
+            return BadRequest(new { message = string.Join(", ", result.Errors.Select(e => e.Description)) });
+        }
+
+        return NoContent();
     }
 }
 
@@ -277,3 +333,5 @@ public record UpdateUserRequest(
 );
 
 public record ResetPasswordRequest(string NewPassword);
+
+public record CreateRoleRequest(string Name);

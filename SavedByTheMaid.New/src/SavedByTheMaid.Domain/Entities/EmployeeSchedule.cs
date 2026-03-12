@@ -4,7 +4,7 @@ using SavedByTheMaid.Domain.Enums;
 namespace SavedByTheMaid.Domain.Entities;
 
 /// <summary>
-/// Horario de disponibilidad de una empleada
+/// Employee availability schedule
 /// </summary>
 public class EmployeeSchedule : BaseEntity
 {
@@ -16,7 +16,7 @@ public class EmployeeSchedule : BaseEntity
     public TimeSpan EndTime { get; set; } = new TimeSpan(18, 0, 0);   // 18:00
     
     /// <summary>
-    /// Minutos de buffer entre citas
+    /// Buffer minutes between appointments
     /// </summary>
     public int BufferMinutes { get; set; } = 30;
 

@@ -32,7 +32,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Verificar si un email ya está registrado
+    /// Check if an email is already registered
     /// </summary>
     [HttpGet("check-email")]
     [AllowAnonymous]
@@ -59,7 +59,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Registrar nuevo usuario
+    /// Register new user
     /// </summary>
     [HttpPost("register")]
     [AllowAnonymous]
@@ -68,12 +68,12 @@ public class AuthController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        // Verificar si el email ya existe
+        // Check if email already exists
         var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
         if (existingUser != null)
         {
-            _logger.LogWarning("Intento de registro con email existente: {Email}", request.Email);
-            return BadRequest(new { message = "El email ya está registrado." });
+            _logger.LogWarning("Registration attempt with existing email: {Email}", request.Email);
+            return BadRequest(new { message = "Email is already registered." });
         }
 
         var user = new ApplicationUser
@@ -94,7 +94,7 @@ public class AuthController : ControllerBase
 
         _context.Users.Add(user);
 
-        // Asignar rol por defecto (Customer)
+        // Assign default role (Customer)
         var customerRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == Roles.Customer);
         if (customerRole != null)
         {
@@ -107,7 +107,7 @@ public class AuthController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Usuario registrado exitosamente: {Email}", request.Email);
+        _logger.LogInformation("User registered successfully: {Email}", request.Email);
 
         var roles = new[] { Roles.Customer };
         var accessToken = _jwtService.GenerateAccessToken(user.Id, user.Email!, roles);
@@ -129,7 +129,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Iniciar sesión
+    /// Sign in
     /// </summary>
     [HttpPost("login")]
     [AllowAnonymous]
@@ -141,18 +141,18 @@ public class AuthController : ControllerBase
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
         if (user == null)
         {
-            _logger.LogWarning("Intento de login con email inexistente: {Email}", request.Email);
-            return Unauthorized(new { message = "Credenciales inválidas." });
+            _logger.LogWarning("Login attempt with non-existent email: {Email}", request.Email);
+            return Unauthorized(new { message = "Invalid credentials." });
         }
 
         var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash!, request.Password);
         if (result == PasswordVerificationResult.Failed)
         {
-            _logger.LogWarning("Contraseña incorrecta para usuario: {Email}", request.Email);
-            return Unauthorized(new { message = "Credenciales inválidas." });
+            _logger.LogWarning("Incorrect password for user: {Email}", request.Email);
+            return Unauthorized(new { message = "Invalid credentials." });
         }
 
-        // Obtener roles del usuario
+        // Get user roles
         var userRoles = await _context.UserRoles
             .Where(ur => ur.UserId == user.Id)
             .Join(_context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => r.Name)
@@ -165,7 +165,7 @@ public class AuthController : ControllerBase
         var accessToken = _jwtService.GenerateAccessToken(user.Id, user.Email!, roles);
         var refreshToken = _jwtService.GenerateRefreshToken();
 
-        _logger.LogInformation("Login exitoso para usuario: {Email}", request.Email);
+        _logger.LogInformation("Successful login for user: {Email}", request.Email);
 
         return Ok(new AuthResponse
         {
@@ -183,7 +183,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Obtener información del usuario actual
+    /// Get current user information
     /// </summary>
     [HttpGet("me")]
     [Authorize]
@@ -212,7 +212,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Cambiar contraseña
+    /// Change password
     /// </summary>
     [HttpPost("change-password")]
     [Authorize]
@@ -231,18 +231,18 @@ public class AuthController : ControllerBase
 
         var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash!, request.CurrentPassword);
         if (result == PasswordVerificationResult.Failed)
-            return BadRequest(new { message = "La contraseña actual es incorrecta." });
+            return BadRequest(new { message = "Current password is incorrect." });
 
         user.PasswordHash = _passwordHasher.HashPassword(user, request.NewPassword);
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation("Contraseña cambiada para usuario: {UserId}", userId);
+        _logger.LogInformation("Password changed for user: {UserId}", userId);
 
-        return Ok(new { message = "Contraseña actualizada exitosamente." });
+        return Ok(new { message = "Password updated successfully." });
     }
 
     /// <summary>
-    /// Solicitar recuperación de contraseña
+    /// Request password recovery
     /// </summary>
     [HttpPost("forgot-password")]
     [AllowAnonymous]
@@ -253,23 +253,23 @@ public class AuthController : ControllerBase
 
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
         
-        // Siempre devolver OK por seguridad (no revelar si el email existe)
+        // Always return OK for security (don't reveal if the email exists)
         if (user == null)
         {
-            _logger.LogInformation("Intento de recuperación para email inexistente: {Email}", request.Email);
-            return Ok(new { message = "Si el correo existe, recibirás un enlace de recuperación." });
+            _logger.LogInformation("Recovery attempt for non-existent email: {Email}", request.Email);
+            return Ok(new { message = "If the email exists, you will receive a recovery link." });
         }
 
-        // TODO: Generar token de reset y enviar email
-        // Por ahora solo logueamos la solicitud
-        _logger.LogInformation("Solicitud de recuperación de contraseña para: {Email}", request.Email);
+        // TODO: Generate reset token and send email
+        // For now we just log the request
+        _logger.LogInformation("Password recovery request for: {Email}", request.Email);
 
-        // Aquí iría:
-        // 1. Generar token de reset con UserManager.GeneratePasswordResetTokenAsync
-        // 2. Guardar token en BD con expiración
-        // 3. Enviar email con enlace de reset
+        // Here we would:
+        // 1. Generate reset token with UserManager.GeneratePasswordResetTokenAsync
+        // 2. Save token in DB with expiration
+        // 3. Send email with reset link
 
-        return Ok(new { message = "Si el correo existe, recibirás un enlace de recuperación." });
+        return Ok(new { message = "If the email exists, you will receive a recovery link." });
     }
 }
 
@@ -277,47 +277,47 @@ public class AuthController : ControllerBase
 
 public record ForgotPasswordRequest
 {
-    [Required(ErrorMessage = "El email es requerido")]
-    [EmailAddress(ErrorMessage = "Formato de email inválido")]
+    [Required(ErrorMessage = "Email is required")]
+    [EmailAddress(ErrorMessage = "Invalid email format")]
     public string Email { get; init; } = "";
 }
 
 public record RegisterRequest
 {
-    [Required(ErrorMessage = "El email es requerido")]
-    [EmailAddress(ErrorMessage = "Formato de email inválido")]
-    [StringLength(256, ErrorMessage = "El email no puede exceder 256 caracteres")]
+    [Required(ErrorMessage = "Email is required")]
+    [EmailAddress(ErrorMessage = "Invalid email format")]
+    [StringLength(256, ErrorMessage = "Email cannot exceed 256 characters")]
     public string Email { get; init; } = "";
 
-    [Required(ErrorMessage = "La contraseña es requerida")]
-    [StringLength(100, MinimumLength = 8, ErrorMessage = "La contraseña debe tener entre 8 y 100 caracteres")]
+    [Required(ErrorMessage = "Password is required")]
+    [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be between 8 and 100 characters")]
     public string Password { get; init; } = "";
 
-    [Phone(ErrorMessage = "Formato de teléfono inválido")]
-    [StringLength(20, ErrorMessage = "El teléfono no puede exceder 20 caracteres")]
+    [Phone(ErrorMessage = "Invalid phone number format")]
+    [StringLength(20, ErrorMessage = "Phone number cannot exceed 20 characters")]
     public string? Phone { get; init; }
 
-    [StringLength(100, ErrorMessage = "El nombre no puede exceder 100 caracteres")]
+    [StringLength(100, ErrorMessage = "Name cannot exceed 100 characters")]
     public string? Name { get; init; }
 }
 
 public record LoginRequest
 {
-    [Required(ErrorMessage = "El email es requerido")]
-    [EmailAddress(ErrorMessage = "Formato de email inválido")]
+    [Required(ErrorMessage = "Email is required")]
+    [EmailAddress(ErrorMessage = "Invalid email format")]
     public string Email { get; init; } = "";
 
-    [Required(ErrorMessage = "La contraseña es requerida")]
+    [Required(ErrorMessage = "Password is required")]
     public string Password { get; init; } = "";
 }
 
 public record ChangePasswordRequest
 {
-    [Required(ErrorMessage = "La contraseña actual es requerida")]
+    [Required(ErrorMessage = "Current password is required")]
     public string CurrentPassword { get; init; } = "";
 
-    [Required(ErrorMessage = "La nueva contraseña es requerida")]
-    [StringLength(100, MinimumLength = 8, ErrorMessage = "La contraseña debe tener entre 8 y 100 caracteres")]
+    [Required(ErrorMessage = "New password is required")]
+    [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be between 8 and 100 characters")]
     public string NewPassword { get; init; } = "";
 }
 

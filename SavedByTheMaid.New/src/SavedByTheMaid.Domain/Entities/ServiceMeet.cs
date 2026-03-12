@@ -4,7 +4,7 @@ using SavedByTheMaid.Domain.Enums;
 namespace SavedByTheMaid.Domain.Entities;
 
 /// <summary>
-/// Cita de servicio de limpieza (una orden puede tener múltiples citas si es recurrente)
+/// Cleaning service appointment (an order can have multiple appointments if it is recurring)
 /// </summary>
 public class ServiceMeet : BaseAuditableEntity
 {
@@ -14,46 +14,46 @@ public class ServiceMeet : BaseAuditableEntity
     public int? AssignedEmployeeId { get; set; }
     public virtual Employee? AssignedEmployee { get; set; }
 
-    // Zona de servicio (denormalizado para reportes)
+    // Service area (denormalized for reports)
     public int? ServiceAreaId { get; set; }
     public virtual ServiceArea? ServiceArea { get; set; }
 
-    // Horarios planificados
+    // Scheduled times
     public DateTime ScheduledStart { get; set; }
     public DateTime ScheduledEnd { get; set; }
     
-    // Horarios reales
+    // Actual times
     public DateTime? ActualStart { get; set; }
     public DateTime? ActualEnd { get; set; }
 
     public MeetStatus Status { get; set; } = MeetStatus.Scheduled;
 
     /// <summary>
-    /// Duración estimada en minutos
+    /// Estimated duration in minutes
     /// </summary>
     public int EstimatedDurationMinutes { get; set; }
 
-    // Geolocalización Check-In
+    // Geolocation Check-In
     public decimal? CheckInLatitude { get; set; }
     public decimal? CheckInLongitude { get; set; }
     public DateTime? CheckInTime { get; set; }
 
-    // Geolocalización Check-Out
+    // Geolocation Check-Out
     public decimal? CheckOutLatitude { get; set; }
     public decimal? CheckOutLongitude { get; set; }
     public DateTime? CheckOutTime { get; set; }
 
-    // Ajustes por incidencias
+    // Incident adjustments
     public AdjustmentStatus AdjustmentStatus { get; set; } = AdjustmentStatus.None;
     public decimal? AdjustmentAmount { get; set; }
     public string? AdjustmentReason { get; set; }
 
-    // Notas y fotos
+    // Notes and photos
     public string? Notes { get; set; }
     public string? CancellationReason { get; set; }
-    public string? PhotosJson { get; set; } // JSON array de URLs
+    public string? PhotosJson { get; set; } // JSON array of URLs
 
-    // Rating del cliente
+    // Customer rating
     public int? CustomerRating { get; set; } // 1-5
     public string? CustomerFeedback { get; set; }
 }

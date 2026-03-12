@@ -91,7 +91,7 @@ public class CleaningPlacesController : ControllerBase
     public async Task<ActionResult<CleaningPlaceRoom>> AddRoom(int placeId, CreateRoomRequest request)
     {
         var place = await _context.CleaningPlaces.FindAsync(placeId);
-        if (place == null || place.IsDeleted) return NotFound("Tipo de inmueble no encontrado");
+        if (place == null || place.IsDeleted) return NotFound("Property type not found");
 
         var room = new CleaningPlaceRoom
         {

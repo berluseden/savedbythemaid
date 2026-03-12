@@ -150,8 +150,8 @@ export function AdminEmployeesPage() {
     try {
       const response = await api.get<ServiceArea[]>('/serviceareas');
       setServiceAreas(response.data);
-    } catch (err) {
-      console.error('Error loading service areas', err);
+    } catch {
+      // Error handled by API interceptor
     }
   };
 
@@ -159,8 +159,8 @@ export function AdminEmployeesPage() {
     try {
       const response = await api.get<Equipment[]>('/admin/equipment');
       setAllEquipment(response.data);
-    } catch (err) {
-      console.error('Error loading equipment', err);
+    } catch {
+      // Error handled by API interceptor
     }
   };
 
@@ -171,7 +171,6 @@ export function AdminEmployeesPage() {
       setEmployees(response.data);
     } catch (err) {
       setError('Error loading employees');
-      console.error(err);
     } finally {
       setIsLoading(false);
     }
@@ -185,8 +184,8 @@ export function AdminEmployeesPage() {
       }>(`/admin/employees/${employeeId}`);
       setAssignedZones(response.data.serviceAreas || []);
       setAssignedEquipment(response.data.equipment || []);
-    } catch (err) {
-      console.error('Error loading employee details', err);
+    } catch {
+      // Error handled by API interceptor
     }
   };
 
@@ -195,8 +194,8 @@ export function AdminEmployeesPage() {
     try {
       const response = await api.get<EmployeeSchedule[]>(`/admin/employees/${employeeId}/schedules`);
       setSchedules(response.data);
-    } catch (err) {
-      console.error('Error loading schedules', err);
+    } catch {
+      // Error handled by API interceptor
     } finally {
       setLoadingSchedules(false);
     }
@@ -206,8 +205,8 @@ export function AdminEmployeesPage() {
     try {
       const response = await api.get<EmployeeTimeOff[]>(`/admin/employees/${employeeId}/time-off`);
       setTimeOffs(response.data);
-    } catch (err) {
-      console.error('Error loading time-offs', err);
+    } catch {
+      // Error handled by API interceptor
     }
   };
 
@@ -282,7 +281,6 @@ export function AdminEmployeesPage() {
       closeModal();
     } catch (err) {
       setError('Error saving employee');
-      console.error(err);
     } finally {
       setSaving(false);
     }
@@ -372,7 +370,7 @@ export function AdminEmployeesPage() {
   const handleToggleEquipmentAvailability = async (equipmentId: number, currentAvailable: boolean) => {
     if (!editingEmployee) return;
     try {
-      // Primero eliminamos y luego volvemos a agregar con el nuevo estado
+      // First we remove and then re-add with the new state
       await api.post(`/admin/employees/${editingEmployee.id}/equipment/${equipmentId}?isAvailable=${!currentAvailable}`);
       await fetchEmployeeDetails(editingEmployee.id);
     } catch {
@@ -387,7 +385,6 @@ export function AdminEmployeesPage() {
       setDeleteConfirm(null);
     } catch (err) {
       setError('Error deleting employee');
-      console.error(err);
     }
   };
 
@@ -460,7 +457,7 @@ export function AdminEmployeesPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Employees</h1>
-            <p className="text-gray-600">Gestiona el equipo de limpieza</p>
+            <p className="text-gray-600">Manage the cleaning team</p>
           </div>
           <button
             onClick={() => setShowModal(true)}
@@ -488,7 +485,7 @@ export function AdminEmployeesPage() {
             onChange={(e) => setFilterStatus(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
           >
-            <option value="all">Todos los estados</option>
+            <option value="all">All statuses</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
             <option value="on-leave">On Leave</option>
@@ -514,7 +511,7 @@ export function AdminEmployeesPage() {
             </p>
           </div>
           <div className="bg-white rounded-lg p-4 border">
-            <p className="text-sm text-gray-500">Zonas cubiertas</p>
+            <p className="text-sm text-gray-500">Covered zones</p>
             <p className="text-2xl font-bold text-[#00205B]">
               {employees.reduce((acc, e) => acc + e.serviceAreaCount, 0)}
             </p>
@@ -527,11 +524,11 @@ export function AdminEmployeesPage() {
             <table className="w-full">
               <thead>
                 <tr className="text-left text-sm text-gray-500 bg-gray-50 border-b">
-                  <th className="px-6 py-3 font-medium">Empleado</th>
-                  <th className="px-6 py-3 font-medium">Contacto</th>
-                  <th className="px-6 py-3 font-medium">Estado</th>
+                  <th className="px-6 py-3 font-medium">Employee</th>
+                  <th className="px-6 py-3 font-medium">Contact</th>
+                  <th className="px-6 py-3 font-medium">Status</th>
                   <th className="px-6 py-3 font-medium">Primary Zone</th>
-                  <th className="px-6 py-3 font-medium text-right">Acciones</th>
+                  <th className="px-6 py-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -597,7 +594,7 @@ export function AdminEmployeesPage() {
 
         {filteredEmployees.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-500">No se encontraron employees</p>
+            <p className="text-gray-500">No employees found</p>
           </div>
         )}
       </div>
@@ -639,7 +636,7 @@ export function AdminEmployeesPage() {
               </button>
             </div>
 
-            {/* Tabs - solo mostrar si estamos editando */}
+            {/* Tabs - only show if editing */}
             {editingEmployee && (
               <div className="flex border-b bg-gray-50 overflow-x-auto">
                 <button
@@ -764,7 +761,7 @@ export function AdminEmployeesPage() {
                       onChange={(e) => setFormData({ ...formData, primaryServiceAreaId: e.target.value ? Number(e.target.value) : null })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
                     >
-                      <option value="">Sin asignar</option>
+                      <option value="">Unassigned</option>
                       {serviceAreas.map(area => (
                         <option key={area.id} value={area.id}>{area.name}</option>
                       ))}
@@ -804,7 +801,7 @@ export function AdminEmployeesPage() {
                         onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                         className="w-4 h-4 text-[#00205B] border-gray-300 rounded focus:ring-[#00205B]"
                       />
-                      <span className="text-sm text-gray-700">Empleado activo</span>
+                      <span className="text-sm text-gray-700">Active employee</span>
                     </label>
                   )}
 
@@ -823,17 +820,17 @@ export function AdminEmployeesPage() {
                       disabled={saving}
                       className="flex-1 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] transition-colors disabled:opacity-50"
                     >
-                      {saving ? 'Guardando...' : editingEmployee ? 'Save Changes' : 'Create Employee'}
+                      {saving ? 'Saving...' : editingEmployee ? 'Save Changes' : 'Create Employee'}
                     </button>
                   </div>
                 </form>
               )}
 
-              {/* Tab: Zonas de Servicio */}
+              {/* Tab: Service Areas */}
               {activeTab === 'zones' && (
                 <div className="space-y-6">
                   <div>
-                    <h3 className="font-medium text-gray-900 mb-3">Zonas asignadas</h3>
+                    <h3 className="font-medium text-gray-900 mb-3">Assigned zones</h3>
                     {assignedZones.length === 0 ? (
                       <p className="text-gray-500 text-center py-4">No zones assigned</p>
                     ) : (
@@ -842,9 +839,9 @@ export function AdminEmployeesPage() {
                           <div key={zone.serviceAreaId} className="flex items-center justify-between p-3 bg-white border rounded-lg">
                             <div className="flex items-center gap-3">
                               <MapPin className={`h-4 w-4 ${zone.isPrimary ? 'text-[#00205B]' : 'text-gray-400'}`} />
-                              <span className="font-medium">{zone.serviceArea?.name || `Zona ${zone.serviceAreaId}`}</span>
+                              <span className="font-medium">{zone.serviceArea?.name || `Zone ${zone.serviceAreaId}`}</span>
                               {zone.isPrimary && (
-                                <span className="px-2 py-0.5 bg-[#FFE44D]/20 text-[#001440] text-xs rounded-full">Principal</span>
+                                <span className="px-2 py-0.5 bg-[#FFE44D]/20 text-[#001440] text-xs rounded-full">Primary</span>
                               )}
                             </div>
                             <div className="flex items-center gap-2">
@@ -852,7 +849,7 @@ export function AdminEmployeesPage() {
                                 <button
                                   onClick={() => handleSetPrimaryZone(zone.serviceAreaId)}
                                   className="p-1 text-gray-400 hover:text-[#00205B] text-xs"
-                                  title="Establecer como principal"
+                                  title="Set as primary"
                                 >
                                   <Check className="h-4 w-4" />
                                 </button>
@@ -871,7 +868,7 @@ export function AdminEmployeesPage() {
                   </div>
 
                   <div>
-                    <h3 className="font-medium text-gray-900 mb-3">Add zona</h3>
+                    <h3 className="font-medium text-gray-900 mb-3">Add zone</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {serviceAreas
                         .filter(area => !assignedZones.some(z => z.serviceAreaId === area.id))
@@ -896,11 +893,11 @@ export function AdminEmployeesPage() {
                 </div>
               )}
 
-              {/* Tab: Equipamiento */}
+              {/* Tab: Equipment */}
               {activeTab === 'equipment' && (
                 <div className="space-y-6">
                   <div>
-                    <h3 className="font-medium text-gray-900 mb-3">Equipamiento asignado</h3>
+                    <h3 className="font-medium text-gray-900 mb-3">Assigned equipment</h3>
                     {assignedEquipment.length === 0 ? (
                       <p className="text-gray-500 text-center py-4">No equipment assigned</p>
                     ) : (
@@ -909,10 +906,10 @@ export function AdminEmployeesPage() {
                           <div key={eq.equipmentId} className="flex items-center justify-between p-3 bg-white border rounded-lg">
                             <div className="flex items-center gap-3">
                               <Wrench className="h-4 w-4 text-gray-400" />
-                              <span className="font-medium">{eq.equipment?.name || `Equipo ${eq.equipmentId}`}</span>
+                              <span className="font-medium">{eq.equipment?.name || `Equipment ${eq.equipmentId}`}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                              {/* Toggle disponibilidad */}
+                              {/* Toggle availability */}
                               <button
                                 onClick={() => handleToggleEquipmentAvailability(eq.equipmentId, eq.isAvailable)}
                                 className={`px-3 py-1 text-xs rounded-full transition-colors ${
@@ -920,14 +917,14 @@ export function AdminEmployeesPage() {
                                     ? 'bg-green-100 text-green-700 hover:bg-green-200' 
                                     : 'bg-red-100 text-red-700 hover:bg-red-200'
                                 }`}
-                                title={eq.isAvailable ? 'Click para marcar como no disponible' : 'Click para marcar como disponible'}
+                                title={eq.isAvailable ? 'Click to mark as unavailable' : 'Click to mark as available'}
                               >
-                                {eq.isAvailable ? '✓ Disponible' : '✗ En uso'}
+                                {eq.isAvailable ? '✓ Available' : '✗ In use'}
                               </button>
                               <button
                                 onClick={() => handleRemoveEquipment(eq.equipmentId)}
                                 className="p-1 text-gray-400 hover:text-red-500"
-                                title="Quitar equipamiento"
+                                title="Remove equipment"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </button>
@@ -939,7 +936,7 @@ export function AdminEmployeesPage() {
                   </div>
 
                   <div>
-                    <h3 className="font-medium text-gray-900 mb-3">Add equipamiento</h3>
+                    <h3 className="font-medium text-gray-900 mb-3">Add equipment</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                       {allEquipment
                         .filter(eq => !assignedEquipment.some(ae => ae.equipmentId === eq.id))
@@ -966,12 +963,12 @@ export function AdminEmployeesPage() {
                 </div>
               )}
 
-              {/* Tab: Horarios - Vista Calendario */}
+              {/* Tab: Schedules - Calendar View */}
               {activeTab === 'schedule' && (
                 <div className="space-y-6">
-                  {/* Vista Calendario Semanal */}
+                  {/* Weekly Calendar View */}
                   <div>
-                    <h3 className="font-medium text-gray-900 mb-3">Horario Semanal</h3>
+                    <h3 className="font-medium text-gray-900 mb-3">Weekly Schedule</h3>
                     <div className="bg-white border rounded-lg overflow-hidden">
                       <div className="grid grid-cols-7 bg-gray-50">
                         {DAYS_SHORT.map((day, idx) => {
@@ -984,10 +981,10 @@ export function AdminEmployeesPage() {
                                   <div 
                                     className="bg-[#FFE44D]/20 text-sky-800 rounded p-1.5 text-xs cursor-pointer hover:bg-[#FFE44D]/30"
                                     onClick={() => handleDeleteSchedule(idx)}
-                                    title="Click para eliminar"
+                                    title="Click to delete"
                                   >
                                     <div className="font-medium">{schedule.startTime.substring(0, 5)}</div>
-                                    <div className="text-[#00205B]">a</div>
+                                    <div className="text-[#00205B]">to</div>
                                     <div className="font-medium">{schedule.endTime.substring(0, 5)}</div>
                                   </div>
                                 ) : (
@@ -1006,9 +1003,9 @@ export function AdminEmployeesPage() {
                     </div>
                   </div>
 
-                  {/* Formulario para agregar */}
+                  {/* Form to add */}
                   <form onSubmit={handleAddSchedule} className="bg-gray-50 rounded-lg p-4 space-y-4">
-                    <h3 className="font-medium text-gray-900">Add horario</h3>
+                    <h3 className="font-medium text-gray-900">Add schedule</h3>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Day</label>
@@ -1024,7 +1021,7 @@ export function AdminEmployeesPage() {
                       </div>
                       <div className="flex gap-2">
                         <div className="flex-1">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Desde</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">From</label>
                           <input
                             type="time"
                             value={scheduleForm.startTime}
@@ -1033,7 +1030,7 @@ export function AdminEmployeesPage() {
                           />
                         </div>
                         <div className="flex-1">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Hasta</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">To</label>
                           <input
                             type="time"
                             value={scheduleForm.endTime}
@@ -1045,17 +1042,17 @@ export function AdminEmployeesPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Buffer entre servicios (min)</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Buffer between services (min)</label>
                         <select
                           value={scheduleForm.bufferMinutes}
                           onChange={(e) => setScheduleForm({ ...scheduleForm, bufferMinutes: parseInt(e.target.value) })}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                         >
-                          <option value={0}>Sin buffer</option>
-                          <option value={15}>15 minutos</option>
-                          <option value={30}>30 minutos</option>
-                          <option value={45}>45 minutos</option>
-                          <option value={60}>1 hora</option>
+                          <option value={0}>No buffer</option>
+                          <option value={15}>15 minutes</option>
+                          <option value={30}>30 minutes</option>
+                          <option value={45}>45 minutes</option>
+                          <option value={60}>1 hour</option>
                         </select>
                       </div>
                       <div className="flex items-end pb-2">
@@ -1066,7 +1063,7 @@ export function AdminEmployeesPage() {
                             onChange={(e) => setScheduleForm({ ...scheduleForm, isAvailable: e.target.checked })}
                             className="w-4 h-4 text-[#00205B] border-gray-300 rounded focus:ring-[#00205B]"
                           />
-                          <span className="text-sm text-gray-700">Disponible para servicios</span>
+                          <span className="text-sm text-gray-700">Available for services</span>
                         </label>
                       </div>
                     </div>
@@ -1075,12 +1072,12 @@ export function AdminEmployeesPage() {
                       disabled={saving}
                       className="px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] disabled:opacity-50"
                     >
-                      {saving ? 'Guardando...' : 'Add'}
+                      {saving ? 'Saving...' : 'Add'}
                     </button>
                   </form>
 
                   <div>
-                    <h3 className="font-medium text-gray-900 mb-3">Horarios configurados</h3>
+                    <h3 className="font-medium text-gray-900 mb-3">Configured schedules</h3>
                     {loadingSchedules ? (
                       <div className="text-center py-4">
                         <div className="w-6 h-6 border-2 border-[#00205B] border-t-transparent rounded-full animate-spin mx-auto" />
@@ -1104,7 +1101,7 @@ export function AdminEmployeesPage() {
                               )}
                               {!schedule.isAvailable && (
                                 <span className="px-2 py-0.5 bg-gray-200 text-gray-600 text-xs rounded-full">
-                                  No disponible
+                                  Unavailable
                                 </span>
                               )}
                             </div>
@@ -1122,15 +1119,15 @@ export function AdminEmployeesPage() {
                 </div>
               )}
 
-              {/* Tab: Bloqueos/Time-off */}
+              {/* Tab: Blocks/Time-off */}
               {activeTab === 'timeoff' && (
                 <div className="space-y-6">
                   <form onSubmit={handleAddTimeOff} className="bg-gray-50 rounded-lg p-4 space-y-4">
-                    <h3 className="font-medium text-gray-900">Add bloqueo o permiso</h3>
+                    <h3 className="font-medium text-gray-900">Add block or leave</h3>
                     
-                    {/* Tipo de bloqueo */}
+                    {/* Block type */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
                       <select
                         value={timeOffForm.type}
                         onChange={(e) => setTimeOffForm({ ...timeOffForm, type: parseInt(e.target.value) })}
@@ -1156,7 +1153,7 @@ export function AdminEmployeesPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          {timeOffForm.isAllDay ? 'Fecha inicio' : 'Fecha y hora inicio'}
+                          {timeOffForm.isAllDay ? 'Start date' : 'Start date and time'}
                         </label>
                         <input
                           type={timeOffForm.isAllDay ? 'date' : 'datetime-local'}
@@ -1168,7 +1165,7 @@ export function AdminEmployeesPage() {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          {timeOffForm.isAllDay ? 'Fecha fin' : 'Fecha y hora fin'}
+                          {timeOffForm.isAllDay ? 'End date' : 'End date and time'}
                         </label>
                         <input
                           type={timeOffForm.isAllDay ? 'date' : 'datetime-local'}
@@ -1194,14 +1191,14 @@ export function AdminEmployeesPage() {
                       disabled={saving}
                       className="px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] disabled:opacity-50"
                     >
-                      {saving ? 'Guardando...' : 'Add'}
+                      {saving ? 'Saving...' : 'Add'}
                     </button>
                   </form>
 
                   <div>
-                    <h3 className="font-medium text-gray-900 mb-3">Bloqueos y permisos programados</h3>
+                    <h3 className="font-medium text-gray-900 mb-3">Scheduled blocks and leaves</h3>
                     {timeOffs.length === 0 ? (
-                      <p className="text-gray-500 text-center py-4">No hay bloqueos programados</p>
+                      <p className="text-gray-500 text-center py-4">No scheduled blocks</p>
                     ) : (
                       <div className="space-y-2">
                         {timeOffs.map((timeOff) => {

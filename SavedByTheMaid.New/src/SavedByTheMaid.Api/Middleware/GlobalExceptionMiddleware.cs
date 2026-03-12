@@ -4,8 +4,8 @@ using System.Text.Json;
 namespace SavedByTheMaid.Api.Middleware;
 
 /// <summary>
-/// Middleware global para manejo de excepciones
-/// Captura todas las excepciones no manejadas y retorna respuestas JSON consistentes
+/// Global exception handling middleware
+/// Catches all unhandled exceptions and returns consistent JSON responses
 /// </summary>
 public class GlobalExceptionMiddleware
 {
@@ -41,7 +41,7 @@ public class GlobalExceptionMiddleware
         
         _logger.LogError(
             exception,
-            "Error no manejado. CorrelationId: {CorrelationId}, Path: {Path}, Method: {Method}",
+            "Unhandled error. CorrelationId: {CorrelationId}, Path: {Path}, Method: {Method}",
             correlationId,
             context.Request.Path,
             context.Request.Method);
@@ -53,7 +53,7 @@ public class GlobalExceptionMiddleware
             ValidationException validationEx => new ErrorResponse
             {
                 StatusCode = (int)HttpStatusCode.BadRequest,
-                Message = "Error de validación",
+                Message = "Validation error",
                 Errors = validationEx.Errors,
                 CorrelationId = correlationId
             },
@@ -61,14 +61,14 @@ public class GlobalExceptionMiddleware
             UnauthorizedAccessException => new ErrorResponse
             {
                 StatusCode = (int)HttpStatusCode.Unauthorized,
-                Message = "No autorizado",
+                Message = "Unauthorized",
                 CorrelationId = correlationId
             },
             
             KeyNotFoundException => new ErrorResponse
             {
                 StatusCode = (int)HttpStatusCode.NotFound,
-                Message = "Recurso no encontrado",
+                Message = "Resource not found",
                 CorrelationId = correlationId
             },
             
@@ -82,12 +82,12 @@ public class GlobalExceptionMiddleware
             _ => new ErrorResponse
             {
                 StatusCode = (int)HttpStatusCode.InternalServerError,
-                Message = "Ha ocurrido un error interno. Por favor contacte al soporte.",
+                Message = "An internal error has occurred. Please contact support.",
                 CorrelationId = correlationId
             }
         };
 
-        // En desarrollo, incluir detalles del error
+        // In development, include error details
         if (_environment.IsDevelopment())
         {
             response.Details = exception.Message;
@@ -107,7 +107,7 @@ public class GlobalExceptionMiddleware
 }
 
 /// <summary>
-/// Respuesta de error estandarizada
+/// Standardized error response
 /// </summary>
 public class ErrorResponse
 {
@@ -120,13 +120,13 @@ public class ErrorResponse
 }
 
 /// <summary>
-/// Excepción personalizada para errores de validación
+/// Custom exception for validation errors
 /// </summary>
 public class ValidationException : Exception
 {
     public string[] Errors { get; }
 
-    public ValidationException(string[] errors) : base("Error de validación")
+    public ValidationException(string[] errors) : base("Validation error")
     {
         Errors = errors;
     }
@@ -138,7 +138,7 @@ public class ValidationException : Exception
 }
 
 /// <summary>
-/// Extension method para agregar el middleware
+/// Extension method to add the middleware
 /// </summary>
 public static class GlobalExceptionMiddlewareExtensions
 {

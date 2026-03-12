@@ -13,18 +13,18 @@ namespace SavedByTheMaid.Infrastructure;
 public static class DependencyInjection
 {
     /// <summary>
-    /// Registra los servicios de infraestructura.
-    /// 
-    /// BUENA PRÁCTICA:
-    /// - Verificar el ambiente antes de configurar DB real
-    /// - Permitir que tests usen InMemory sin conexión MySQL
+    /// Registers infrastructure services.
+    ///
+    /// BEST PRACTICE:
+    /// - Check the environment before configuring a real DB
+    /// - Allow tests to use InMemory without a MySQL connection
     /// </summary>
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services, 
         IConfiguration configuration,
         string? environmentName = null)
     {
-        // En ambiente Testing, NO registrar MySQL - los tests configuran InMemory
+        // In Testing environment, do NOT register MySQL - tests configure InMemory
         if (environmentName == "Testing")
         {
             return services;
@@ -36,7 +36,7 @@ public static class DependencyInjection
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseMySQL(connectionString));
 
-        // Agregar Identity
+        // Add Identity
         services.AddIdentity<ApplicationUser, IdentityRole>(options =>
         {
             options.Password.RequireDigit = true;

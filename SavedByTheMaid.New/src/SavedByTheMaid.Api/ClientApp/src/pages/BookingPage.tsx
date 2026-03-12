@@ -15,9 +15,9 @@ interface BookingData {
   zipCode: string;
   serviceTypeId: number;
   cleaningPlaceId: number;
-  numberOfRooms: number;
-  numberOfBathrooms: number;
-  squareFeet: number;
+  bedrooms: number;
+  bathrooms: number;
+  squareFootage: number;
   additionalServiceIds: number[];
   date: string;
   timeSlot: string;
@@ -40,9 +40,9 @@ const initialBookingData: BookingData = {
   zipCode: '',
   serviceTypeId: 0,
   cleaningPlaceId: 0,
-  numberOfRooms: 2,
-  numberOfBathrooms: 1,
-  squareFeet: 1000,
+  bedrooms: 2,
+  bathrooms: 1,
+  squareFootage: 1000,
   additionalServiceIds: [],
   date: '',
   timeSlot: '',
@@ -81,7 +81,9 @@ function loadWizardState(): { step: BookingStep; data: BookingData } | null {
 
 function saveWizardState(step: BookingStep, data: BookingData) {
   try {
-    sessionStorage.setItem(WIZARD_STORAGE_KEY, JSON.stringify({ step, data }));
+    // Never persist password to storage - strip it before saving
+    const { password: _, ...safeData } = data;
+    sessionStorage.setItem(WIZARD_STORAGE_KEY, JSON.stringify({ step, data: { ...safeData, password: '' } }));
   } catch { /* storage full — ignore */ }
 }
 
@@ -501,6 +503,8 @@ function DetailsStep({
   onNext: () => void;
   onBack: () => void;
 }) {
+  const [estimateError, setEstimateError] = useState('');
+
   const { data: cleaningPlaces, isLoading: loadingPlaces } = useQuery({
     queryKey: ['cleaningPlaces'],
     queryFn: () => bookingApi.getCleaningPlaces(),
@@ -516,53 +520,40 @@ function DetailsStep({
     queryFn: () => bookingApi.getAdditionalServices(),
   });
 
-  // Calcular precio en tiempo real
   const selectedService = serviceTypes?.data.find((s: ServiceType) => s.id === data.serviceTypeId);
-  
-  const calculatePrice = (): { basePrice: number; bedroomExtra: number; bathroomExtra: number; extrasTotal: number; total: number } => {
-    if (!selectedService) return { basePrice: 0, bedroomExtra: 0, bathroomExtra: 0, extrasTotal: 0, total: 0 };
-    
-    const basePrice = selectedService.price;
-    const bedroomExtra = Math.max(0, data.numberOfRooms - 1) * selectedService.pricePerBedroom;
-    const bathroomExtra = Math.max(0, data.numberOfBathrooms - 1) * selectedService.pricePerBathroom;
-    
+
+  // Quick client-side preview (just base + extras, no multipliers)
+  const previewTotal = (() => {
+    if (!selectedService) return 0;
+    const base = selectedService.price;
+    const bedroomExtra = Math.max(0, data.bedrooms - 1) * selectedService.pricePerBedroom;
+    const bathroomExtra = Math.max(0, data.bathrooms - 1) * selectedService.pricePerBathroom;
     const extrasTotal = data.additionalServiceIds.reduce((sum, id) => {
       const extra = additionalServices?.data.find((s: { id: number; price: number }) => s.id === id);
       return sum + (extra?.price || 0);
     }, 0);
+    return base + bedroomExtra + bathroomExtra + extrasTotal;
+  })();
 
-    const subtotal = basePrice + bedroomExtra + bathroomExtra + extrasTotal;
-    
-    return {
-      basePrice,
-      bedroomExtra,
-      bathroomExtra,
-      extrasTotal,
-      total: subtotal,
-    };
-  };
-
-  const priceCalc = calculatePrice();
-
-  const handleContinue = () => {
-    // Crear estimate local
-    const estimatedMinutes = selectedService 
-      ? selectedService.estimatedMinutes + 
-        (data.numberOfRooms - 1) * selectedService.minutesPerBedroom + 
-        (data.numberOfBathrooms - 1) * selectedService.minutesPerBathroom
-      : 120;
-
-    onEstimate({
-      basePrice: priceCalc.basePrice,
-      additionalServicesPrice: priceCalc.extrasTotal,
-      subtotal: priceCalc.total,
-      tax: 0,
-      total: priceCalc.total,
-      estimatedMinutes,
-      breakdown: [],
-    });
-    onNext();
-  };
+  const fetchEstimate = useMutation({
+    mutationFn: () =>
+      bookingApi.getEstimate({
+        serviceTypeId: data.serviceTypeId,
+        cleaningPlaceId: data.cleaningPlaceId || undefined,
+        additionalServiceIds: data.additionalServiceIds,
+        bedrooms: data.bedrooms,
+        bathrooms: data.bathrooms,
+        squareFootage: data.squareFootage || undefined,
+      }),
+    onSuccess: (response) => {
+      setEstimateError('');
+      onEstimate(response.data);
+      onNext();
+    },
+    onError: () => {
+      setEstimateError('Could not calculate estimate. Please try again.');
+    },
+  });
 
   const toggleExtra = (id: number) => {
     const current = data.additionalServiceIds;
@@ -617,20 +608,20 @@ function DetailsStep({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onChange({ numberOfRooms: Math.max(1, data.numberOfRooms - 1) })}
+                onClick={() => onChange({ bedrooms: Math.max(1, data.bedrooms - 1) })}
               >
                 -
               </Button>
-              <span className="text-xl font-semibold w-8 text-center">{data.numberOfRooms}</span>
+              <span className="text-xl font-semibold w-8 text-center">{data.bedrooms}</span>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onChange({ numberOfRooms: Math.min(10, data.numberOfRooms + 1) })}
+                onClick={() => onChange({ bedrooms: Math.min(10, data.bedrooms + 1) })}
               >
                 +
               </Button>
             </div>
-            {data.numberOfRooms > 1 && selectedService && (
+            {data.bedrooms > 1 && selectedService && (
               <p className="text-xs text-gray-500 mt-1">
                 +{formatCurrency(selectedService.pricePerBedroom)} each extra
               </p>
@@ -642,20 +633,20 @@ function DetailsStep({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onChange({ numberOfBathrooms: Math.max(1, data.numberOfBathrooms - 1) })}
+                onClick={() => onChange({ bathrooms: Math.max(1, data.bathrooms - 1) })}
               >
                 -
               </Button>
-              <span className="text-xl font-semibold w-8 text-center">{data.numberOfBathrooms}</span>
+              <span className="text-xl font-semibold w-8 text-center">{data.bathrooms}</span>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onChange({ numberOfBathrooms: Math.min(10, data.numberOfBathrooms + 1) })}
+                onClick={() => onChange({ bathrooms: Math.min(10, data.bathrooms + 1) })}
               >
                 +
               </Button>
             </div>
-            {data.numberOfBathrooms > 1 && selectedService && (
+            {data.bathrooms > 1 && selectedService && (
               <p className="text-xs text-gray-500 mt-1">
                 +{formatCurrency(selectedService.pricePerBathroom)} each extra
               </p>
@@ -696,43 +687,25 @@ function DetailsStep({
           </div>
         )}
 
-        {/* Price Summary */}
+        {/* Price Preview */}
         <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-          <h3 className="font-semibold text-gray-900 mb-4">Your Estimate</h3>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-600">{selectedService?.name || 'Service'} (base)</span>
-              <span className="font-medium">{formatCurrency(priceCalc.basePrice)}</span>
-            </div>
-            {priceCalc.bedroomExtra > 0 && (
-              <div className="flex justify-between">
-                <span className="text-gray-600">{data.numberOfRooms - 1} extra bedroom(s)</span>
-                <span className="font-medium">+{formatCurrency(priceCalc.bedroomExtra)}</span>
-              </div>
-            )}
-            {priceCalc.bathroomExtra > 0 && (
-              <div className="flex justify-between">
-                <span className="text-gray-600">{data.numberOfBathrooms - 1} extra bathroom(s)</span>
-                <span className="font-medium">+{formatCurrency(priceCalc.bathroomExtra)}</span>
-              </div>
-            )}
-            {priceCalc.extrasTotal > 0 && (
-              <div className="flex justify-between">
-                <span className="text-gray-600">Additional services</span>
-                <span className="font-medium">+{formatCurrency(priceCalc.extrasTotal)}</span>
-              </div>
-            )}
-            <div className="border-t pt-2 mt-2 flex justify-between text-lg">
-              <span className="font-semibold text-gray-900">Total</span>
-              <span className="font-bold text-[#00205B]">{formatCurrency(priceCalc.total)}</span>
-            </div>
-          </div>
+          <h3 className="font-semibold text-gray-900 mb-2">Estimated Total</h3>
+          <p className="text-2xl font-bold text-[#00205B]">{formatCurrency(previewTotal)}</p>
+          <p className="text-xs text-gray-500 mt-1">Final price calculated on next step</p>
         </div>
+
+        {estimateError && (
+          <p className="text-sm text-red-500">{estimateError}</p>
+        )}
       </div>
 
       <div className="flex justify-between mt-8">
         <Button variant="outline" onClick={onBack}>Back</Button>
-        <Button onClick={handleContinue} disabled={!data.cleaningPlaceId}>
+        <Button
+          onClick={() => fetchEstimate.mutate()}
+          loading={fetchEstimate.isPending}
+          disabled={!data.cleaningPlaceId}
+        >
           Continue
         </Button>
       </div>
@@ -849,7 +822,7 @@ function ScheduleStep({
                     onClick={() => {
                       if (isAvailable) {
                         handleTimeSelect(slot.startTime);
-                        // Seleccionar primer empleado disponible
+                        // Select first available employee
                         onChange({ employeeId: slot.availableEmployeeIds[0] });
                       }
                     }}
@@ -909,7 +882,7 @@ function ContactStep({
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const checkEmailAndProceed = async () => {
-    // Validar campos básicos primero
+    // Validate basic fields first
     const newErrors: Record<string, string> = {};
     if (!data.firstName) newErrors.firstName = 'First name is required';
     if (!data.lastName) newErrors.lastName = 'Last name is required';
@@ -925,27 +898,26 @@ function ContactStep({
     }
     setErrors({});
 
-    // Si ya tiene password, continuar
+    // If already has password, continue
     if (data.password) {
       onNext();
       return;
     }
 
-    // Verificar si email existe
+    // Check if email exists
     setCheckingEmail(true);
     try {
       const response = await api.get<{ email: string; exists: boolean }>(`/auth/check-email?email=${encodeURIComponent(data.email)}`);
       
       if (response.data.exists) {
-        // Email existe - mostrar modal con opciones
+        // Email exists - show modal with options
         setShowLoginModal(true);
       } else {
-        // Email nuevo, mostrar modal para crear password
+        // New email, show modal to create password
         setShowPasswordModal(true);
       }
     } catch (err) {
-      console.error('Error checking email:', err);
-      // Si falla la verificación, continuar sin password (backend lo manejará)
+      // If email verification fails, continue without password (backend will handle it)
       onNext();
     } finally {
       setCheckingEmail(false);
@@ -962,7 +934,7 @@ function ContactStep({
       return;
     }
     
-    // Guardar password y continuar
+    // Save password and continue
     onChange({ password });
     setShowPasswordModal(false);
     onNext();
@@ -981,7 +953,7 @@ function ContactStep({
       await login(data.email, loginPassword);
       setShowLoginModal(false);
       setLoginPassword('');
-      // Usuario autenticado, continuar al siguiente paso
+      // User authenticated, continue to next step
       onNext();
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Invalid password. Please try again.';
@@ -996,7 +968,7 @@ function ContactStep({
       <h2 className="text-2xl font-bold text-gray-900 mb-2">Contact Information</h2>
       <p className="text-gray-600 mb-8">Tell us where to send the cleaning crew.</p>
 
-      {/* Modal para crear contraseña */}
+      {/* Modal to create password */}
       <Modal 
         isOpen={showPasswordModal} 
         onClose={() => setShowPasswordModal(false)}
@@ -1040,7 +1012,7 @@ function ContactStep({
           </div>
         </div>
       </Modal>
-{/* Modal cuando el email ya está registrado */}
+{/* Modal when email is already registered */}
       <Modal 
         isOpen={showLoginModal} 
         onClose={() => { setShowLoginModal(false); setLoginPassword(''); setLoginError(''); }}
@@ -1084,7 +1056,7 @@ function ContactStep({
                 setShowLoginModal(false);
                 setLoginPassword('');
                 setLoginError('');
-                // Continuar sin password - backend asociará el booking a la cuenta existente
+                // Continue without password - backend will associate booking with existing account
                 onNext();
               }} 
               className="w-full"
@@ -1207,13 +1179,13 @@ function ConfirmStep({
         state: data.state,
         serviceTypeId: data.serviceTypeId,
         cleaningPlaceId: data.cleaningPlaceId,
-        bedrooms: data.numberOfRooms,
-        bathrooms: data.numberOfBathrooms,
-        squareFootage: data.squareFeet,
+        bedrooms: data.bedrooms,
+        bathrooms: data.bathrooms,
+        squareFootage: data.squareFootage,
         additionalServiceIds: data.additionalServiceIds,
         subtotal: estimate?.subtotal || 0,
-        tax: estimate?.tax || 0,
-        discount: 0,
+        tax: 0,
+        discount: estimate?.discount || 0,
         total: estimate?.total || 0,
         contactName: `${data.firstName} ${data.lastName}`,
         contactPhone: data.phone,
@@ -1223,7 +1195,7 @@ function ConfirmStep({
       }),
     onSuccess: (response) => {
       setError(null);
-      // Si se creó usuario, guardar tokens automáticamente
+      // If user was created, save tokens automatically
       if (response.data.authToken) {
         localStorage.setItem('token', response.data.authToken.accessToken);
         localStorage.setItem('refreshToken', response.data.authToken.refreshToken);
@@ -1231,7 +1203,7 @@ function ConfirmStep({
       onSuccess(response.data);
     },
     onError: (err: unknown) => {
-      // Intentar extraer mensaje de error detallado
+      // Try to extract detailed error message
       const maybe = err as { response?: { data?: { message?: string; details?: string } }; message?: string };
       const message = maybe.response?.data?.message || maybe.response?.data?.details || maybe.message || 'Something went wrong. Please try again.';
       setError(message);
@@ -1285,23 +1257,21 @@ function ConfirmStep({
         {/* Price Breakdown */}
         {estimate && (
           <div className="border rounded-xl p-4">
-            <h3 className="font-semibold text-gray-900 mb-4">Price Breakdown</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">Price Summary</h3>
             <div className="space-y-2">
-              {estimate.breakdown.map((item, index) => (
-                <div key={index} className="flex justify-between text-sm">
-                  <span className="text-gray-600">{item.description}</span>
-                  <span className="font-medium">{formatCurrency(item.amount)}</span>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Subtotal</span>
+                <span className="font-medium">{formatCurrency(estimate.subtotal)}</span>
+              </div>
+              {estimate.discount > 0 && (
+                <div className="flex justify-between text-sm text-green-600">
+                  <span>Discount ({estimate.discountPercent}%)</span>
+                  <span className="font-medium">-{formatCurrency(estimate.discount)}</span>
                 </div>
-              ))}
-              <div className="border-t pt-2 mt-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Subtotal</span>
-                  <span className="font-medium">{formatCurrency(estimate.subtotal)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Tax</span>
-                  <span className="font-medium">{formatCurrency(estimate.tax)}</span>
-                </div>
+              )}
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Duration</span>
+                <span className="font-medium">{estimate.formattedDuration}</span>
               </div>
               <div className="border-t pt-2 mt-2 flex justify-between">
                 <span className="font-semibold text-gray-900">Total</span>

@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SavedByTheMaid.Api.Auth;
 using SavedByTheMaid.Infrastructure.Data;
 using SavedByTheMaid.Domain.Entities;
 
@@ -41,6 +43,7 @@ public class ServiceAreasController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = Policies.AdminOnly)]
     public async Task<ActionResult<ServiceArea>> CreateServiceArea(CreateServiceAreaRequest request)
     {
         var serviceArea = new ServiceArea
@@ -57,6 +60,7 @@ public class ServiceAreasController : ControllerBase
     }
 
     [HttpPost("{id}/zipcodes")]
+    [Authorize(Policy = Policies.AdminOnly)]
     public async Task<ActionResult<ServiceAreaZip>> AddZipCode(int id, AddZipCodeRequest request)
     {
         var serviceArea = await _context.ServiceAreas.FindAsync(id);
@@ -65,13 +69,13 @@ public class ServiceAreasController : ControllerBase
             return NotFound();
         }
 
-        // Verificar que no exista ya
+        // Check if it already exists
         var existing = await _context.ServiceAreaZips
             .FirstOrDefaultAsync(z => z.ZipCode == request.ZipCode);
         
         if (existing != null)
         {
-            return Conflict($"El código postal {request.ZipCode} ya está asignado a otra zona.");
+            return Conflict($"Zip code {request.ZipCode} is already assigned to another area.");
         }
 
         var zip = new ServiceAreaZip
@@ -95,13 +99,14 @@ public class ServiceAreasController : ControllerBase
 
         if (serviceAreaZip?.ServiceArea == null)
         {
-            return NotFound($"No hay zona de servicio configurada para el código postal {zipCode}");
+            return NotFound($"No service area configured for zip code {zipCode}");
         }
 
         return serviceAreaZip.ServiceArea;
     }
 
     [HttpPut("{id}")]
+    [Authorize(Policy = Policies.AdminOnly)]
     public async Task<IActionResult> UpdateServiceArea(int id, UpdateServiceAreaRequest request)
     {
         var serviceArea = await _context.ServiceAreas.FindAsync(id);
@@ -120,6 +125,7 @@ public class ServiceAreasController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Policy = Policies.AdminOnly)]
     public async Task<IActionResult> DeleteServiceArea(int id)
     {
         var serviceArea = await _context.ServiceAreas
@@ -143,6 +149,7 @@ public class ServiceAreasController : ControllerBase
     }
 
     [HttpDelete("{id}/zipcodes/{zipId}")]
+    [Authorize(Policy = Policies.AdminOnly)]
     public async Task<IActionResult> DeleteZipCode(int id, int zipId)
     {
         var zip = await _context.ServiceAreaZips

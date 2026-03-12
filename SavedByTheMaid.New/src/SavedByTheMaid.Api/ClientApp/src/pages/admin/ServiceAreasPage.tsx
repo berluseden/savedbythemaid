@@ -58,8 +58,8 @@ export function AdminServiceAreasPage() {
     try {
       const response = await api.get<ServiceArea[]>('/serviceareas');
       setServiceAreas(response.data);
-    } catch (error) {
-      console.error('Error fetching service areas:', error);
+    } catch {
+      // Error handled by API interceptor
     } finally {
       setIsLoading(false);
     }
@@ -96,8 +96,8 @@ export function AdminServiceAreasPage() {
       }
       handleCloseModal();
       fetchServiceAreas();
-    } catch (error) {
-      console.error('Error saving service area:', error);
+    } catch {
+      // Error handled by API interceptor
     }
   };
 
@@ -108,8 +108,8 @@ export function AdminServiceAreasPage() {
     try {
       await api.delete(`/serviceareas/${id}`);
       fetchServiceAreas();
-    } catch (error) {
-      console.error('Error deleting service area:', error);
+    } catch {
+      // Error handled by API interceptor
     }
   };
 
@@ -153,8 +153,8 @@ export function AdminServiceAreasPage() {
     try {
       await api.delete(`/serviceareas/${areaId}/zipcodes/${zipId}`);
       fetchServiceAreas();
-    } catch (error) {
-      console.error('Error deleting zip code:', error);
+    } catch {
+      // Error handled by API interceptor
     }
   };
 
@@ -295,7 +295,7 @@ export function AdminServiceAreasPage() {
                               : 'bg-gray-100 text-gray-700'
                           }`}
                         >
-                          {area.isActive ? 'Activa' : 'Inactiva'}
+                          {area.isActive ? 'Active' : 'Inactive'}
                         </span>
                       </div>
                       {area.description && (
@@ -303,7 +303,7 @@ export function AdminServiceAreasPage() {
                       )}
                       <p className="mt-1 text-xs text-gray-400">
                         {area.zipCodes.length} zip code{area.zipCodes.length !== 1 ? 's' : ''}
-                        {area.zipCodes.length !== 1 ? 'es' : ''}
+                        {''}
                       </p>
                     </div>
                   </div>
@@ -335,12 +335,12 @@ export function AdminServiceAreasPage() {
                         className="inline-flex items-center gap-1 rounded-md bg-[#00205B] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#001440]"
                       >
                         <Plus className="h-3 w-3" />
-                        Agregar ZIP
+                        Add ZIP
                       </button>
                     </div>
                     {area.zipCodes.length === 0 ? (
                       <p className="text-sm text-gray-500 italic">
-                        No hay zip codes configured
+                        No zip codes configured
                       </p>
                     ) : (
                       <div className="flex flex-wrap gap-2">
@@ -475,7 +475,7 @@ export function AdminServiceAreasPage() {
                       setNewZipCode(e.target.value.replace(/\D/g, ''));
                       setZipError('');
                     }}
-                    placeholder="Ej: 33101"
+                    placeholder="E.g.: 33101"
                     className={`w-full rounded-lg border px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 ${
                       zipError
                         ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
@@ -497,7 +497,7 @@ export function AdminServiceAreasPage() {
                     type="submit"
                     className="rounded-lg bg-[#00205B] px-4 py-2 text-sm font-medium text-white hover:bg-[#001440]"
                   >
-                    Agregar
+                    Add
                   </button>
                 </div>
               </form>

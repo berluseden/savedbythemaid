@@ -226,7 +226,7 @@ public class AdminEmployeesController : ControllerBase
             IsAllDay = request.IsAllDay,
             Type = request.Type,
             Reason = request.Reason,
-            Status = TimeOffStatus.Approved // Auto-aprobado desde admin
+            Status = TimeOffStatus.Approved // Auto-approved from admin
         };
 
         _context.EmployeeTimeOffs.Add(timeOff);
@@ -264,7 +264,10 @@ public class AdminEmployeesController : ControllerBase
         var employee = await _context.Employees.FindAsync(id);
         if (employee == null || employee.IsDeleted) return NotFound();
 
-        // Verificar si ya existe horario para ese día
+        if (request.EndTime <= request.StartTime)
+            return BadRequest(new { message = "EndTime must be greater than StartTime" });
+
+        // Check if a schedule already exists for that day
         var existing = await _context.EmployeeSchedules
             .FirstOrDefaultAsync(s => s.EmployeeId == id && s.DayOfWeek == request.DayOfWeek && !s.IsDeleted);
 

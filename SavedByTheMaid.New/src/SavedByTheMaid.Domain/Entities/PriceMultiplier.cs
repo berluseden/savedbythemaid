@@ -4,7 +4,7 @@ using SavedByTheMaid.Domain.Enums;
 namespace SavedByTheMaid.Domain.Entities;
 
 /// <summary>
-/// Multiplicadores de precio según condiciones (m², suciedad, mascotas, etc.)
+/// Price multipliers based on conditions (sq ft, dirt level, pets, etc.)
 /// </summary>
 public class PriceMultiplier : BaseEntity
 {
@@ -12,37 +12,37 @@ public class PriceMultiplier : BaseEntity
     public string? Description { get; set; }
 
     /// <summary>
-    /// Tipo de condición que activa este multiplicador
+    /// Type of condition that triggers this multiplier
     /// </summary>
     public MultiplierConditionType ConditionType { get; set; }
 
     /// <summary>
-    /// Factor multiplicador (ej: 1.2 = +20%, 0.9 = -10%)
+    /// Multiplier factor (e.g., 1.2 = +20%, 0.9 = -10%)
     /// </summary>
     public decimal Factor { get; set; } = 1.0m;
 
     /// <summary>
-    /// Valor mínimo del rango (ej: para m² de 100 a 200, MinValue=100)
+    /// Minimum range value (e.g., for sq ft from 100 to 200, MinValue=100)
     /// </summary>
     public decimal? MinValue { get; set; }
 
     /// <summary>
-    /// Valor máximo del rango
+    /// Maximum range value
     /// </summary>
     public decimal? MaxValue { get; set; }
 
     /// <summary>
-    /// Si aplica a tiempo además de precio
+    /// Whether it applies to time in addition to price
     /// </summary>
     public bool AppliesToTime { get; set; } = true;
 
     /// <summary>
-    /// Si aplica a precio
+    /// Whether it applies to price
     /// </summary>
     public bool AppliesToPrice { get; set; } = true;
 
     /// <summary>
-    /// Tipo de servicio específico (null = todos)
+    /// Specific service type (null = all)
     /// </summary>
     public int? ServiceTypeId { get; set; }
     public virtual ServiceType? ServiceType { get; set; }
@@ -52,14 +52,14 @@ public class PriceMultiplier : BaseEntity
 }
 
 /// <summary>
-/// Descuentos por recurrencia
+/// Recurrence discounts
 /// </summary>
 public class RecurrenceDiscount : BaseEntity
 {
     public RecurrenceType RecurrenceType { get; set; }
 
     /// <summary>
-    /// Porcentaje de descuento (ej: 0.10 = 10% descuento)
+    /// Discount percentage (e.g., 0.10 = 10% discount)
     /// </summary>
     public decimal DiscountPercent { get; set; }
 

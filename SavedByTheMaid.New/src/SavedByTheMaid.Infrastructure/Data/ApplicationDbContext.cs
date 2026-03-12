@@ -11,45 +11,45 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
     }
 
-    // Servicios
+    // Services
     public DbSet<ServiceType> ServiceTypes => Set<ServiceType>();
     public DbSet<AdditionalServiceType> AdditionalServiceTypes => Set<AdditionalServiceType>();
     public DbSet<CleaningPlace> CleaningPlaces => Set<CleaningPlace>();
     public DbSet<CleaningPlaceRoom> CleaningPlaceRooms => Set<CleaningPlaceRoom>();
     public DbSet<RoomServiceType> RoomServiceTypes => Set<RoomServiceType>();
 
-    // Equipamiento
+    // Equipment
     public DbSet<Equipment> Equipment => Set<Equipment>();
     public DbSet<ServiceTypeEquipment> ServiceTypeEquipment => Set<ServiceTypeEquipment>();
     public DbSet<EmployeeEquipment> EmployeeEquipment => Set<EmployeeEquipment>();
 
-    // Precios y multiplicadores
+    // Prices and multipliers
     public DbSet<PriceMultiplier> PriceMultipliers => Set<PriceMultiplier>();
     public DbSet<RecurrenceDiscount> RecurrenceDiscounts => Set<RecurrenceDiscount>();
 
-    // Empleados
+    // Employees
     public DbSet<Employee> Employees => Set<Employee>();
     public DbSet<EmployeeSchedule> EmployeeSchedules => Set<EmployeeSchedule>();
     public DbSet<EmployeeTimeOff> EmployeeTimeOffs => Set<EmployeeTimeOff>();
 
-    // Zonas de Servicio
+    // Service Areas
     public DbSet<ServiceArea> ServiceAreas => Set<ServiceArea>();
     public DbSet<ServiceAreaZip> ServiceAreaZips => Set<ServiceAreaZip>();
     public DbSet<EmployeeServiceArea> EmployeeServiceAreas => Set<EmployeeServiceArea>();
 
-    // Órdenes y Citas
+    // Orders and Appointments
     public DbSet<ServiceOrder> ServiceOrders => Set<ServiceOrder>();
     public DbSet<ServiceOrderItem> ServiceOrderItems => Set<ServiceOrderItem>();
     public DbSet<ServiceOrderRoom> ServiceOrderRooms => Set<ServiceOrderRoom>();
     public DbSet<ServiceMeet> ServiceMeets => Set<ServiceMeet>();
 
-    // Reservas Temporales
+    // Temporary Reservations
     public DbSet<SoftReserve> SoftReserves => Set<SoftReserve>();
 
-    // Modelo de Ocupación Anti-Colisión
+    // Anti-Collision Occupancy Model
     public DbSet<SlotOccupancy> SlotOccupancies => Set<SlotOccupancy>();
 
-    // Historial de Estados (Auditoría)
+    // Status History (Audit)
     public DbSet<OrderStatusHistory> OrderStatusHistories => Set<OrderStatusHistory>();
     public DbSet<MeetStatusHistory> MeetStatusHistories => Set<MeetStatusHistory>();
 
@@ -59,7 +59,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         // ========== GLOBAL QUERY FILTERS ==========
         
-        // Soft delete global filter - excluye automáticamente entidades eliminadas
+        // Soft delete global filter - automatically excludes deleted entities
         builder.Entity<ServiceType>().HasQueryFilter(e => !e.IsDeleted);
         builder.Entity<AdditionalServiceType>().HasQueryFilter(e => !e.IsDeleted);
         builder.Entity<CleaningPlace>().HasQueryFilter(e => !e.IsDeleted);
@@ -77,36 +77,37 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<ServiceOrderItem>().HasQueryFilter(e => !e.IsDeleted);
         builder.Entity<ServiceOrderRoom>().HasQueryFilter(e => !e.IsDeleted);
         builder.Entity<ServiceMeet>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<SoftReserve>().HasQueryFilter(e => !e.IsDeleted);
         builder.Entity<SlotOccupancy>().HasQueryFilter(e => !e.IsDeleted);
 
-        // ========== ÍNDICES ==========
+        // ========== INDEXES ==========
 
-        // ServiceAreaZip - ZipCode único
+        // ServiceAreaZip - unique ZipCode
         builder.Entity<ServiceAreaZip>()
             .HasIndex(z => z.ZipCode)
             .IsUnique();
 
-        // EmployeeServiceArea - índice compuesto único
+        // EmployeeServiceArea - unique composite index
         builder.Entity<EmployeeServiceArea>()
             .HasIndex(e => new { e.EmployeeId, e.ServiceAreaId })
             .IsUnique();
 
-        // RoomServiceType - índice compuesto único
+        // RoomServiceType - unique composite index
         builder.Entity<RoomServiceType>()
             .HasIndex(r => new { r.CleaningPlaceRoomId, r.ServiceTypeId })
             .IsUnique();
 
-        // ServiceTypeEquipment - índice compuesto único
+        // ServiceTypeEquipment - unique composite index
         builder.Entity<ServiceTypeEquipment>()
             .HasIndex(s => new { s.ServiceTypeId, s.EquipmentId })
             .IsUnique();
 
-        // EmployeeEquipment - índice compuesto único
+        // EmployeeEquipment - unique composite index
         builder.Entity<EmployeeEquipment>()
             .HasIndex(e => new { e.EmployeeId, e.EquipmentId })
             .IsUnique();
 
-        // SoftReserve - índices para performance y anti-colisión
+        // SoftReserve - indexes for performance and anti-collision
         builder.Entity<SoftReserve>()
             .HasIndex(s => new { s.EmployeeId, s.ScheduledStart, s.ScheduledEnd });
 
@@ -116,29 +117,29 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<SoftReserve>()
             .HasIndex(s => s.SessionId);
 
-        // SlotOccupancy - índice UNIQUE compuesto para anti-colisión (elimina double-booking a nivel DB)
+        // SlotOccupancy - UNIQUE composite index for anti-collision (prevents double-booking at the DB level)
         builder.Entity<SlotOccupancy>()
             .HasIndex(so => new { so.EmployeeId, so.SlotStart })
             .IsUnique()
-            .HasFilter("\"IsDeleted\" = false"); // Permite reutilizar slots de ocupaciones eliminadas
+            .HasFilter("\"IsDeleted\" = false"); // Allows reusing slots from deleted occupancies
 
-        // SlotOccupancy - índice para limpieza de expirados
+        // SlotOccupancy - index for expired entry cleanup
         builder.Entity<SlotOccupancy>()
             .HasIndex(so => new { so.ExpiresAt, so.OccupancyType });
 
-        // SlotOccupancy - índice para búsqueda por referencia
+        // SlotOccupancy - index for reference lookup
         builder.Entity<SlotOccupancy>()
             .HasIndex(so => new { so.OccupancyType, so.ReferenceId });
 
-        // EmployeeSchedule - índice para búsqueda de disponibilidad
+        // EmployeeSchedule - index for availability lookup
         builder.Entity<EmployeeSchedule>()
             .HasIndex(es => new { es.EmployeeId, es.DayOfWeek });
 
-        // EmployeeTimeOff - índice para búsqueda de bloqueos
+        // EmployeeTimeOff - index for time-off lookup
         builder.Entity<EmployeeTimeOff>()
             .HasIndex(t => new { t.EmployeeId, t.StartDateTime, t.EndDateTime });
 
-        // ServiceMeet - índices para búsqueda de citas
+        // ServiceMeet - indexes for appointment lookup
         builder.Entity<ServiceMeet>()
             .HasIndex(sm => new { sm.AssignedEmployeeId, sm.ScheduledStart });
 
@@ -148,7 +149,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<ServiceMeet>()
             .HasIndex(sm => new { sm.ServiceAreaId, sm.ScheduledStart });
 
-        // ServiceOrder - índice para listados admin ordenados por fecha
+        // ServiceOrder - index for admin listings sorted by date
         builder.Entity<ServiceOrder>()
             .HasIndex(so => so.CreatedAt)
             .IsDescending();
@@ -157,7 +158,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasIndex(so => new { so.OrderStatus, so.CreatedAt })
             .IsDescending();
 
-        // OrderStatusHistory - índices para auditoría
+        // OrderStatusHistory - indexes for audit
         builder.Entity<OrderStatusHistory>()
             .HasIndex(h => h.ServiceOrderId);
 
@@ -165,7 +166,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasIndex(h => h.ChangedAt)
             .IsDescending();
 
-        // MeetStatusHistory - índices para auditoría
+        // MeetStatusHistory - indexes for audit
         builder.Entity<MeetStatusHistory>()
             .HasIndex(h => h.ServiceMeetId);
 
@@ -173,9 +174,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasIndex(h => h.ChangedAt)
             .IsDescending();
 
-        // ========== RELACIONES ==========
+        // ========== RELATIONSHIPS ==========
 
-        // Employee -> Meetings (muchos)
+        // Employee -> Meetings (many)
         builder.Entity<Employee>()
             .HasMany(e => e.Meetings)
             .WithOne(m => m.AssignedEmployee)
@@ -196,7 +197,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasForeignKey(eq => eq.EmployeeId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Employee -> SlotOccupancies (modelo anti-colisión)
+        // Employee -> SlotOccupancies (anti-collision model)
         builder.Entity<SlotOccupancy>()
             .HasOne(so => so.Employee)
             .WithMany()
@@ -252,7 +253,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasForeignKey(h => h.ChangedById)
             .OnDelete(DeleteBehavior.SetNull);
 
-        // ========== PRECISIÓN DECIMAL ==========
+        // ========== DECIMAL PRECISION ==========
 
         builder.Entity<ServiceType>()
             .Property(s => s.Price).HasPrecision(18, 2);

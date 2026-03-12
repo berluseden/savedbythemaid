@@ -5,11 +5,11 @@ using FluentAssertions;
 namespace SavedByTheMaid.Api.Tests;
 
 /// <summary>
-/// Tests de seguridad para verificar que los endpoints admin requieren autenticación
-/// 
-/// BUENA PRÁCTICA:
-/// - Reutiliza CustomWebApplicationFactory (no duplicar configuración)
-/// - Tests parametrizados con [Theory] + [InlineData] para múltiples endpoints
+/// Security tests to verify that admin endpoints require authentication
+///
+/// BEST PRACTICE:
+/// - Reuse CustomWebApplicationFactory (do not duplicate configuration)
+/// - Parameterized tests with [Theory] + [InlineData] for multiple endpoints
 /// </summary>
 public class AdminSecurityTests : IClassFixture<CustomWebApplicationFactory>
 {
@@ -54,12 +54,12 @@ public class AdminSecurityTests : IClassFixture<CustomWebApplicationFactory>
     [Fact]
     public async Task BookingEndpoints_ArePublic()
     {
-        // Act - estos endpoints deben ser públicos
+        // Act - these endpoints should be public
         var coverageResponse = await _client.GetAsync("/api/booking/coverage/10001");
         var placesResponse = await _client.GetAsync("/api/booking/cleaning-places");
         var typesResponse = await _client.GetAsync("/api/booking/service-types");
         
-        // Assert - no deben retornar 401
+        // Assert - should not return 401
         coverageResponse.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
         placesResponse.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);
         typesResponse.StatusCode.Should().NotBe(HttpStatusCode.Unauthorized);

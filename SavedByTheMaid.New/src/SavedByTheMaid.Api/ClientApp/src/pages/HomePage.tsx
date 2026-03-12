@@ -28,6 +28,33 @@ export default function HomePage() {
 
   return (
     <div>
+      {/* Welcome Section */}
+      <section className="bg-gradient-to-br from-[#FFE44D]/10 to-[#FFE44D]/5 py-16">
+        <div className="mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
+            <Sparkles className="inline h-8 w-8 text-yellow-400" />{' '}
+            Welcome to a Cleaner, Fresher Space!{' '}
+            <Sparkles className="inline h-8 w-8 text-yellow-400" />
+          </h1>
+          <p className="mt-6 text-lg text-gray-700 leading-relaxed">
+            We believe a clean space creates peace, comfort, and happiness. Our professional
+            cleaning team is here to make your home or business shine while you relax and enjoy
+            what matters most.
+          </p>
+          <div className="mt-8 flex flex-col items-center gap-3 text-lg text-gray-700">
+            <span>Reliable service</span>
+            <span>Homes & offices</span>
+            <span>Attention to every detail</span>
+          </div>
+          <p className="mt-8 text-lg text-gray-700">
+            Let us take care of the cleaning so you can enjoy a spotless space every day!
+          </p>
+          <p className="mt-6 text-lg font-semibold text-[#00205B]">
+            Contact us today to schedule your cleaning. Your sparkling space starts here!
+          </p>
+        </div>
+      </section>
+
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-[#FFE44D]/5 to-white">
         <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
@@ -37,14 +64,14 @@ export default function HomePage() {
                 <Sparkles className="mr-2 h-4 w-4" />
                 Professional Cleaning Services
               </div>
-              
-              <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+
+              <h2 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
                 A Clean Home,{' '}
                 <span className="text-[#00205B]">Without the Work</span>
-              </h1>
-              
+              </h2>
+
               <p className="text-lg text-gray-600 max-w-lg">
-                Book professional house cleaning in 60 seconds. Trusted cleaners, 
+                Book professional house cleaning in 60 seconds. Trusted cleaners,
                 transparent pricing, and 100% satisfaction guaranteed.
               </p>
 

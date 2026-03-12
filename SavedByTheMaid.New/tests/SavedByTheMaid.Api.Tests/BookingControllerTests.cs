@@ -5,12 +5,12 @@ using FluentAssertions;
 namespace SavedByTheMaid.Api.Tests;
 
 /// <summary>
-/// Tests de integración para el API de Booking
-/// 
-/// BUENA PRÁCTICA:
-/// - IClassFixture<T> comparte la factory entre todos los tests de la clase
-/// - Cada test usa CreateClient() para obtener un HttpClient limpio
-/// - No se necesita IAsyncLifetime si no hay setup/teardown async
+/// Integration tests for the Booking API
+///
+/// BEST PRACTICE:
+/// - IClassFixture&lt;T&gt; shares the factory across all tests in the class
+/// - Each test uses CreateClient() to obtain a clean HttpClient
+/// - IAsyncLifetime is not needed if there is no async setup/teardown
 /// </summary>
 public class BookingControllerTests : IClassFixture<CustomWebApplicationFactory>
 {

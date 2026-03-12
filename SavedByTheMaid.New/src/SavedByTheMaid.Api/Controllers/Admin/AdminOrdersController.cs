@@ -17,15 +17,18 @@ public class AdminOrdersController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly ILogger<AdminOrdersController> _logger;
     private readonly ISchedulingService _schedulingService;
+    private readonly IStatusHistoryService _statusHistoryService;
 
     public AdminOrdersController(
-        ApplicationDbContext context, 
+        ApplicationDbContext context,
         ILogger<AdminOrdersController> logger,
-        ISchedulingService schedulingService)
+        ISchedulingService schedulingService,
+        IStatusHistoryService statusHistoryService)
     {
         _context = context;
         _logger = logger;
         _schedulingService = schedulingService;
+        _statusHistoryService = statusHistoryService;
     }
 
     [HttpGet]
@@ -37,7 +40,7 @@ public class AdminOrdersController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-        _logger.LogInformation("Consultando órdenes - Status: {Status}, From: {From}, To: {To}, Page: {Page}", 
+        _logger.LogInformation("Querying orders - Status: {Status}, From: {From}, To: {To}, Page: {Page}",
             status, from, to, page);
             
         var query = _context.ServiceOrders
@@ -103,11 +106,11 @@ public class AdminOrdersController : ControllerBase
         var order = await _context.ServiceOrders.FindAsync(id);
         if (order == null || order.IsDeleted) return NotFound();
 
-        // Validar transiciones permitidas de OrderStatus
+        // Validate allowed OrderStatus transitions
         var currentStatus = order.OrderStatus;
         var newStatus = request.OrderStatus;
 
-        // Definir transiciones válidas (incluye PendingReview)
+        // Define valid transitions (includes PendingReview)
         var validTransitions = new Dictionary<OrderStatus, OrderStatus[]>
         {
             [OrderStatus.PendingReview] = new[] { OrderStatus.Confirmed, OrderStatus.Cancelled },
@@ -116,14 +119,14 @@ public class AdminOrdersController : ControllerBase
             #pragma warning restore CS0618
             [OrderStatus.Confirmed] = new[] { OrderStatus.InProgress, OrderStatus.Cancelled, OrderStatus.NoShow },
             [OrderStatus.InProgress] = new[] { OrderStatus.Completed, OrderStatus.Cancelled },
-            [OrderStatus.Completed] = Array.Empty<OrderStatus>(), // Estado final
-            [OrderStatus.Cancelled] = Array.Empty<OrderStatus>(), // Estado final
-            [OrderStatus.NoShow] = Array.Empty<OrderStatus>() // Estado final
+            [OrderStatus.Completed] = Array.Empty<OrderStatus>(), // Final state
+            [OrderStatus.Cancelled] = Array.Empty<OrderStatus>(), // Final state
+            [OrderStatus.NoShow] = Array.Empty<OrderStatus>() // Final state
         };
 
         if (!validTransitions[currentStatus].Contains(newStatus))
         {
-            return BadRequest($"Transición inválida: {currentStatus} -> {newStatus}");
+            return BadRequest($"Invalid transition: {currentStatus} -> {newStatus}");
         }
 
         _logger.LogInformation("Order {OrderId} status transition: {From} -> {To}", 
@@ -131,7 +134,12 @@ public class AdminOrdersController : ControllerBase
 
         order.OrderStatus = newStatus;
         await _context.SaveChangesAsync();
-        
+
+        // Record audit trail
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        await _statusHistoryService.RecordOrderStatusChangeAsync(
+            id, currentStatus, newStatus, userId, notes: $"Admin status change: {currentStatus} -> {newStatus}");
+
         return NoContent();
     }
 
@@ -146,16 +154,16 @@ public class AdminOrdersController : ControllerBase
 
         order.OrderStatus = OrderStatus.Cancelled;
 
-        // Cancelar todas las citas pendientes
+        // Cancel all pending appointments
         foreach (var meet in order.Meetings.Where(m => 
             m.Status == MeetStatus.Scheduled || 
             m.Status == MeetStatus.Assigned ||
             m.Status == MeetStatus.Rescheduled))
         {
             meet.Status = MeetStatus.Cancelled;
-            meet.CancellationReason = request?.Reason ?? "Orden cancelada";
+            meet.CancellationReason = request?.Reason ?? "Order cancelled";
             
-            // Liberar slots ocupados si tiene empleado asignado
+            // Release occupied slots if an employee is assigned
             if (meet.AssignedEmployeeId.HasValue)
             {
                 await _schedulingService.ReleaseSlotsAsync(meet.Id, OccupancyType.Meeting);
@@ -163,10 +171,17 @@ public class AdminOrdersController : ControllerBase
         }
 
         await _context.SaveChangesAsync();
+
+        // Record audit trail for cancellation
+        var adminId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        await _statusHistoryService.RecordOrderStatusChangeAsync(
+            id, order.OrderStatus, OrderStatus.Cancelled, adminId,
+            reasonCode: "ADMIN_CANCEL", notes: request?.Reason ?? "Order cancelled by admin");
+
         return NoContent();
     }
 
-    // Meetings (Citas)
+    // Meetings (Appointments)
     [HttpGet("meetings")]
     public async Task<ActionResult<IEnumerable<MeetingSummaryDto>>> GetMeetings(
         [FromQuery] DateTime? date = null,
@@ -246,6 +261,7 @@ public class AdminOrdersController : ControllerBase
         var meet = await _context.ServiceMeets.FindAsync(id);
         if (meet == null || meet.IsDeleted) return NotFound();
 
+        var previousStatus = meet.Status;
         meet.Status = request.Status;
 
         if (request.Status == MeetStatus.InProgress && !meet.ActualStart.HasValue)
@@ -258,6 +274,12 @@ public class AdminOrdersController : ControllerBase
             meet.Notes = request.Notes;
 
         await _context.SaveChangesAsync();
+
+        // Record audit trail
+        var adminId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        await _statusHistoryService.RecordMeetStatusChangeAsync(
+            id, previousStatus, request.Status, adminId, notes: request.Notes);
+
         return NoContent();
     }
 
@@ -268,21 +290,37 @@ public class AdminOrdersController : ControllerBase
         if (meet == null || meet.IsDeleted) return NotFound();
 
         var employee = await _context.Employees.FindAsync(request.EmployeeId);
-        if (employee == null || !employee.IsActive) 
-            return BadRequest("Empleada no válida o inactiva");
+        if (employee == null || !employee.IsActive)
+            return BadRequest("Invalid or inactive employee");
 
-        // Verificar conflictos para el nuevo empleado
+        // Verify employee works on that day/time
+        var meetDayOfWeek = meet.ScheduledStart.DayOfWeek;
+        var meetStartTime = meet.ScheduledStart.TimeOfDay;
+        var meetEndTime = meet.ScheduledEnd.TimeOfDay;
+        var empSchedule = await _context.EmployeeSchedules
+            .FirstOrDefaultAsync(s =>
+                s.EmployeeId == request.EmployeeId &&
+                s.DayOfWeek == meetDayOfWeek &&
+                s.IsAvailable && !s.IsDeleted);
+
+        if (empSchedule == null)
+            return BadRequest($"The employee does not work on {meetDayOfWeek}");
+
+        if (meetStartTime < empSchedule.StartTime || meetEndTime > empSchedule.EndTime)
+            return BadRequest("The appointment is outside the employee's working hours");
+
+        // Check for conflicts for the new employee
         var conflict = await _schedulingService.CheckConflictsAsync(
             request.EmployeeId,
             meet.ScheduledStart,
             meet.ScheduledEnd,
-            excludeMeetingId: null // No excluimos nada porque es un empleado diferente
+            excludeMeetingId: null // We don't exclude anything because it's a different employee
         );
 
         if (conflict != null)
         {
             _logger.LogWarning(
-                "Conflicto al asignar empleado {EmployeeId} al meeting {MeetingId}: {ConflictType}",
+                "Conflict when assigning employee {EmployeeId} to meeting {MeetingId}: {ConflictType}",
                 request.EmployeeId, id, conflict.Type);
 
             return Conflict(new SchedulingConflictResponse
@@ -293,21 +331,31 @@ public class AdminOrdersController : ControllerBase
             });
         }
 
-        // Usar transacción para garantizar consistencia
+        // Use transaction for consistency
         await using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
-            // Si ya había un empleado asignado, transferir los slots
+            // If an employee was already assigned, transfer the slots
             if (meet.AssignedEmployeeId.HasValue && meet.AssignedEmployeeId.Value != request.EmployeeId)
             {
-                await _schedulingService.TransferSlotsAsync(
+                var transferConflict = await _schedulingService.TransferSlotsAsync(
                     meet.Id,
                     OccupancyType.Meeting,
                     request.EmployeeId);
+                if (transferConflict != null)
+                {
+                    await transaction.RollbackAsync();
+                    return Conflict(new SchedulingConflictResponse
+                    {
+                        Error = "SCHEDULING_CONFLICT",
+                        Message = transferConflict.Message,
+                        Conflict = transferConflict
+                    });
+                }
             }
             else if (!meet.AssignedEmployeeId.HasValue)
             {
-                // Primera asignación - crear slots nuevos
+                // First assignment - create new slots
                 await _schedulingService.AcquireSlotsAsync(
                     request.EmployeeId,
                     meet.ScheduledStart,
@@ -323,7 +371,7 @@ public class AdminOrdersController : ControllerBase
             await transaction.CommitAsync();
 
             _logger.LogInformation(
-                "Empleado {EmployeeId} asignado exitosamente al meeting {MeetingId}",
+                "Employee {EmployeeId} successfully assigned to meeting {MeetingId}",
                 request.EmployeeId, id);
 
             return NoContent();
@@ -331,18 +379,18 @@ public class AdminOrdersController : ControllerBase
         catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
         {
             await transaction.RollbackAsync();
-            _logger.LogWarning(ex, 
-                "Violación de constraint único al asignar empleado {EmployeeId} al meeting {MeetingId}",
+            _logger.LogWarning(ex,
+                "Unique constraint violation when assigning employee {EmployeeId} to meeting {MeetingId}",
                 request.EmployeeId, id);
 
             return Conflict(new SchedulingConflictResponse
             {
                 Error = "SLOT_ALREADY_TAKEN",
-                Message = "El horario fue reservado por otra operación concurrente. Por favor, intente de nuevo.",
+                Message = "The time slot was reserved by a concurrent operation. Please try again.",
                 Conflict = new SchedulingConflict
                 {
                     Type = ConflictType.ExistingBooking,
-                    Message = "Conflicto de concurrencia detectado",
+                    Message = "Concurrency conflict detected",
                     EmployeeId = request.EmployeeId
                 }
             });
@@ -360,16 +408,16 @@ public class AdminOrdersController : ControllerBase
 
         var newEnd = request.NewStart.AddMinutes(meet.EstimatedDurationMinutes);
 
-        // Determinar el empleado para la verificación de conflictos
+        // Determine the employee for conflict checking
         var employeeIdToCheck = request.NewEmployeeId ?? meet.AssignedEmployeeId;
         
         if (!employeeIdToCheck.HasValue)
         {
-            return BadRequest("El meeting no tiene empleado asignado y no se proporcionó uno nuevo");
+            return BadRequest("The meeting has no assigned employee and no new one was provided");
         }
 
-        // Verificar conflictos para el nuevo horario
-        // Si es el mismo empleado, excluimos el meeting actual
+        // Check for conflicts for the new schedule
+        // If it's the same employee, we exclude the current meeting
         var excludeMeetingId = (request.NewEmployeeId == null || request.NewEmployeeId == meet.AssignedEmployeeId)
             ? meet.Id
             : (int?)null;
@@ -383,7 +431,7 @@ public class AdminOrdersController : ControllerBase
         if (conflict != null)
         {
             _logger.LogWarning(
-                "Conflicto al reprogramar meeting {MeetingId} para {NewStart}: {ConflictType}",
+                "Conflict when rescheduling meeting {MeetingId} to {NewStart}: {ConflictType}",
                 id, request.NewStart, conflict.Type);
 
             return Conflict(new SchedulingConflictResponse
@@ -394,17 +442,17 @@ public class AdminOrdersController : ControllerBase
             });
         }
 
-        // Usar transacción para garantizar consistencia
+        // Use transaction for consistency
         await using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
-            // Liberar slots del horario anterior
+            // Release slots from the previous schedule
             if (meet.AssignedEmployeeId.HasValue)
             {
                 await _schedulingService.ReleaseSlotsAsync(meet.Id, OccupancyType.Meeting);
             }
 
-            // Actualizar el meeting
+            // Update the meeting
             var oldStart = meet.ScheduledStart;
             var oldEnd = meet.ScheduledEnd;
             var oldEmployeeId = meet.AssignedEmployeeId;
@@ -418,7 +466,7 @@ public class AdminOrdersController : ControllerBase
                 meet.AssignedEmployeeId = request.NewEmployeeId;
             }
 
-            // Adquirir slots para el nuevo horario
+            // Acquire slots for the new schedule
             await _schedulingService.AcquireSlotsAsync(
                 employeeIdToCheck.Value,
                 request.NewStart,
@@ -430,7 +478,7 @@ public class AdminOrdersController : ControllerBase
             await transaction.CommitAsync();
 
             _logger.LogInformation(
-                "Meeting {MeetingId} reprogramado: {OldStart} -> {NewStart}, empleado: {OldEmployee} -> {NewEmployee}",
+                "Meeting {MeetingId} rescheduled: {OldStart} -> {NewStart}, employee: {OldEmployee} -> {NewEmployee}",
                 id, oldStart, request.NewStart, oldEmployeeId, meet.AssignedEmployeeId);
 
             return NoContent();
@@ -438,18 +486,18 @@ public class AdminOrdersController : ControllerBase
         catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
         {
             await transaction.RollbackAsync();
-            _logger.LogWarning(ex, 
-                "Violación de constraint único al reprogramar meeting {MeetingId}",
+            _logger.LogWarning(ex,
+                "Unique constraint violation when rescheduling meeting {MeetingId}",
                 id);
 
             return Conflict(new SchedulingConflictResponse
             {
                 Error = "SLOT_ALREADY_TAKEN",
-                Message = "El nuevo horario fue reservado por otra operación concurrente. Por favor, intente de nuevo.",
+                Message = "The new time slot was reserved by a concurrent operation. Please try again.",
                 Conflict = new SchedulingConflict
                 {
                     Type = ConflictType.ExistingBooking,
-                    Message = "Conflicto de concurrencia detectado",
+                    Message = "Concurrency conflict detected",
                     EmployeeId = employeeIdToCheck.Value,
                     ConflictStart = request.NewStart,
                     ConflictEnd = newEnd
@@ -459,12 +507,12 @@ public class AdminOrdersController : ControllerBase
     }
 
     /// <summary>
-    /// Detecta si una excepción de base de datos es por violación de constraint único.
+    /// Detects if a database exception is a unique constraint violation.
     /// </summary>
     private static bool IsUniqueConstraintViolation(DbUpdateException ex)
     {
-        // PostgreSQL: código 23505 = unique_violation
-        // SQL Server: código 2601 o 2627 = unique constraint/index violation
+        // PostgreSQL: code 23505 = unique_violation
+        // SQL Server: code 2601 or 2627 = unique constraint/index violation
         var innerMessage = ex.InnerException?.Message?.ToLowerInvariant() ?? "";
         return innerMessage.Contains("unique") || 
                innerMessage.Contains("duplicate") ||
@@ -537,7 +585,7 @@ public class AdminOrdersController : ControllerBase
                     End = m.ScheduledEnd,
                     EmployeeName = m.AssignedEmployee != null 
                         ? $"{m.AssignedEmployee.FirstName} {m.AssignedEmployee.LastName}" 
-                        : "Sin asignar",
+                        : "Unassigned",
                     Address = m.ServiceOrder?.Address ?? "",
                     Status = m.Status
                 }).ToList()
@@ -615,22 +663,22 @@ public record RescheduleMeetingRequest(DateTime NewStart, int? NewEmployeeId = n
 public record AdjustmentRequest(decimal Amount, string Reason);
 
 /// <summary>
-/// Respuesta de conflicto de programación (HTTP 409)
+/// Scheduling conflict response (HTTP 409)
 /// </summary>
 public record SchedulingConflictResponse
 {
     /// <summary>
-    /// Código de error para uso programático
+    /// Error code for programmatic use
     /// </summary>
     public string Error { get; init; } = string.Empty;
 
     /// <summary>
-    /// Mensaje descriptivo del conflicto
+    /// Descriptive message of the conflict
     /// </summary>
     public string Message { get; init; } = string.Empty;
 
     /// <summary>
-    /// Detalles completos del conflicto
+    /// Full details of the conflict
     /// </summary>
     public SchedulingConflict? Conflict { get; init; }
 }

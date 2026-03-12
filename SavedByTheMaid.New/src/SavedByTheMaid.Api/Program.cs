@@ -20,7 +20,7 @@ using Serilog.Events;
 var envName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
 if (!string.Equals(envName, "Testing", StringComparison.OrdinalIgnoreCase))
 {
-    // Configurar Serilog antes de crear el builder
+    // Configure Serilog before creating the builder
     try
     {
         Log.Logger = new LoggerConfiguration()
@@ -35,15 +35,15 @@ if (!string.Equals(envName, "Testing", StringComparison.OrdinalIgnoreCase))
     }
     catch (InvalidOperationException ex)
     {
-        // Durante los tests podría intentarse inicializar Serilog varias veces.
-        // Evitar que esto detenga el proceso de test y caeremos al logger por defecto.
+        // During tests, Serilog initialization may be attempted multiple times.
+        // Prevent this from stopping the test process; we'll fall back to the default logger.
         Console.Error.WriteLine($"Warning: Serilog bootstrap skipped: {ex.Message}");
     }
 }
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Reemplazar el logger por defecto con Serilog (salvo cuando estamos en Testing)
+// Replace the default logger with Serilog (except when running in Testing)
 if (!string.Equals(envName, "Testing", StringComparison.OrdinalIgnoreCase))
 {
     try
@@ -64,16 +64,16 @@ if (!string.Equals(envName, "Testing", StringComparison.OrdinalIgnoreCase))
     }
     catch (InvalidOperationException ex)
     {
-        // Evitar que la inicialización duplicada de Serilog detenga los tests.
+        // Prevent duplicate Serilog initialization from stopping the tests.
         Console.Error.WriteLine($"Warning: Serilog host configuration skipped: {ex.Message}");
     }
 }
 
 // ============================================
-// 1. Configuración de servicios
+// 1. Service Configuration
 // ============================================
 
-// Infrastructure (DbContext, etc.) - pasa el environment para permitir testing
+// Infrastructure (DbContext, etc.) - passes the environment to enable testing
 builder.Services.AddInfrastructure(builder.Configuration, builder.Environment.EnvironmentName);
 
 // JWT Settings
@@ -84,13 +84,16 @@ builder.Services.AddScoped<IPasswordHasher<SavedByTheMaid.Domain.Entities.Applic
 // Email Service
 builder.Services.AddScoped<IEmailService, EmailService>();
 
-// Scheduling Service - validación de conflictos y gestión de SlotOccupancy
+// Scheduling Service - conflict validation and SlotOccupancy management
 builder.Services.AddScoped<ISchedulingService, SchedulingService>();
 
-// Status History Service - auditoría de cambios de estado
+// Status History Service - status change auditing
 builder.Services.AddScoped<IStatusHistoryService, StatusHistoryService>();
 
-// Autenticación JWT
+// Booking Service - pricing, confirmation, recurring meeting logic
+builder.Services.AddScoped<IBookingService, BookingService>();
+
+// JWT Authentication
 var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>();
 if (jwtSettings == null || string.IsNullOrEmpty(jwtSettings.Secret))
 {
@@ -133,7 +136,7 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Autorización con políticas
+// Authorization with policies
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy(Policies.AdminOnly, policy => policy.RequireRole(Roles.Admin));
@@ -207,7 +210,7 @@ builder.Services.AddControllers()
 // OpenAPI/Swagger
 builder.Services.AddOpenApi();
 
-// YARP para proxy a Vite en desarrollo
+// YARP for proxying to Vite in development
 if (builder.Environment.IsDevelopment())
 {
     builder.Services.AddReverseProxy()
@@ -243,10 +246,10 @@ var app = builder.Build();
 // 2. Middleware Pipeline
 // ============================================
 
-// Global Exception Handler (primero para capturar todo)
+// Global Exception Handler (first to catch everything)
 app.UseGlobalExceptionHandler();
 
-// Usar Serilog para request logging (solo si Serilog fue configurado, p.ej. no en Testing)
+// Use Serilog for request logging (only if Serilog was configured, e.g. not in Testing)
 if (!app.Environment.IsEnvironment("Testing"))
 {
     app.UseSerilogRequestLogging(options =>
@@ -281,11 +284,11 @@ app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
 app.UseRateLimiter();
 
-// Authentication & Authorization (en orden correcto)
+// Authentication & Authorization (in correct order)
 app.UseAuthentication();
 app.UseAuthorization();
 
-// SPA Hosting - Servir archivos estáticos SOLO si no coinciden con /api/*
+// SPA Hosting - Serve static files ONLY if they don't match /api/*
 if (!app.Environment.IsDevelopment())
 {
     app.UseDefaultFiles();
@@ -302,26 +305,26 @@ app.MapGet("/health", () => Results.Ok(new
     version = "1.0.0"
 })).AllowAnonymous();
 
-// Fallback para SPA routing - AL FINAL, SOLO para rutas que NO empiecen con /api
+// Fallback for SPA routing - AT THE END, ONLY for routes that DON'T start with /api
 if (app.Environment.IsDevelopment())
 {
-    // En desarrollo: proxy a Vite dev server
+    // In development: proxy to Vite dev server
     app.MapReverseProxy();
 }
 else
 {
-    // En producción: custom fallback que ignora rutas /api
+    // In production: custom fallback that ignores /api routes
     app.Use(async (context, next) =>
     {
         await next();
         
-        // Si la ruta empieza con /api, no hacer fallback (dejar el 404 natural)
+        // If the route starts with /api, don't fallback (leave the natural 404)
         if (context.Request.Path.StartsWithSegments("/api"))
         {
             return;
         }
         
-        // Para cualquier otra ruta no encontrada, servir index.html (SPA routing)
+        // For any other route not found, serve index.html (SPA routing)
         if (context.Response.StatusCode == 404 && !context.Response.HasStarted)
         {
             context.Request.Path = "/index.html";
@@ -332,28 +335,28 @@ else
 }
 
 // ============================================
-// 3. Inicialización de Base de Datos
+// 3. Database Initialization
 // ============================================
 
-// En entorno de Testing usamos la configuración de los tests (InMemory, seeds personalizados),
-// por lo que evitamos ejecutar la migración/seed que dependen de Identity/servicios de producción.
+// In the Testing environment we use the test configuration (InMemory, custom seeds),
+// so we skip running the migration/seed that depend on Identity/production services.
 if (!app.Environment.IsEnvironment("Testing"))
 {
-    // Aplicar migraciones automáticamente
+    // Apply migrations automatically
     await app.Services.ApplyDatabaseMigrationsAsync();
 
-    // Seed de roles al iniciar
+    // Seed roles on startup
     await SeedRolesAsync(app.Services);
 
-    // Seed de usuario admin
+    // Seed admin user
     await SeedAdminUserAsync(app.Services);
 
-    // Seed de datos maestros (idempotente)
+    // Seed master data (idempotent)
     await SeedMasterDataAsync(app.Services);
 }
 
 // Log startup
-Log.Information("SavedByTheMaid API iniciado - Entorno: {Environment}", app.Environment.EnvironmentName);
+Log.Information("SavedByTheMaid API started - Environment: {Environment}", app.Environment.EnvironmentName);
 
 try
 {
@@ -361,7 +364,7 @@ try
 }
 catch (Exception ex)
 {
-    Log.Fatal(ex, "Aplicación terminó inesperadamente");
+    Log.Fatal(ex, "Application terminated unexpectedly");
 }
 finally
 {
@@ -369,7 +372,7 @@ finally
 }
 
 // ============================================
-// 3. Seed de datos iniciales
+// 3. Initial Data Seeding
 // ============================================
 static async Task SeedRolesAsync(IServiceProvider services)
 {
@@ -379,7 +382,7 @@ static async Task SeedRolesAsync(IServiceProvider services)
 
     try
     {
-        // Crear roles si no existen
+        // Create roles if they don't exist
         foreach (var roleName in Roles.All)
         {
             var roleExists = await context.Roles.AnyAsync(r => r.Name == roleName);
@@ -392,14 +395,14 @@ static async Task SeedRolesAsync(IServiceProvider services)
                     NormalizedName = roleName.ToUpperInvariant(),
                     ConcurrencyStamp = Guid.NewGuid().ToString()
                 });
-                logger.LogInformation("Rol creado: {Role}", roleName);
+                logger.LogInformation("Role created: {Role}", roleName);
             }
         }
         await context.SaveChangesAsync();
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Error al crear roles iniciales");
+        logger.LogError(ex, "Error creating initial roles");
     }
 }
 
@@ -438,18 +441,18 @@ static async Task SeedAdminUserAsync(IServiceProvider services)
             if (result.Succeeded)
             {
                 await userManager.AddToRoleAsync(adminUser, Roles.Admin);
-                logger.LogInformation("Usuario admin creado: {Email}", adminEmail);
+                logger.LogInformation("Admin user created: {Email}", adminEmail);
             }
             else
             {
-                logger.LogError("Error al crear usuario admin: {Errors}", 
+                logger.LogError("Error creating admin user: {Errors}",
                     string.Join(", ", result.Errors.Select(e => e.Description)));
             }
         }
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Error al crear usuario admin");
+        logger.LogError(ex, "Error creating admin user");
     }
 }
 
@@ -467,10 +470,10 @@ static async Task SeedMasterDataAsync(IServiceProvider services)
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Error al ejecutar seed de datos maestros");
-        // No lanzar excepción para permitir que la app continúe
+        logger.LogError(ex, "Error running master data seed");
+        // Do not throw exception to allow the app to continue
     }
 }
 
-// Clase parcial para WebApplicationFactory en tests
+// Partial class for WebApplicationFactory in tests
 public partial class Program { }

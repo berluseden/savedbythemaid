@@ -3,7 +3,7 @@ using SavedByTheMaid.Domain.Common;
 namespace SavedByTheMaid.Domain.Entities;
 
 /// <summary>
-/// Tipo de servicio de limpieza (ej: Limpieza Profunda, Regular, etc.)
+/// Type of cleaning service (e.g., Deep Cleaning, Regular, etc.)
 /// </summary>
 public class ServiceType : BaseEntity
 {
@@ -11,51 +11,51 @@ public class ServiceType : BaseEntity
     public string? Description { get; set; }
     
     /// <summary>
-    /// Costo operativo del servicio (para cálculos internos)
+    /// Operational cost of the service (for internal calculations)
     /// </summary>
     public decimal Cost { get; set; }
     
     /// <summary>
-    /// Precio base (incluye 1 recámara + 1 baño)
+    /// Base price (includes 1 bedroom + 1 bathroom)
     /// </summary>
     public decimal Price { get; set; }
     
     /// <summary>
-    /// Precio adicional por cada recámara extra
+    /// Additional price per extra bedroom
     /// </summary>
     public decimal PricePerBedroom { get; set; } = 15.00m;
     
     /// <summary>
-    /// Precio adicional por cada baño extra
+    /// Additional price per extra bathroom
     /// </summary>
     public decimal PricePerBathroom { get; set; } = 20.00m;
     
     /// <summary>
-    /// Duración estimada en minutos (base)
+    /// Estimated duration in minutes (base)
     /// </summary>
     public int EstimatedMinutes { get; set; } = 60;
     
     /// <summary>
-    /// Minutos adicionales por recámara
+    /// Additional minutes per bedroom
     /// </summary>
     public int MinutesPerBedroom { get; set; } = 20;
     
     /// <summary>
-    /// Minutos adicionales por baño
+    /// Additional minutes per bathroom
     /// </summary>
     public int MinutesPerBathroom { get; set; } = 15;
     
     public bool IsActive { get; set; } = true;
     public int DisplayOrder { get; set; } = 0;
 
-    // Navegación
+    // Navigation
     public virtual ICollection<ServiceTypeEquipment> RequiredEquipment { get; set; } = new List<ServiceTypeEquipment>();
     public virtual ICollection<RoomServiceType> RoomServiceTypes { get; set; } = new List<RoomServiceType>();
     public virtual ICollection<PriceMultiplier> PriceMultipliers { get; set; } = new List<PriceMultiplier>();
 }
 
 /// <summary>
-/// Servicio adicional (ej: Limpieza de horno, ventanas, etc.)
+/// Additional service (e.g., Oven cleaning, Windows, etc.)
 /// </summary>
 public class AdditionalServiceType : BaseEntity
 {
@@ -63,12 +63,12 @@ public class AdditionalServiceType : BaseEntity
     public string? Description { get; set; }
     
     /// <summary>
-    /// Precio del servicio adicional
+    /// Price of the additional service
     /// </summary>
     public decimal Price { get; set; }
     
     /// <summary>
-    /// Tiempo adicional en minutos
+    /// Additional time in minutes
     /// </summary>
     public int AdditionalMinutes { get; set; } = 30;
     

@@ -5,8 +5,8 @@ using SavedByTheMaid.Domain.Enums;
 namespace SavedByTheMaid.Api.BackgroundServices;
 
 /// <summary>
-/// Background service que limpia soft reserves y slot occupancies expirados cada 5 minutos.
-/// Garantiza que los slots temporales se liberen automáticamente si el cliente no completa el checkout.
+/// Background service that cleans up expired soft reserves and slot occupancies every 5 minutes.
+/// Ensures that temporary slots are automatically released if the client does not complete checkout.
 /// </summary>
 public class SoftReserveCleanupService : BackgroundService
 {
@@ -41,7 +41,7 @@ public class SoftReserveCleanupService : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in SoftReserveCleanupService");
-                // Continuar ejecutando incluso si hay error
+                // Continue running even if there is an error
             }
         }
 
@@ -54,29 +54,49 @@ public class SoftReserveCleanupService : BackgroundService
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
         var now = DateTime.UtcNow;
-        var softReserveType = (int)OccupancyType.SoftReserve;
-        var expiredStatus = (int)SoftReserveStatus.Expired;
-        var activeStatus = (int)SoftReserveStatus.Active;
 
-        // 1. Eliminar SlotOccupancy expirados (SoftReserve con ExpiresAt < now)
-        // Esto libera los slots para que otros usuarios puedan reservarlos
-        var slotsDeleted = await context.Database.ExecuteSqlAsync(
-            $"DELETE FROM SlotOccupancies WHERE OccupancyType = {softReserveType} AND ExpiresAt IS NOT NULL AND ExpiresAt < {now}",
-            cancellationToken);
+        // Use a transaction to ensure consistency between both operations
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
 
-        if (slotsDeleted > 0)
+        try
         {
-            _logger.LogInformation("Deleted {Count} expired slot occupancies", slotsDeleted);
+            // 1. Delete expired SlotOccupancy records (SoftReserve with ExpiresAt < now)
+            // This frees up slots so other users can book them
+            var expiredSlots = await context.SlotOccupancies
+                .Where(s => s.OccupancyType == OccupancyType.SoftReserve
+                            && s.ExpiresAt != null
+                            && s.ExpiresAt < now)
+                .ToListAsync(cancellationToken);
+
+            if (expiredSlots.Count > 0)
+            {
+                context.SlotOccupancies.RemoveRange(expiredSlots);
+                _logger.LogInformation("Deleted {Count} expired slot occupancies", expiredSlots.Count);
+            }
+
+            // 2. Mark SoftReserves as expired
+            var expiredReserves = await context.SoftReserves
+                .Where(r => r.ExpiresAt < now && r.Status == SoftReserveStatus.Active)
+                .ToListAsync(cancellationToken);
+
+            if (expiredReserves.Count > 0)
+            {
+                foreach (var reserve in expiredReserves)
+                {
+                    reserve.Status = SoftReserveStatus.Expired;
+                    reserve.UpdatedAt = now;
+                }
+                _logger.LogInformation("Marked {Count} soft reserves as expired", expiredReserves.Count);
+            }
+
+            await context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
         }
-
-        // 2. Marcar SoftReserves como expirados
-        var reservesExpired = await context.Database.ExecuteSqlAsync(
-            $"UPDATE SoftReserves SET Status = {expiredStatus}, UpdatedAt = {now} WHERE ExpiresAt < {now} AND Status = {activeStatus}",
-            cancellationToken);
-
-        if (reservesExpired > 0)
+        catch (Exception ex)
         {
-            _logger.LogInformation("Marked {Count} soft reserves as expired", reservesExpired);
+            await transaction.RollbackAsync(cancellationToken);
+            _logger.LogError(ex, "Error during cleanup transaction, rolled back");
+            throw;
         }
     }
 }

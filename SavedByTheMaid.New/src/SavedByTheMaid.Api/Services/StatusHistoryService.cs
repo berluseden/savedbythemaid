@@ -6,12 +6,12 @@ using SavedByTheMaid.Infrastructure.Data;
 namespace SavedByTheMaid.Api.Services;
 
 /// <summary>
-/// Servicio para registrar cambios de estado en el historial de auditoría
+/// Service for recording status changes in the audit history
 /// </summary>
 public interface IStatusHistoryService
 {
     /// <summary>
-    /// Registra un cambio de estado de una orden
+    /// Records an order status change
     /// </summary>
     Task RecordOrderStatusChangeAsync(
         int serviceOrderId,
@@ -22,7 +22,7 @@ public interface IStatusHistoryService
         string? notes = null);
 
     /// <summary>
-    /// Registra un cambio de estado de una cita
+    /// Records a meeting status change
     /// </summary>
     Task RecordMeetStatusChangeAsync(
         int serviceMeetId,
@@ -33,18 +33,18 @@ public interface IStatusHistoryService
         string? notes = null);
 
     /// <summary>
-    /// Obtiene el historial de estados de una orden
+    /// Gets the status history of an order
     /// </summary>
     Task<List<OrderStatusHistory>> GetOrderStatusHistoryAsync(int serviceOrderId);
 
     /// <summary>
-    /// Obtiene el historial de estados de una cita
+    /// Gets the status history of a meeting
     /// </summary>
     Task<List<MeetStatusHistory>> GetMeetStatusHistoryAsync(int serviceMeetId);
 }
 
 /// <summary>
-/// Implementación del servicio de historial de estados
+/// Implementation of the status history service
 /// </summary>
 public class StatusHistoryService : IStatusHistoryService
 {
@@ -90,7 +90,7 @@ public class StatusHistoryService : IStatusHistoryService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error recording order status change for OrderId={OrderId}", serviceOrderId);
-            // No lanzar excepción para no interrumpir el flujo principal
+            // Do not throw exception to avoid interrupting the main flow
         }
     }
 
@@ -125,7 +125,7 @@ public class StatusHistoryService : IStatusHistoryService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error recording meet status change for MeetId={MeetId}", serviceMeetId);
-            // No lanzar excepción para no interrumpir el flujo principal
+            // Do not throw exception to avoid interrupting the main flow
         }
     }
 

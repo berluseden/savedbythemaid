@@ -3,7 +3,7 @@ using SavedByTheMaid.Domain.Common;
 namespace SavedByTheMaid.Domain.Entities;
 
 /// <summary>
-/// Tipo de lugar a limpiar (ej: Casa, Apartamento, Oficina)
+/// Type of place to clean (e.g., House, Apartment, Office)
 /// </summary>
 public class CleaningPlace : BaseEntity
 {
@@ -11,12 +11,12 @@ public class CleaningPlace : BaseEntity
     public string? Description { get; set; }
     public bool IsActive { get; set; } = true;
     
-    // Navegación
+    // Navigation
     public virtual ICollection<CleaningPlaceRoom> Rooms { get; set; } = new List<CleaningPlaceRoom>();
 }
 
 /// <summary>
-/// Tipo de habitación/área a limpiar (ej: Recámara, Baño, Cocina)
+/// Type of room/area to clean (e.g., Bedroom, Bathroom, Kitchen)
 /// </summary>
 public class CleaningPlaceRoom : BaseEntity
 {
@@ -24,12 +24,12 @@ public class CleaningPlaceRoom : BaseEntity
     public string? Description { get; set; }
     
     /// <summary>
-    /// Tiempo base en minutos para limpiar esta habitación
+    /// Base time in minutes to clean this room
     /// </summary>
     public int BaseMinutes { get; set; } = 15;
 
     /// <summary>
-    /// Precio base para esta habitación
+    /// Base price for this room
     /// </summary>
     public decimal BasePrice { get; set; } = 10.00m;
     
@@ -39,6 +39,6 @@ public class CleaningPlaceRoom : BaseEntity
     public int CleaningPlaceId { get; set; }
     public virtual CleaningPlace? CleaningPlace { get; set; }
 
-    // Navegación
+    // Navigation
     public virtual ICollection<RoomServiceType> ServiceTypes { get; set; } = new List<RoomServiceType>();
 }
