@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { CheckCircle, Star, Clock, Shield, Sparkles, ArrowRight, Home, Leaf, Calendar } from 'lucide-react';
+import { CheckCircle, Star, Clock, Shield, Sparkles, ArrowRight, Home, Calendar } from 'lucide-react';
 import { Button, Card } from '@/components/ui';
 
 export default function HomePage() {
@@ -65,139 +65,27 @@ export default function HomePage() {
           <p className="mt-6 text-lg font-semibold text-[#00205B]">
             Contact us today to schedule your cleaning. Your sparkling space starts here!
           </p>
-        </div>
-      </section>
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-white via-[#F0F7FF]/50 to-white">
-        {/* Decorative background elements */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-[#00205B]/5 blur-3xl" />
-          <div className="absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-[#FFE44D]/5 blur-3xl" />
-        </div>
+          <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+            <Link to="/booking">
+              <Button size="lg" className="w-full sm:w-auto">
+                Book Your Cleaning
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+            <Link to="/services">
+              <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                View Services
+              </Button>
+            </Link>
+          </div>
 
-        <div className="relative mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
-          <div className="grid gap-12 lg:grid-cols-2 lg:gap-16 items-center">
-            <div className="space-y-8">
-              <div className="inline-flex items-center rounded-full bg-[#FFE44D]/20 px-4 py-1.5 text-sm font-medium text-[#001440] border border-[#FFE44D]/30">
-                <Sparkles className="mr-2 h-4 w-4 text-[#E5C100]" />
-                Professional Cleaning Services
-              </div>
-
-              <h2 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl leading-tight">
-                A Clean Home,{' '}
-                <span className="text-[#00205B]">Without the Work</span>
-              </h2>
-
-              <p className="text-lg text-gray-600 max-w-lg leading-relaxed">
-                Book professional house cleaning in 60 seconds. Trusted cleaners,
-                transparent pricing, and 100% satisfaction guaranteed.
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link to="/booking">
-                  <Button size="lg" className="w-full sm:w-auto">
-                    Book Your Cleaning
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                </Link>
-                <Link to="/services">
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                    View Services
-                  </Button>
-                </Link>
-              </div>
-
-              {/* Trust badges */}
-              <div className="flex items-center gap-6 pt-2">
-                <div className="flex items-center gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                  ))}
-                  <span className="ml-2 text-sm font-medium text-gray-600">4.9/5 (2,000+ reviews)</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Hero Visual */}
-            <div className="relative hidden lg:block">
-              {/* Main illustration card */}
-              <div className="relative rounded-2xl bg-gradient-to-br from-[#00205B] to-[#001440] p-8 shadow-2xl">
-                <div className="space-y-6">
-                  {/* Illustration header */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FFE44D]">
-                        <Sparkles className="h-5 w-5 text-[#00205B]" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-white">ecoMaid</p>
-                        <p className="text-xs text-sky-200">Your cleaning partner</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="h-3 w-3 fill-[#FFE44D] text-[#FFE44D]" />
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Service cards inside */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-xl bg-white/10 backdrop-blur-sm p-4 border border-white/10">
-                      <Home className="h-6 w-6 text-[#FFE44D] mb-2" />
-                      <p className="text-sm font-medium text-white">Home Cleaning</p>
-                      <p className="text-xs text-sky-200 mt-1">From $99</p>
-                    </div>
-                    <div className="rounded-xl bg-white/10 backdrop-blur-sm p-4 border border-white/10">
-                      <Sparkles className="h-6 w-6 text-[#FFE44D] mb-2" />
-                      <p className="text-sm font-medium text-white">Deep Clean</p>
-                      <p className="text-xs text-sky-200 mt-1">From $149</p>
-                    </div>
-                    <div className="rounded-xl bg-white/10 backdrop-blur-sm p-4 border border-white/10">
-                      <Shield className="h-6 w-6 text-[#FFE44D] mb-2" />
-                      <p className="text-sm font-medium text-white">Move In/Out</p>
-                      <p className="text-xs text-sky-200 mt-1">From $199</p>
-                    </div>
-                    <div className="rounded-xl bg-white/10 backdrop-blur-sm p-4 border border-white/10">
-                      <Leaf className="h-6 w-6 text-[#FFE44D] mb-2" />
-                      <p className="text-sm font-medium text-white">Eco-Friendly</p>
-                      <p className="text-xs text-sky-200 mt-1">100% Green</p>
-                    </div>
-                  </div>
-
-                  {/* Bottom stat */}
-                  <div className="flex items-center justify-between rounded-xl bg-[#FFE44D]/10 px-4 py-3 border border-[#FFE44D]/20">
-                    <div>
-                      <p className="text-sm font-semibold text-white">2,000+ happy clients</p>
-                      <p className="text-xs text-sky-200">Serving homes & offices daily</p>
-                    </div>
-                    <ArrowRight className="h-5 w-5 text-[#FFE44D]" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Floating card - booking confirmed */}
-              <Card className="absolute -bottom-6 -left-6 p-4 shadow-lg animate-pulse-slow border-green-100">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-                    <CheckCircle className="h-6 w-6 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">Booking Confirmed!</p>
-                    <p className="text-sm text-gray-500">Tomorrow at 9:00 AM</p>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Floating card - eco badge */}
-              <Card className="absolute -top-4 -right-4 px-4 py-3 shadow-lg">
-                <div className="flex items-center gap-2">
-                  <Leaf className="h-5 w-5 text-green-500" />
-                  <span className="text-sm font-medium text-gray-700">100% Eco-Friendly</span>
-                </div>
-              </Card>
-            </div>
+          {/* Trust badges */}
+          <div className="mt-6 flex items-center justify-center gap-1">
+            {[...Array(5)].map((_, i) => (
+              <Star key={i} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+            ))}
+            <span className="ml-2 text-sm font-medium text-gray-600">4.9/5 (2,000+ reviews)</span>
           </div>
         </div>
       </section>
