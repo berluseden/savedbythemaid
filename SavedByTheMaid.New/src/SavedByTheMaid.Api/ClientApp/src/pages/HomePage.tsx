@@ -28,12 +28,52 @@ export default function HomePage() {
 
   return (
     <div>
+      {/* Welcome Banner */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#FFF9E0] via-[#FFE44D]/10 to-[#FFF9E0]">
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-[#FFE44D]/15 blur-3xl" />
+          <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-[#FFE44D]/10 blur-3xl" />
+        </div>
+        <div className="relative mx-auto max-w-3xl px-4 py-16 text-center sm:px-6 lg:px-8">
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
+            <Sparkles className="inline h-8 w-8 text-[#FFD700]" />{' '}
+            Welcome to a Cleaner, Fresher Space!{' '}
+            <Sparkles className="inline h-8 w-8 text-[#FFD700]" />
+          </h1>
+          <p className="mt-6 text-lg text-gray-700 leading-relaxed">
+            We believe a clean space creates peace, comfort, and happiness. Our professional
+            cleaning team is here to make your home or business shine while you relax and enjoy
+            what matters most.
+          </p>
+          <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center sm:gap-8">
+            <div className="flex items-center gap-2 text-lg text-gray-700">
+              <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+              Reliable service
+            </div>
+            <div className="flex items-center gap-2 text-lg text-gray-700">
+              <Home className="h-5 w-5 text-[#00205B] flex-shrink-0" />
+              Homes & offices
+            </div>
+            <div className="flex items-center gap-2 text-lg text-gray-700">
+              <Sparkles className="h-5 w-5 text-[#FFD700] flex-shrink-0" />
+              Attention to every detail
+            </div>
+          </div>
+          <p className="mt-8 text-lg text-gray-700">
+            Let us take care of the cleaning so you can enjoy a spotless space every day!
+          </p>
+          <p className="mt-6 text-lg font-semibold text-[#00205B]">
+            Contact us today to schedule your cleaning. Your sparkling space starts here!
+          </p>
+        </div>
+      </section>
+
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#FFF9E0] via-white to-[#F0F7FF]">
+      <section className="relative overflow-hidden bg-gradient-to-br from-white via-[#F0F7FF]/50 to-white">
         {/* Decorative background elements */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-[#FFE44D]/10 blur-3xl" />
-          <div className="absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-[#00205B]/5 blur-3xl" />
+          <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-[#00205B]/5 blur-3xl" />
+          <div className="absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-[#FFE44D]/5 blur-3xl" />
         </div>
 
         <div className="relative mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
@@ -44,31 +84,15 @@ export default function HomePage() {
                 Professional Cleaning Services
               </div>
 
-              <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl leading-tight">
+              <h2 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl leading-tight">
                 A Clean Home,{' '}
                 <span className="text-[#00205B]">Without the Work</span>
-              </h1>
+              </h2>
 
               <p className="text-lg text-gray-600 max-w-lg leading-relaxed">
                 Book professional house cleaning in 60 seconds. Trusted cleaners,
                 transparent pricing, and 100% satisfaction guaranteed.
               </p>
-
-              {/* Key benefits */}
-              <div className="flex flex-wrap gap-x-6 gap-y-3">
-                <div className="flex items-center gap-2 text-sm text-gray-700">
-                  <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
-                  Reliable service
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-700">
-                  <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
-                  Homes & offices
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-700">
-                  <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
-                  Attention to every detail
-                </div>
-              </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link to="/booking">
