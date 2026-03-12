@@ -63,6 +63,7 @@ export function UserDashboardPage() {
   const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [isRescheduling, setIsRescheduling] = useState(false);
+  const [dismissedError, setDismissedError] = useState(false);
 
   const { data: allBookings = [], isLoading: loadingBookings, error: bookingsError } = useQuery({
     queryKey: ['customer', 'orders'],
@@ -213,10 +214,10 @@ export function UserDashboardPage() {
           <p className="text-gray-600 mt-1">Manage your bookings and account</p>
         </div>
 
-        {error && (
+        {error && !dismissedError && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
             <AlertCircle className="w-5 h-5 text-red-500" /><p className="text-red-700">{error}</p>
-            <button onClick={() => setError('')} className="ml-auto text-red-500"><X className="w-4 h-4" /></button>
+            <button onClick={() => setDismissedError(true)} className="ml-auto text-red-500"><X className="w-4 h-4" /></button>
           </div>
         )}
 

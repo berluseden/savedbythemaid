@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { User, Mail, Phone, MapPin, Save, X, AlertCircle, CheckCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import api from '@/lib/api';
 
 interface ProfileData {

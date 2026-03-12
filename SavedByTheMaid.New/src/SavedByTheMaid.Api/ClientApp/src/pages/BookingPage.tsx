@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { MapPin, Home, Sparkles, Calendar, User, CreditCard, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Button, Input, Card, CardContent, Spinner, Modal } from '@/components/ui';
 import { ReservationTimer } from '@/components/ui/ReservationTimer';

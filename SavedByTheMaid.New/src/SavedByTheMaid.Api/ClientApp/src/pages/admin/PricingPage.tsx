@@ -195,7 +195,7 @@ export function AdminPricingPage() {
     }
   };
 
-  const getConditionLabel = (type: number) =>
+  const _getConditionLabel = (type: number) =>
     CONDITION_TYPES.find(c => c.value === type)?.label || `Type ${type}`;
 
   const formatFactor = (factor: number) => {
