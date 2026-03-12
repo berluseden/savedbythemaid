@@ -200,7 +200,7 @@ public class BusinessLogicFixTests : IDisposable
 
         result.Should().NotBeNull("should reject when max daily services reached");
         result!.Type.Should().Be(ConflictType.EmployeeUnavailable);
-        result.Message.Should().Contain("máximo de 4 servicios");
+        result.Message.Should().Contain("maximum of 4 daily services");
     }
 
     [Fact]
@@ -289,7 +289,7 @@ public class BusinessLogicFixTests : IDisposable
 
         result.Should().NotBeNull("should reject when max daily hours would be exceeded");
         result!.Type.Should().Be(ConflictType.EmployeeUnavailable);
-        result.Message.Should().Contain("máximo de 6 horas");
+        result.Message.Should().Contain("maximum of 6 daily hours");
     }
 
     #endregion

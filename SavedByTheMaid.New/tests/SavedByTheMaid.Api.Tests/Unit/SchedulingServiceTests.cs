@@ -93,7 +93,7 @@ public class SchedulingServiceTests : IDisposable
 
         result.Should().NotBeNull();
         result!.Type.Should().Be(ConflictType.EmployeeUnavailable);
-        result.Message.Should().Contain("inactivo");
+        result.Message.Should().Contain("inactive");
     }
 
     [Fact]
@@ -161,7 +161,7 @@ public class SchedulingServiceTests : IDisposable
 
         result.Should().NotBeNull();
         result!.Type.Should().Be(ConflictType.TimeOff);
-        result.Message.Should().Contain("vacaciones");
+        result.Message.Should().Contain("vacation");
     }
 
     [Fact]
