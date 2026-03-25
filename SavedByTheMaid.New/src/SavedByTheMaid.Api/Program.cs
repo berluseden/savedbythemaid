@@ -9,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using SavedByTheMaid.Api.Auth;
 using SavedByTheMaid.Api.Middleware;
 using SavedByTheMaid.Api.Services;
+using SavedByTheMaid.Application.Interfaces;
 using SavedByTheMaid.Application.Validators;
 using SavedByTheMaid.Domain.Entities;
 using SavedByTheMaid.Infrastructure;
@@ -97,6 +98,11 @@ builder.Services.AddScoped<IBookingService, BookingService>();
 
 // Order Cancellation Service - shared cancellation logic
 builder.Services.AddScoped<IOrderCancellationService, OrderCancellationService>();
+
+// Application Layer Services
+builder.Services.AddScoped<IOrderManagementService, SavedByTheMaid.Application.Services.OrderManagementService>();
+builder.Services.AddScoped<IBookingApplicationService, SavedByTheMaid.Application.Services.BookingApplicationService>();
+builder.Services.AddScoped<IContactService, SavedByTheMaid.Application.Services.ContactService>();
 
 // FluentValidation - register all validators from the Application assembly
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
