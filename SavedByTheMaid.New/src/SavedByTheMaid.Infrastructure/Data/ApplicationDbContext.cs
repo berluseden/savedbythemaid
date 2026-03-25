@@ -56,6 +56,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // Password Reset Tokens
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
 
+    // Refresh Tokens (for JWT rotation)
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -223,6 +226,20 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
         // PasswordResetToken -> User
         builder.Entity<PasswordResetToken>()
+            .HasOne(t => t.User)
+            .WithMany()
+            .HasForeignKey(t => t.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // RefreshToken configuration
+        builder.Entity<RefreshToken>()
+            .HasIndex(t => t.Token)
+            .IsUnique();
+
+        builder.Entity<RefreshToken>()
+            .HasIndex(t => t.UserId);
+
+        builder.Entity<RefreshToken>()
             .HasOne(t => t.User)
             .WithMany()
             .HasForeignKey(t => t.UserId)

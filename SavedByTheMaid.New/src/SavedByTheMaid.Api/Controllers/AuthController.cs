@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
 using System.Text;
 using FluentValidation;
@@ -130,7 +131,10 @@ public class AuthController : ControllerBase
 
         var roles = new[] { Roles.Customer };
         var accessToken = _jwtService.GenerateAccessToken(user.Id, user.Email!, roles);
-        var refreshToken = _jwtService.GenerateRefreshToken();
+        var refreshToken = await CreateRefreshTokenAsync(user.Id, accessToken);
+
+        // Set HttpOnly cookies
+        SetAuthCookies(accessToken, refreshToken);
 
         return Ok(new AuthResponse
         {
@@ -183,7 +187,10 @@ public class AuthController : ControllerBase
             roles = new[] { Roles.Customer };
 
         var accessToken = _jwtService.GenerateAccessToken(user.Id, user.Email!, roles);
-        var refreshToken = _jwtService.GenerateRefreshToken();
+        var refreshToken = await CreateRefreshTokenAsync(user.Id, accessToken);
+
+        // Set HttpOnly cookies
+        SetAuthCookies(accessToken, refreshToken);
 
         _logger.LogInformation("Successful login for user: {Email}", request.Email);
 
@@ -375,8 +382,229 @@ public class AuthController : ControllerBase
 
         _logger.LogInformation("Password successfully reset for user {UserId}", user.Id);
 
+        // Revoke all refresh tokens for this user (force re-login)
+        var activeTokens = await _context.RefreshTokens
+            .Where(t => t.UserId == user.Id && !t.Revoked)
+            .ToListAsync();
+        foreach (var t in activeTokens)
+        {
+            t.Revoked = true;
+            t.RevokedAt = DateTime.UtcNow;
+        }
+        await _context.SaveChangesAsync();
+
         return Ok(new { message = "Password has been reset successfully." });
     }
+
+    /// <summary>
+    /// Refresh access token using refresh token from HttpOnly cookie
+    /// </summary>
+    [HttpPost("refresh")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth-sensitive")]
+    public async Task<IActionResult> RefreshToken()
+    {
+        var accessToken = Request.Cookies["accessToken"];
+        var refreshTokenValue = Request.Cookies["refreshToken"];
+
+        // Fallback: also accept from request body (for non-cookie clients)
+        if (string.IsNullOrEmpty(refreshTokenValue))
+        {
+            var body = await new StreamReader(Request.Body).ReadToEndAsync();
+            if (!string.IsNullOrEmpty(body))
+            {
+                try
+                {
+                    var json = System.Text.Json.JsonSerializer.Deserialize<RefreshTokenRequest>(body);
+                    refreshTokenValue = json?.RefreshToken;
+                    accessToken = json?.AccessToken;
+                }
+                catch { /* ignore parse errors */ }
+            }
+        }
+
+        if (string.IsNullOrEmpty(refreshTokenValue))
+            return Unauthorized(new { message = "No refresh token provided." });
+
+        // Find the stored refresh token
+        var storedToken = await _context.RefreshTokens
+            .Include(t => t.User)
+            .FirstOrDefaultAsync(t => t.Token == refreshTokenValue);
+
+        if (storedToken == null)
+            return Unauthorized(new { message = "Invalid refresh token." });
+
+        if (storedToken.Revoked)
+        {
+            // Possible token reuse attack — revoke all tokens for this user
+            _logger.LogWarning("Revoked refresh token reuse detected for user {UserId}. Revoking all tokens.", storedToken.UserId);
+            var allTokens = await _context.RefreshTokens
+                .Where(t => t.UserId == storedToken.UserId && !t.Revoked)
+                .ToListAsync();
+            foreach (var t in allTokens)
+            {
+                t.Revoked = true;
+                t.RevokedAt = DateTime.UtcNow;
+            }
+            await _context.SaveChangesAsync();
+            ClearAuthCookies();
+            return Unauthorized(new { message = "Token reuse detected. All sessions revoked." });
+        }
+
+        if (storedToken.ExpiresAt < DateTime.UtcNow)
+        {
+            storedToken.Revoked = true;
+            storedToken.RevokedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            ClearAuthCookies();
+            return Unauthorized(new { message = "Refresh token expired." });
+        }
+
+        var user = storedToken.User;
+        if (user == null)
+            return Unauthorized(new { message = "User not found." });
+
+        // Get roles
+        var userRoles = await _context.UserRoles
+            .Where(ur => ur.UserId == user.Id)
+            .Join(_context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => r.Name)
+            .ToListAsync();
+        var roles = userRoles.Where(r => r != null).Cast<string>().ToArray();
+        if (roles.Length == 0) roles = new[] { Roles.Customer };
+
+        // Generate new token pair (rotation)
+        var newAccessToken = _jwtService.GenerateAccessToken(user.Id, user.Email!, roles);
+        var newRefreshToken = await RotateRefreshTokenAsync(storedToken, user.Id, newAccessToken);
+
+        // Set HttpOnly cookies
+        SetAuthCookies(newAccessToken, newRefreshToken);
+
+        return Ok(new AuthResponse
+        {
+            AccessToken = newAccessToken,
+            RefreshToken = newRefreshToken,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(60),
+            User = new UserDto
+            {
+                Id = user.Id,
+                Email = user.Email!,
+                Phone = user.PhoneNumber,
+                Roles = roles
+            }
+        });
+    }
+
+    /// <summary>
+    /// Logout - revoke refresh token and clear cookies
+    /// </summary>
+    [HttpPost("logout")]
+    [Authorize]
+    public async Task<IActionResult> Logout()
+    {
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        // Revoke all active refresh tokens for this user
+        if (!string.IsNullOrEmpty(userId))
+        {
+            var activeTokens = await _context.RefreshTokens
+                .Where(t => t.UserId == userId && !t.Revoked)
+                .ToListAsync();
+            foreach (var t in activeTokens)
+            {
+                t.Revoked = true;
+                t.RevokedAt = DateTime.UtcNow;
+            }
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("User {UserId} logged out, {Count} refresh tokens revoked", userId, activeTokens.Count);
+        }
+
+        ClearAuthCookies();
+        return Ok(new { message = "Logged out successfully." });
+    }
+
+    #region Private helpers
+
+    private void SetAuthCookies(string accessToken, string refreshToken)
+    {
+        var isProduction = _configuration["ASPNETCORE_ENVIRONMENT"] == "Production"
+            || Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Production";
+
+        Response.Cookies.Append("accessToken", accessToken, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = isProduction,
+            SameSite = isProduction ? SameSiteMode.Strict : SameSiteMode.Lax,
+            Expires = DateTimeOffset.UtcNow.AddMinutes(60),
+            IsEssential = true,
+            Path = "/api"
+        });
+
+        Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = isProduction,
+            SameSite = isProduction ? SameSiteMode.Strict : SameSiteMode.Lax,
+            Expires = DateTimeOffset.UtcNow.AddDays(7),
+            IsEssential = true,
+            Path = "/api/auth"
+        });
+    }
+
+    private void ClearAuthCookies()
+    {
+        Response.Cookies.Delete("accessToken", new CookieOptions { Path = "/api" });
+        Response.Cookies.Delete("refreshToken", new CookieOptions { Path = "/api/auth" });
+    }
+
+    private async Task<string> RotateRefreshTokenAsync(RefreshToken oldToken, string userId, string newAccessToken)
+    {
+        // Revoke old token
+        oldToken.Revoked = true;
+        oldToken.RevokedAt = DateTime.UtcNow;
+
+        // Generate new refresh token
+        var newTokenValue = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+
+        // Extract JTI from new access token
+        var jti = new JwtSecurityTokenHandler().ReadJwtToken(newAccessToken).Id ?? Guid.NewGuid().ToString();
+
+        var newToken = new RefreshToken
+        {
+            Token = newTokenValue,
+            JwtId = jti,
+            UserId = userId,
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            CreatedAt = DateTime.UtcNow
+        };
+
+        oldToken.ReplacedByToken = newTokenValue;
+        _context.RefreshTokens.Add(newToken);
+        await _context.SaveChangesAsync();
+
+        return newTokenValue;
+    }
+
+    private async Task<string> CreateRefreshTokenAsync(string userId, string accessToken)
+    {
+        var jti = new JwtSecurityTokenHandler().ReadJwtToken(accessToken).Id ?? Guid.NewGuid().ToString();
+        var tokenValue = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+
+        var refreshToken = new RefreshToken
+        {
+            Token = tokenValue,
+            JwtId = jti,
+            UserId = userId,
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.RefreshTokens.Add(refreshToken);
+        await _context.SaveChangesAsync();
+
+        return tokenValue;
+    }
+
+    #endregion
 }
 
 #region DTOs (controller-specific, not duplicated in Application layer)
@@ -412,6 +640,12 @@ public record EmailCheckResponse
 {
     public string Email { get; init; } = "";
     public bool Exists { get; init; }
+}
+
+public record RefreshTokenRequest
+{
+    public string? AccessToken { get; init; }
+    public string? RefreshToken { get; init; }
 }
 
 #endregion

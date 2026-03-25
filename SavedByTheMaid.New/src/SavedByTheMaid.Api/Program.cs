@@ -139,6 +139,16 @@ builder.Services.AddAuthentication(options =>
     
     options.Events = new JwtBearerEvents
     {
+        OnMessageReceived = context =>
+        {
+            // Read JWT from HttpOnly cookie if no Authorization header present
+            if (string.IsNullOrEmpty(context.Token) &&
+                context.Request.Cookies.TryGetValue("accessToken", out var cookieToken))
+            {
+                context.Token = cookieToken;
+            }
+            return Task.CompletedTask;
+        },
         OnAuthenticationFailed = context =>
         {
             if (context.Exception.GetType() == typeof(SecurityTokenExpiredException))
