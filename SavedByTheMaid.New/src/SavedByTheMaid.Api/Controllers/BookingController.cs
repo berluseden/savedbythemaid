@@ -1,9 +1,11 @@
-using System.ComponentModel.DataAnnotations;
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using SavedByTheMaid.Api.Extensions;
 using SavedByTheMaid.Api.Services;
+using SavedByTheMaid.Application.DTOs.Booking;
 using SavedByTheMaid.Infrastructure.Data;
 using SavedByTheMaid.Domain.Entities;
 using SavedByTheMaid.Domain.Enums;
@@ -23,19 +25,25 @@ public class BookingController : ControllerBase
     private readonly IEmailService _emailService;
     private readonly ISchedulingService _schedulingService;
     private readonly IBookingService _bookingService;
+    private readonly IValidator<EstimateRequest> _estimateValidator;
+    private readonly IValidator<ConfirmBookingRequest> _confirmBookingValidator;
 
     public BookingController(
         ApplicationDbContext context,
         ILogger<BookingController> logger,
         IEmailService emailService,
         ISchedulingService schedulingService,
-        IBookingService bookingService)
+        IBookingService bookingService,
+        IValidator<EstimateRequest> estimateValidator,
+        IValidator<ConfirmBookingRequest> confirmBookingValidator)
     {
         _context = context;
         _logger = logger;
         _emailService = emailService;
         _schedulingService = schedulingService;
         _bookingService = bookingService;
+        _estimateValidator = estimateValidator;
+        _confirmBookingValidator = confirmBookingValidator;
     }
 
     #region Step 1 - Address and Coverage
@@ -184,14 +192,8 @@ public class BookingController : ControllerBase
     [HttpPost("estimate")]
     public async Task<ActionResult<EstimateResponse>> CalculateEstimate(EstimateRequest request)
     {
-        if (request.ServiceTypeId <= 0)
-            return BadRequest("ServiceTypeId must be greater than 0");
-
-        if (request.Rooms?.Any(r => r.Quantity < 0) == true)
-            return BadRequest("Room quantity cannot be negative");
-
-        if (request.SquareFootage.HasValue && (request.SquareFootage < 100 || request.SquareFootage > 50000))
-            return BadRequest("SquareFootage must be between 100 and 50,000 sq ft");
+        var validationError = await _estimateValidator.ValidateAndReturnErrors(request);
+        if (validationError != null) return validationError;
 
         var pricing = await _bookingService.CalculatePricingAsync(new PricingInput
         {
@@ -562,6 +564,9 @@ public class BookingController : ControllerBase
     [HttpPost("confirm")]
     public async Task<ActionResult<BookingConfirmationResponse>> ConfirmBooking(ConfirmBookingRequest request)
     {
+        var validationError = await _confirmBookingValidator.ValidateAndReturnErrors(request);
+        if (validationError != null) return validationError;
+
         using var transaction = await _context.Database.BeginTransactionAsync();
 
         try
@@ -650,7 +655,7 @@ public class BookingController : ControllerBase
                 Total = result.Total,
                 OrderStatus = result.OrderStatus,
                 Message = result.Message,
-                AuthToken = result.AuthToken != null ? new AuthToken
+                AuthToken = result.AuthToken != null ? new AuthTokenDto
                 {
                     AccessToken = result.AuthToken.AccessToken,
                     RefreshToken = result.AuthToken.RefreshToken,
@@ -698,18 +703,7 @@ public class BookingController : ControllerBase
     #endregion
 }
 
-#region DTOs
-
-public record CoverageResponse
-{
-    public bool IsCovered { get; init; }
-    public int? ServiceAreaId { get; init; }
-    public string? ServiceAreaName { get; init; }
-    public string? City { get; init; }
-    public string? State { get; init; }
-    public string? County { get; init; }
-    public string Message { get; init; } = "";
-}
+#region DTOs (controller-specific, not duplicated in Application layer)
 
 public record CleaningPlaceDto
 {
@@ -755,241 +749,6 @@ public record RecurrenceDiscountDto
     public RecurrenceType RecurrenceType { get; init; }
     public string RecurrenceTypeName { get; init; } = "";
     public decimal DiscountPercent { get; init; }
-}
-
-public record EstimateRequest
-{
-    [Required(ErrorMessage = "Service type is required")]
-    [Range(1, int.MaxValue, ErrorMessage = "Invalid service type ID")]
-    public int ServiceTypeId { get; init; }
-
-    public int? CleaningPlaceId { get; init; }
-    public List<RoomSelection> Rooms { get; init; } = new();
-    public List<int> AdditionalServiceIds { get; init; } = new();
-
-    [Range(1, 20, ErrorMessage = "Bedrooms must be between 1 and 20")]
-    public int Bedrooms { get; init; } = 1;
-
-    [Range(1, 20, ErrorMessage = "Bathrooms must be between 1 and 20")]
-    public int Bathrooms { get; init; } = 1;
-
-    [Range(0, 50000, ErrorMessage = "Square footage must be between 0 and 50,000")]
-    public int? SquareFootage { get; init; }
-
-    public DirtLevel DirtLevel { get; init; } = DirtLevel.Normal;
-    public bool HasPets { get; init; }
-    public bool HasElevator { get; init; } = true;
-    public bool IsFirstTime { get; init; } = true;
-    public RecurrenceType RecurrenceType { get; init; } = RecurrenceType.None;
-}
-
-public record RoomSelection
-{
-    public int RoomId { get; init; }
-    public int Quantity { get; init; } = 1;
-}
-
-public record EstimateResponse
-{
-    public int EstimatedMinutes { get; init; }
-    public string FormattedDuration { get; init; } = "";
-    public decimal Subtotal { get; init; }
-    public decimal Discount { get; init; }
-    public decimal Total { get; init; }
-    public RecurrenceType RecurrenceType { get; init; }
-    public decimal DiscountPercent { get; init; }
-}
-
-public record AvailabilityRequest
-{
-    [Required(ErrorMessage = "ZIP code is required")]
-    [StringLength(10, MinimumLength = 5, ErrorMessage = "ZIP code must be between 5 and 10 characters")]
-    [RegularExpression(@"^\d{5}(-\d{4})?$", ErrorMessage = "Invalid ZIP code format")]
-    public string ZipCode { get; init; } = "";
-    
-    [Required(ErrorMessage = "Date is required")]
-    public DateTime Date { get; init; }
-    
-    [Required(ErrorMessage = "Estimated duration is required")]
-    [Range(30, 480, ErrorMessage = "Duration must be between 30 and 480 minutes")]
-    public int EstimatedMinutes { get; init; }
-    
-    public List<int>? RequiredEquipmentIds { get; init; }
-}
-
-public record AvailabilityResponse
-{
-    public DateTime Date { get; init; }
-    public string ZipCode { get; init; } = "";
-    public int ServiceAreaId { get; init; }
-    public List<TimeSlotDto> Slots { get; init; } = new();
-    public int TotalSlotsAvailable { get; init; }
-}
-
-public record TimeSlotDto
-{
-    public DateTime Date { get; init; }
-    public TimeSpan StartTime { get; init; }
-    public TimeSpan EndTime { get; init; }
-    public string FormattedTime { get; init; } = "";
-    public List<int> AvailableEmployeeIds { get; init; } = new();
-}
-
-public record CreateSoftReserveRequest
-{
-    [StringLength(100)]
-    public string? SessionId { get; init; }
-    
-    [StringLength(100)]
-    public string? CustomerId { get; init; }
-    
-    [Required(ErrorMessage = "Employee is required")]
-    [Range(1, int.MaxValue, ErrorMessage = "Invalid employee ID")]
-    public int EmployeeId { get; init; }
-    
-    [Required(ErrorMessage = "ZIP code is required")]
-    [StringLength(10, MinimumLength = 5)]
-    public string ZipCode { get; init; } = "";
-    
-    [Required(ErrorMessage = "Date is required")]
-    public DateTime Date { get; init; }
-    
-    [Required(ErrorMessage = "Start time is required")]
-    public TimeSpan StartTime { get; init; }
-    
-    [Required(ErrorMessage = "Estimated duration is required")]
-    [Range(30, 480, ErrorMessage = "Duration must be between 30 and 480 minutes")]
-    public int EstimatedMinutes { get; init; }
-}
-
-public record SoftReserveResponse
-{
-    public int SoftReserveId { get; init; }
-    public string SessionId { get; init; } = "";
-    public DateTime ScheduledStart { get; init; }
-    public DateTime ScheduledEnd { get; init; }
-    public DateTime ExpiresAt { get; init; }
-    public int TtlSeconds { get; init; }
-    public string Message { get; init; } = "";
-}
-
-public record ConfirmBookingRequest
-{
-    [Required(ErrorMessage = "Reservation is required")]
-    [Range(1, int.MaxValue)]
-    public int SoftReserveId { get; init; }
-    
-    [Required(ErrorMessage = "Session ID is required")]
-    [StringLength(100, MinimumLength = 10)]
-    public string SessionId { get; init; } = "";
-    
-    [StringLength(100)]
-    public string? CustomerId { get; init; }
-    
-    public bool PaymentConfirmed { get; init; }
-    
-    // Address
-    [Required(ErrorMessage = "ZIP code is required")]
-    [StringLength(10, MinimumLength = 5)]
-    public string ZipCode { get; init; } = "";
-    
-    [Required(ErrorMessage = "Address is required")]
-    [StringLength(500, MinimumLength = 5, ErrorMessage = "Address must be between 5 and 500 characters")]
-    public string Address { get; init; } = "";
-    
-    [StringLength(200)]
-    public string? AddressLine2 { get; init; }
-    
-    [StringLength(100)]
-    public string? City { get; init; }
-    
-    [StringLength(50)]
-    public string? State { get; init; }
-    
-    // Service
-    [Required(ErrorMessage = "Service type is required")]
-    [Range(1, int.MaxValue)]
-    public int ServiceTypeId { get; init; }
-    
-    public int? CleaningPlaceId { get; init; }
-    
-    [Range(0, 20, ErrorMessage = "Invalid number of bedrooms")]
-    public int Bedrooms { get; init; } = 1;
-    
-    [Range(0, 20, ErrorMessage = "Invalid number of bathrooms")]
-    public int Bathrooms { get; init; } = 1;
-    
-    [Range(0, 50000)]
-    public int? SquareFootage { get; init; }
-    
-    public DirtLevel DirtLevel { get; init; } = DirtLevel.Normal;
-    public bool HasPets { get; init; }
-    
-    [Range(0, 100)]
-    public int? FloorLevel { get; init; }
-    
-    public bool HasElevator { get; init; } = true;
-    public List<int>? AdditionalServiceIds { get; init; }
-    public List<RoomSelection>? Rooms { get; init; }
-
-    // Amounts
-    [Range(0, 100000)]
-    public decimal Subtotal { get; init; }
-    
-    [Range(0, 100000)]
-    public decimal Tax { get; init; }
-    
-    [Range(0, 100000)]
-    public decimal Discount { get; init; }
-    
-    [Range(0, 100000)]
-    public decimal Total { get; init; }
-    
-    // Recurrence
-    public RecurrenceType RecurrenceType { get; init; } = RecurrenceType.None;
-    public DateTime? RecurrenceEndDate { get; init; }
-    
-    // Contact
-    [StringLength(100)]
-    public string? ContactName { get; init; }
-    
-    [Phone(ErrorMessage = "Invalid phone number format")]
-    [StringLength(20)]
-    public string? ContactPhone { get; init; }
-    
-    [Required(ErrorMessage = "Email is required")]
-    [EmailAddress(ErrorMessage = "Invalid email format")]
-    [StringLength(256)]
-    public string ContactEmail { get; init; } = "";
-    
-    // Password to create account if user doesn't exist
-    [StringLength(100, MinimumLength = 8)]
-    public string? Password { get; init; }
-    
-    [StringLength(1000)]
-    public string? SpecialInstructions { get; init; }
-}
-
-public record BookingConfirmationResponse
-{
-    public int OrderId { get; init; }
-    public int MeetId { get; init; }
-    public string ConfirmationNumber { get; init; } = "";
-    public DateTime ScheduledStart { get; init; }
-    public DateTime ScheduledEnd { get; init; }
-    public decimal Total { get; init; }
-    public string OrderStatus { get; init; } = "";
-    public string Message { get; init; } = "";
-    public AuthToken? AuthToken { get; init; }
-    public bool IsGuest { get; init; }
-}
-
-public record AuthToken
-{
-    public string AccessToken { get; init; } = "";
-    public string RefreshToken { get; init; } = "";
-    public DateTime ExpiresAt { get; init; }
-    public bool IsNewUser { get; init; }
 }
 
 #endregion

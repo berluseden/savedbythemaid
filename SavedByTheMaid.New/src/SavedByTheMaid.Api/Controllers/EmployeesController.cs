@@ -1,9 +1,12 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SavedByTheMaid.Api.Auth;
+using SavedByTheMaid.Api.Extensions;
 using SavedByTheMaid.Infrastructure.Data;
 using SavedByTheMaid.Domain.Entities;
+using AdminDtos = SavedByTheMaid.Application.DTOs.Admin;
 
 namespace SavedByTheMaid.Api.Controllers;
 
@@ -12,13 +15,21 @@ namespace SavedByTheMaid.Api.Controllers;
 public class EmployeesController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly IValidator<AdminDtos.CreateEmployeeRequest> _createEmployeeValidator;
 
-    public EmployeesController(ApplicationDbContext context)
+    public EmployeesController(
+        ApplicationDbContext context,
+        IValidator<AdminDtos.CreateEmployeeRequest> createEmployeeValidator)
     {
         _context = context;
+        _createEmployeeValidator = createEmployeeValidator;
     }
 
+    /// <summary>
+    /// Get all active employees (public - no PII exposed)
+    /// </summary>
     [HttpGet]
+    [AllowAnonymous]
     public async Task<ActionResult<IEnumerable<EmployeePublicDto>>> GetEmployees()
     {
         var employees = await _context.Employees
@@ -38,7 +49,11 @@ public class EmployeesController : ControllerBase
         return Ok(employees);
     }
 
+    /// <summary>
+    /// Get employee details (public - no PII exposed)
+    /// </summary>
     [HttpGet("{id}")]
+    [AllowAnonymous]
     public async Task<ActionResult<EmployeePublicDetailDto>> GetEmployee(int id)
     {
         var employee = await _context.Employees
@@ -69,10 +84,16 @@ public class EmployeesController : ControllerBase
         });
     }
 
+    /// <summary>
+    /// Create a new employee (admin only)
+    /// </summary>
     [HttpPost]
     [Authorize(Policy = Policies.AdminOnly)]
-    public async Task<ActionResult<Employee>> CreateEmployee(CreateEmployeeRequest request)
+    public async Task<ActionResult<EmployeePublicDetailDto>> CreateEmployee(AdminDtos.CreateEmployeeRequest request)
     {
+        var validationError = await _createEmployeeValidator.ValidateAndReturnErrors(request);
+        if (validationError != null) return validationError;
+
         var employee = new Employee
         {
             FirstName = request.FirstName,
@@ -81,30 +102,55 @@ public class EmployeesController : ControllerBase
             Phone = request.Phone,
             Address = request.Address,
             PrimaryServiceAreaId = request.PrimaryServiceAreaId,
+            MaxDailyHours = request.MaxDailyHours,
+            MaxDailyServices = request.MaxDailyServices,
             IsActive = true
         };
 
         _context.Employees.Add(employee);
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetEmployee), new { id = employee.Id }, employee);
+        // Return safe DTO instead of raw entity (which exposes PII)
+        return CreatedAtAction(nameof(GetEmployee), new { id = employee.Id }, new EmployeePublicDetailDto
+        {
+            Id = employee.Id,
+            FirstName = employee.FirstName,
+            LastName = employee.LastName,
+            PrimaryServiceAreaId = employee.PrimaryServiceAreaId,
+            PrimaryServiceAreaName = null,
+            Schedules = new()
+        });
     }
 
+    /// <summary>
+    /// Get employee availability schedule (public - returns DTOs, not entities)
+    /// </summary>
     [HttpGet("{id}/availability")]
-    public async Task<ActionResult<IEnumerable<EmployeeSchedule>>> GetAvailability(int id)
+    [AllowAnonymous]
+    public async Task<ActionResult<IEnumerable<EmployeeScheduleDto>>> GetAvailability(int id)
     {
         var schedules = await _context.EmployeeSchedules
             .AsNoTracking()
             .Where(s => s.EmployeeId == id && s.IsAvailable)
             .OrderBy(s => s.DayOfWeek)
+            .Select(s => new EmployeeScheduleDto
+            {
+                DayOfWeek = s.DayOfWeek,
+                StartTime = s.StartTime,
+                EndTime = s.EndTime,
+                IsAvailable = s.IsAvailable
+            })
             .ToListAsync();
 
         return Ok(schedules);
     }
 
+    /// <summary>
+    /// Add a schedule for an employee (admin only)
+    /// </summary>
     [HttpPost("{id}/schedule")]
     [Authorize(Policy = Policies.AdminOnly)]
-    public async Task<ActionResult<EmployeeSchedule>> AddSchedule(int id, CreateScheduleRequest request)
+    public async Task<ActionResult<EmployeeScheduleDto>> AddSchedule(int id, CreateScheduleRequest request)
     {
         var employee = await _context.Employees.FindAsync(id);
         if (employee == null || employee.IsDeleted)
@@ -130,9 +176,18 @@ public class EmployeesController : ControllerBase
         _context.EmployeeSchedules.Add(schedule);
         await _context.SaveChangesAsync();
 
-        return Created($"/api/employees/{id}/schedule/{schedule.Id}", schedule);
+        // Return DTO instead of raw entity
+        return Created($"/api/employees/{id}/schedule/{schedule.Id}", new EmployeeScheduleDto
+        {
+            DayOfWeek = schedule.DayOfWeek,
+            StartTime = schedule.StartTime,
+            EndTime = schedule.EndTime,
+            IsAvailable = schedule.IsAvailable
+        });
     }
 }
+
+#region DTOs (controller-specific)
 
 /// <summary>
 /// Public DTO - no PII (email, phone) exposed
@@ -167,18 +222,11 @@ public record EmployeeScheduleDto
     public bool IsAvailable { get; init; }
 }
 
-public record CreateEmployeeRequest(
-    string FirstName,
-    string LastName,
-    string? Email,
-    string? Phone,
-    string? Address,
-    int? PrimaryServiceAreaId
-);
-
 public record CreateScheduleRequest(
     DayOfWeek DayOfWeek,
     TimeSpan StartTime,
     TimeSpan EndTime,
     int BufferMinutes = 30
 );
+
+#endregion
