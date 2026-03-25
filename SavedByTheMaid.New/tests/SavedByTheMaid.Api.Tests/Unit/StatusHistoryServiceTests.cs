@@ -113,6 +113,49 @@ public class StatusHistoryServiceTests : IDisposable
         history.ToStatus.Should().Be(MeetStatus.Scheduled);
     }
 
+    [Fact]
+    public async Task RecordMeetStatusChange_WithReasonAndNotes_SavesAllFields()
+    {
+        await _sut.RecordMeetStatusChangeAsync(
+            serviceMeetId: 10,
+            fromStatus: MeetStatus.Scheduled,
+            toStatus: MeetStatus.Cancelled,
+            changedById: "admin-1",
+            reasonCode: "CUSTOMER_REQUEST",
+            notes: "Customer called to cancel");
+
+        var history = await _context.MeetStatusHistories.SingleAsync();
+        history.ReasonCode.Should().Be("CUSTOMER_REQUEST");
+        history.Notes.Should().Be("Customer called to cancel");
+        history.ChangedById.Should().Be("admin-1");
+    }
+
+    #endregion
+
+    #region RecordOrderStatusChange - WithUser
+
+    [Fact]
+    public async Task RecordOrderStatusChange_WithUser_TracksChangedBy()
+    {
+        // Arrange & Act
+        await _sut.RecordOrderStatusChangeAsync(
+            serviceOrderId: 5,
+            fromStatus: OrderStatus.PendingReview,
+            toStatus: OrderStatus.Confirmed,
+            changedById: "admin-user-123",
+            reasonCode: "ADMIN_APPROVAL",
+            notes: "Approved after phone verification");
+
+        // Assert
+        var history = await _context.OrderStatusHistories.SingleAsync();
+        history.ChangedById.Should().Be("admin-user-123");
+        history.ReasonCode.Should().Be("ADMIN_APPROVAL");
+        history.Notes.Should().Be("Approved after phone verification");
+        history.ServiceOrderId.Should().Be(5);
+        history.FromStatus.Should().Be(OrderStatus.PendingReview);
+        history.ToStatus.Should().Be(OrderStatus.Confirmed);
+    }
+
     #endregion
 
     #region GetOrderStatusHistoryAsync
