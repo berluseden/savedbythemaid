@@ -6,6 +6,7 @@ using SavedByTheMaid.Api.Services;
 using SavedByTheMaid.Infrastructure.Data;
 using SavedByTheMaid.Domain.Entities;
 using SavedByTheMaid.Domain.Enums;
+using SavedByTheMaid.Domain.Services;
 
 namespace SavedByTheMaid.Api.Controllers;
 
@@ -116,23 +117,11 @@ public class AdminOrdersController : ControllerBase
         var currentStatus = order.OrderStatus;
         var newStatus = request.OrderStatus;
 
-        // Define valid transitions (includes PendingReview)
-        var validTransitions = new Dictionary<OrderStatus, OrderStatus[]>
+        // Validate transition using domain state machine
+        var transitionResult = OrderStatusTransitions.Validate(currentStatus, newStatus);
+        if (transitionResult.IsFailure)
         {
-            [OrderStatus.PendingReview] = new[] { OrderStatus.Confirmed, OrderStatus.Cancelled },
-            #pragma warning disable CS0618
-            [OrderStatus.Draft] = new[] { OrderStatus.Confirmed, OrderStatus.Cancelled },
-            #pragma warning restore CS0618
-            [OrderStatus.Confirmed] = new[] { OrderStatus.InProgress, OrderStatus.Cancelled, OrderStatus.NoShow },
-            [OrderStatus.InProgress] = new[] { OrderStatus.Completed, OrderStatus.Cancelled },
-            [OrderStatus.Completed] = Array.Empty<OrderStatus>(), // Final state
-            [OrderStatus.Cancelled] = Array.Empty<OrderStatus>(), // Final state
-            [OrderStatus.NoShow] = Array.Empty<OrderStatus>() // Final state
-        };
-
-        if (!validTransitions[currentStatus].Contains(newStatus))
-        {
-            return BadRequest($"Invalid transition: {currentStatus} -> {newStatus}");
+            return BadRequest(new { message = transitionResult.Error.Description });
         }
 
         _logger.LogInformation("Order {OrderId} status transition: {From} -> {To}", 
@@ -250,6 +239,14 @@ public class AdminOrdersController : ControllerBase
         if (meet == null || meet.IsDeleted) return NotFound();
 
         var previousStatus = meet.Status;
+
+        // Validate transition using domain state machine
+        var meetTransitionResult = MeetStatusTransitions.Validate(previousStatus, request.Status);
+        if (meetTransitionResult.IsFailure)
+        {
+            return BadRequest(new { message = meetTransitionResult.Error.Description });
+        }
+
         meet.Status = request.Status;
 
         if (request.Status == MeetStatus.InProgress && !meet.ActualStart.HasValue)
