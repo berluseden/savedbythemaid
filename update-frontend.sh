@@ -1,42 +1,55 @@
 #!/bin/bash
-# Script para actualizar solo el frontend en GCP
+# ============================================================================
+# update-frontend.sh -- Update only the frontend container on a GCP VM
+#
+# This script is designed to run ON the VM itself. It stops the frontend
+# container, rebuilds it from scratch (no cache), and restarts it.
+#
+# Usage:
+#   sudo ./update-frontend.sh
+#
+# Environment variables (override defaults):
+#   APP_DIR        -- Application directory (default: /opt/savedbythemaid)
+#   FRONTEND_PORT  -- Frontend port for summary output (default: 3000)
+# ============================================================================
 
-set -e
+set -euo pipefail
 
-echo "🔄 Actualizando frontend en GCP..."
+echo "Updating frontend..."
 
-# Variables
-APP_DIR="/opt/savedbythemaid"
+# ── Configurable variables ────────────────────────────────────────────────
+APP_DIR="${APP_DIR:-/opt/savedbythemaid}"
+FRONTEND_PORT="${FRONTEND_PORT:-3000}"
 
 cd "$APP_DIR"
 
-# Detener solo el frontend
-echo "🛑 Deteniendo frontend..."
+# ── Stop the running frontend container ───────────────────────────────────
+echo "Stopping frontend..."
 docker compose stop frontend
 
-# Eliminar la imagen anterior del frontend
-echo "🗑️  Eliminando imagen anterior..."
+# ── Remove the old frontend image to force a clean rebuild ────────────────
+echo "Removing old frontend image..."
 docker rmi savedbythemaid-frontend || true
 
-# Reconstruir solo el frontend
-echo "🏗️  Reconstruyendo frontend..."
+# ── Rebuild frontend from scratch (no cache) ──────────────────────────────
+echo "Rebuilding frontend..."
 docker compose build --no-cache frontend
 
-# Levantar el frontend
-echo "🚀 Iniciando frontend..."
+# ── Start the new frontend container ──────────────────────────────────────
+echo "Starting frontend..."
 docker compose up -d frontend
 
-# Esperar a que esté saludable
-echo "⏳ Esperando a que el frontend esté saludable..."
+# ── Wait for the frontend to become ready ─────────────────────────────────
+echo "Waiting for frontend to become healthy..."
 sleep 15
 
-# Verificar estado
-echo "✅ Estado del frontend:"
+# ── Verify container status ──────────────────────────────────────────────
+echo "Frontend status:"
 docker compose ps frontend
 
-# Obtener IP externa
-EXTERNAL_IP=$(curl -s ifconfig.me)
+# ── Retrieve external IP for summary ─────────────────────────────────────
+EXTERNAL_IP=$(curl -fsS ifconfig.me 2>/dev/null || echo "<unknown>")
 
 echo ""
-echo "✅ Actualización completada!"
-echo "🌐 Frontend: http://${EXTERNAL_IP}:3000"
+echo "Frontend update complete!"
+echo "Frontend: http://${EXTERNAL_IP}:${FRONTEND_PORT}"
