@@ -1,30 +1,56 @@
 @import "tailwindcss";
 
-/* Custom CSS Variables - ecoMaid Palette */
-@theme {
-  /* Blue (Template original) */
+/* Design Tokens - ecoMaid Palette */
+@theme inline {
+  /* Primary (Blue) */
+  --color-primary: #2196f3;
+  --color-primary-hover: #1976d2;
+  --color-primary-light: #e3f2fd;
+  --color-primary-dark: #29338c;
+
+  /* Secondary (Lime Green) */
+  --color-secondary: #b8e07c;
+  --color-secondary-hover: #a2ce5f;
+  --color-secondary-dark: #8bc34a;
+
+  /* Accent (Green) */
+  --color-accent: #4caf50;
+
+  /* Semantic */
+  --color-danger: #ef4444;
+  --color-danger-hover: #dc2626;
+  --color-warning: #f59e0b;
+  --color-success: #22c55e;
+  --color-success-light: #e8f5e9;
+
+  /* Neutral / Surface */
+  --color-muted: #6b7280;
+  --color-surface: #ffffff;
+  --color-surface-secondary: #f9fafb;
+  --color-border: #e5e7eb;
+
+  /* Text */
+  --color-text-primary: #111827;
+  --color-text-secondary: #6b7280;
+  --color-text-inverse: #ffffff;
+
+  /* Legacy aliases (keep existing token names working) */
   --color-brand: #2196f3;
   --color-brand-dark: #29338c;
-  --color-brand-light: #1976D2;
+  --color-brand-light: #1976d2;
+  --color-brand-50: #e3f2fd;
+  --color-brand-100: #bbdefb;
+  --color-eco: #90ee90;
+  --color-eco-dark: #228b22;
 
-  /* Lime Green (Template original) */
-  --color-accent: #a2ce5f;
-  --color-accent-dark: #8BB83F;
-  --color-accent-light: #b8e07c;
-  
-  /* Green (Hoja del logo) */
-  --color-eco: #90EE90;
-  --color-eco-dark: #228B22;
-  
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
-  
+  /* Typography */
   --font-sans: 'Inter', system-ui, sans-serif;
-  
+
+  /* Radii */
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
 }
 
 /* Base styles */

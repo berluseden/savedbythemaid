@@ -1,5 +1,7 @@
 import axios from 'axios';
 import { pushToast } from '@/lib/toast';
+import { authStorage } from '@/lib/auth-storage';
+import { getErrorMessage } from '@/lib/errors';
 
 const api = axios.create({
   baseURL: '/api',
@@ -8,14 +10,9 @@ const api = axios.create({
   },
 });
 
-// Helper to get token from either storage
-const getToken = () => {
-  return localStorage.getItem('token') || sessionStorage.getItem('token');
-};
-
 // Interceptor to add JWT token
 api.interceptors.request.use((config) => {
-  const token = getToken();
+  const token = authStorage.getToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -26,43 +23,31 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Normalize common errors into a user-friendly message on the error object
     const status = error.response?.status;
-    let userMessage = '';
+    let userMessage: string;
 
     if (!error.response) {
       userMessage = 'Could not connect to the server. Check your connection and try again.';
     } else if (status === 401) {
-      // Clear tokens and redirect to login when unauthorized
-      localStorage.removeItem('token');
-      localStorage.removeItem('rememberMe');
-      sessionStorage.removeItem('token');
+      authStorage.clear();
       window.location.href = '/login';
       userMessage = 'Unauthorized. Please sign in.';
     } else if (status === 400) {
-      userMessage = error.response?.data?.message
-        || (error.response?.data?.errors && Object.values(error.response.data.errors).flat().join(' '))
-        || 'Invalid request. Please check your input and try again.';
+      userMessage = getErrorMessage(error, 'Invalid request. Please check your input and try again.');
     } else if (status === 404) {
       userMessage = 'Resource not found.';
     } else if (status >= 500) {
       userMessage = 'Internal server error. Please try again later.';
     } else {
-      userMessage = error.response?.data?.message || error.message || 'Unexpected error. Please try again.';
+      userMessage = getErrorMessage(error, 'Unexpected error. Please try again.');
     }
 
     // Attach a friendly message for consumers (components/hooks)
-    try {
-      error.userMessage = userMessage;
-    } catch {
-      // ignore if readonly
-    }
+    error.userMessage = userMessage;
 
-    // Also emit a global toast for user-friendly feedback
-    try {
-      if (userMessage) pushToast(userMessage, status && status >= 500 ? 'error' : 'warning');
-    } catch {
-      // swallow
+    // Emit a global toast for user-friendly feedback
+    if (userMessage) {
+      pushToast(userMessage, status && status >= 500 ? 'error' : 'warning');
     }
 
     return Promise.reject(error);
@@ -181,14 +166,14 @@ export interface ConfirmBookingRequest {
   softReserveId: number;
   sessionId: string;
   customerId?: string;
-  
+
   // Address
   zipCode: string;
   address: string;
   addressLine2?: string;
   city?: string;
   state?: string;
-  
+
   // Service
   serviceTypeId: number;
   cleaningPlaceId?: number;
@@ -200,17 +185,17 @@ export interface ConfirmBookingRequest {
   floorLevel?: number;
   hasElevator?: boolean;
   additionalServiceIds?: number[];
-  
+
   // Pricing
   subtotal: number;
   tax: number;
   discount: number;
   total: number;
-  
+
   // Recurrence
   recurrenceType?: string;
   recurrenceEndDate?: string;
-  
+
   // Contact
   contactName?: string;
   contactPhone?: string;
@@ -329,12 +314,9 @@ export const authApi = {
     api.get<{ email: string; exists: boolean }>(`/auth/check-email?email=${encodeURIComponent(email)}`),
 
   logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('rememberMe');
-    sessionStorage.removeItem('token');
+    authStorage.clear();
   },
 };
 
+export { api };
 export default api;
