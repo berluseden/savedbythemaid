@@ -21,6 +21,7 @@ public class ServiceTypesController : ControllerBase
     public async Task<ActionResult<IEnumerable<ServiceType>>> GetAll()
     {
         return await _context.ServiceTypes
+            .AsNoTracking()
             .Where(s => !s.IsDeleted)
             .OrderBy(s => s.DisplayOrder)
             .ToListAsync();
@@ -30,6 +31,7 @@ public class ServiceTypesController : ControllerBase
     public async Task<ActionResult<ServiceType>> GetById(int id)
     {
         var serviceType = await _context.ServiceTypes
+            .AsNoTracking()
             .Include(s => s.RequiredEquipment)
                 .ThenInclude(e => e.Equipment)
             .FirstOrDefaultAsync(s => s.Id == id && !s.IsDeleted);

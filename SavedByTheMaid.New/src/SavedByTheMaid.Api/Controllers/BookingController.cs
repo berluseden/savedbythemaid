@@ -47,6 +47,7 @@ public class BookingController : ControllerBase
     public async Task<ActionResult<CoverageResponse>> CheckCoverage(string zipCode)
     {
         var serviceAreaZip = await _context.ServiceAreaZips
+            .AsNoTracking()
             .Include(z => z.ServiceArea)
             .FirstOrDefaultAsync(z => z.ZipCode == zipCode && !z.IsDeleted);
 
@@ -82,6 +83,7 @@ public class BookingController : ControllerBase
     public async Task<ActionResult<IEnumerable<CleaningPlaceDto>>> GetCleaningPlaces()
     {
         var places = await _context.CleaningPlaces
+            .AsNoTracking()
             .Where(p => p.IsActive && !p.IsDeleted)
             .Include(p => p.Rooms.Where(r => r.IsActive && !r.IsDeleted))
             .Select(p => new CleaningPlaceDto
@@ -110,6 +112,7 @@ public class BookingController : ControllerBase
     public async Task<ActionResult<IEnumerable<ServiceTypeDto>>> GetServiceTypes()
     {
         var types = await _context.ServiceTypes
+            .AsNoTracking()
             .Where(t => t.IsActive && !t.IsDeleted)
             .OrderBy(t => t.DisplayOrder)
             .Select(t => new ServiceTypeDto
@@ -136,6 +139,7 @@ public class BookingController : ControllerBase
     public async Task<ActionResult<IEnumerable<AdditionalServiceDto>>> GetAdditionalServices()
     {
         var services = await _context.AdditionalServiceTypes
+            .AsNoTracking()
             .Where(s => s.IsActive && !s.IsDeleted)
             .Select(s => new AdditionalServiceDto
             {
@@ -157,6 +161,7 @@ public class BookingController : ControllerBase
     public async Task<ActionResult<IEnumerable<RecurrenceDiscountDto>>> GetRecurrenceDiscounts()
     {
         var discounts = await _context.RecurrenceDiscounts
+            .AsNoTracking()
             .Where(d => d.IsActive && !d.IsDeleted)
             .Select(d => new RecurrenceDiscountDto
             {

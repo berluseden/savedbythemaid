@@ -19,12 +19,18 @@ public class CustomerController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly ILogger<CustomerController> _logger;
     private readonly ISchedulingService _schedulingService;
+    private readonly IOrderCancellationService _orderCancellationService;
 
-    public CustomerController(ApplicationDbContext context, ILogger<CustomerController> logger, ISchedulingService schedulingService)
+    public CustomerController(
+        ApplicationDbContext context,
+        ILogger<CustomerController> logger,
+        ISchedulingService schedulingService,
+        IOrderCancellationService orderCancellationService)
     {
         _context = context;
         _logger = logger;
         _schedulingService = schedulingService;
+        _orderCancellationService = orderCancellationService;
     }
 
     private string? GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -43,6 +49,7 @@ public class CustomerController : ControllerBase
             return Unauthorized();
 
         var query = _context.ServiceOrders
+            .AsNoTracking()
             .Include(o => o.ServiceType)
             .Include(o => o.ServiceArea)
             .Include(o => o.CleaningPlace)
@@ -106,6 +113,7 @@ public class CustomerController : ControllerBase
             return Unauthorized();
 
         var order = await _context.ServiceOrders
+            .AsNoTracking()
             .Include(o => o.ServiceType)
             .Include(o => o.ServiceArea)
             .Include(o => o.CleaningPlace)
@@ -167,6 +175,7 @@ public class CustomerController : ControllerBase
             return Unauthorized();
 
         var orders = _context.ServiceOrders
+            .AsNoTracking()
             .Where(o => o.CustomerId == userId && !o.IsDeleted);
 
         var completedOrders = await orders.CountAsync(o => o.OrderStatus == OrderStatus.Completed);
@@ -175,6 +184,7 @@ public class CustomerController : ControllerBase
         // Find next upcoming meeting
         var now = DateTime.UtcNow;
         var nextMeeting = await _context.ServiceMeets
+            .AsNoTracking()
             .Where(m => m.ServiceOrder != null 
                 && m.ServiceOrder.CustomerId == userId 
                 && !m.ServiceOrder.IsDeleted
@@ -209,8 +219,9 @@ public class CustomerController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
+        // Verify the order belongs to this customer
         var order = await _context.ServiceOrders
-            .Include(o => o.Meetings)
+            .AsNoTracking()
             .FirstOrDefaultAsync(o => o.Id == id && o.CustomerId == userId && !o.IsDeleted);
 
         if (order == null)
@@ -219,30 +230,11 @@ public class CustomerController : ControllerBase
         if (order.OrderStatus != OrderStatus.PendingReview && order.OrderStatus != OrderStatus.Confirmed)
             return BadRequest("Only pending or confirmed orders can be cancelled");
 
-        order.OrderStatus = OrderStatus.Cancelled;
-        order.SpecialInstructions = string.IsNullOrEmpty(order.SpecialInstructions)
-            ? $"Cancelled by customer: {request.Reason}"
-            : $"{order.SpecialInstructions}\n\nCancelled by customer: {request.Reason}";
+        var reason = $"Cancelled by customer: {request.Reason}";
+        var (success, error) = await _orderCancellationService.CancelOrderAsync(id, reason, userId);
 
-        // Cascade: cancel all pending meetings and release their slots
-        foreach (var meet in order.Meetings.Where(m =>
-            m.Status == MeetStatus.Scheduled ||
-            m.Status == MeetStatus.Assigned ||
-            m.Status == MeetStatus.Rescheduled))
-        {
-            meet.Status = MeetStatus.Cancelled;
-            meet.CancellationReason = $"Order cancelled by customer: {request.Reason}";
-
-            if (meet.AssignedEmployeeId.HasValue)
-            {
-                await _schedulingService.ReleaseSlotsAsync(meet.Id, OccupancyType.Meeting);
-            }
-        }
-
-        await _context.SaveChangesAsync();
-
-        _logger.LogInformation("Order {OrderId} cancelled by customer {UserId} - {MeetCount} meetings cancelled",
-            id, userId, order.Meetings.Count(m => m.Status == MeetStatus.Cancelled));
+        if (!success)
+            return BadRequest(new { message = error });
 
         return NoContent();
     }

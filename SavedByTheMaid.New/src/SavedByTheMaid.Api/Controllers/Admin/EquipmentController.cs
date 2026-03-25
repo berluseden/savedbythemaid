@@ -20,6 +20,7 @@ public class EquipmentController : ControllerBase
     public async Task<ActionResult<IEnumerable<Equipment>>> GetAll()
     {
         return await _context.Equipment
+            .AsNoTracking()
             .Where(e => !e.IsDeleted)
             .OrderBy(e => e.Name)
             .ToListAsync();
@@ -29,6 +30,7 @@ public class EquipmentController : ControllerBase
     public async Task<ActionResult<Equipment>> GetById(int id)
     {
         var equipment = await _context.Equipment
+            .AsNoTracking()
             .Include(e => e.ServiceTypes)
                 .ThenInclude(st => st.ServiceType)
             .Include(e => e.Employees)

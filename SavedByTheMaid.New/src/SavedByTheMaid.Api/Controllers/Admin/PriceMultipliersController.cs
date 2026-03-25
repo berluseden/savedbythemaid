@@ -21,6 +21,7 @@ public class PriceMultipliersController : ControllerBase
     public async Task<ActionResult<IEnumerable<PriceMultiplier>>> GetAll()
     {
         return await _context.PriceMultipliers
+            .AsNoTracking()
             .Where(m => !m.IsDeleted)
             .Include(m => m.ServiceType)
             .OrderBy(m => m.DisplayOrder)
@@ -31,6 +32,7 @@ public class PriceMultipliersController : ControllerBase
     public async Task<ActionResult<PriceMultiplier>> GetById(int id)
     {
         var multiplier = await _context.PriceMultipliers
+            .AsNoTracking()
             .Include(m => m.ServiceType)
             .FirstOrDefaultAsync(m => m.Id == id && !m.IsDeleted);
 
@@ -99,6 +101,7 @@ public class PriceMultipliersController : ControllerBase
     public async Task<ActionResult<IEnumerable<RecurrenceDiscount>>> GetRecurrenceDiscounts()
     {
         return await _context.RecurrenceDiscounts
+            .AsNoTracking()
             .Where(d => !d.IsDeleted)
             .ToListAsync();
     }

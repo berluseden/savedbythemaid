@@ -6,7 +6,15 @@ public interface IEmailService
     Task SendBookingCancelledAsync(string email, BookingCancelledEmail data);
     Task SendBookingReminderAsync(string email, BookingReminderEmail data);
     Task SendWelcomeEmailAsync(string email, string firstName);
+    Task SendPasswordResetAsync(string email, string resetLink);
+    Task SendContactFormAsync(string adminEmail, ContactFormEmail data);
 }
+
+public record ContactFormEmail(
+    string Name,
+    string Email,
+    string Message
+);
 
 public record BookingConfirmationEmail(
     string CustomerName,

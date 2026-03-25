@@ -22,6 +22,7 @@ public class ServiceAreasController : ControllerBase
     public async Task<ActionResult<IEnumerable<ServiceArea>>> GetServiceAreas()
     {
         return await _context.ServiceAreas
+            .AsNoTracking()
             .Where(s => !s.IsDeleted)
             .Include(s => s.ZipCodes)
             .ToListAsync();
@@ -31,6 +32,7 @@ public class ServiceAreasController : ControllerBase
     public async Task<ActionResult<ServiceArea>> GetServiceArea(int id)
     {
         var serviceArea = await _context.ServiceAreas
+            .AsNoTracking()
             .Include(s => s.ZipCodes)
             .FirstOrDefaultAsync(s => s.Id == id && !s.IsDeleted);
 
@@ -94,6 +96,7 @@ public class ServiceAreasController : ControllerBase
     public async Task<ActionResult<ServiceArea>> GetByZipCode(string zipCode)
     {
         var serviceAreaZip = await _context.ServiceAreaZips
+            .AsNoTracking()
             .Include(z => z.ServiceArea)
             .FirstOrDefaultAsync(z => z.ZipCode == zipCode);
 
