@@ -212,7 +212,7 @@ export function AdminPricingPage() {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-[#00205B] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#2196f3] border-t-transparent rounded-full animate-spin" />
         </div>
       </AdminLayout>
     );
@@ -230,7 +230,7 @@ export function AdminPricingPage() {
           {activeTab === 'multipliers' && (
             <button
               onClick={() => setShowModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] transition-colors"
             >
               <Plus className="h-5 w-5" />
               New Multiplier
@@ -252,7 +252,7 @@ export function AdminPricingPage() {
               onClick={() => setActiveTab('multipliers')}
               className={`flex items-center gap-2 pb-4 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === 'multipliers'
-                  ? 'border-[#00205B] text-[#00205B]'
+                  ? 'border-[#2196f3] text-[#2196f3]'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -263,7 +263,7 @@ export function AdminPricingPage() {
               onClick={() => setActiveTab('recurrence')}
               className={`flex items-center gap-2 pb-4 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === 'recurrence'
-                  ? 'border-[#00205B] text-[#00205B]'
+                  ? 'border-[#2196f3] text-[#2196f3]'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -282,7 +282,7 @@ export function AdminPricingPage() {
                 <p className="text-gray-500">No price multipliers configured</p>
                 <button
                   onClick={() => setShowModal(true)}
-                  className="mt-4 text-[#00205B] hover:underline"
+                  className="mt-4 text-[#2196f3] hover:underline"
                 >
                   Create the first one
                 </button>
@@ -353,7 +353,7 @@ export function AdminPricingPage() {
                               <div className="flex items-center justify-end gap-1">
                                 <button
                                   onClick={() => handleEdit(m)}
-                                  className="p-2 text-gray-400 hover:text-[#00205B] hover:bg-[#FFE44D]/10 rounded-lg"
+                                  className="p-2 text-gray-400 hover:text-[#2196f3] hover:bg-[#b8e07c]/10 rounded-lg"
                                 >
                                   <Edit2 className="h-4 w-4" />
                                 </button>
@@ -390,7 +390,7 @@ export function AdminPricingPage() {
                       <p className="text-sm text-gray-500">
                         {RECURRENCE_TYPES.find(r => r.value === d.recurrenceType)?.label || `Type ${d.recurrenceType}`}
                       </p>
-                      <p className="text-2xl font-bold text-[#00205B]">{d.discountPercent}%</p>
+                      <p className="text-2xl font-bold text-[#2196f3]">{d.discountPercent}%</p>
                       <p className="text-xs text-gray-400">discount</p>
                     </div>
                   ))}
@@ -406,7 +406,7 @@ export function AdminPricingPage() {
                   <select
                     value={discountForm.recurrenceType}
                     onChange={(e) => setDiscountForm({ ...discountForm, recurrenceType: parseInt(e.target.value) })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                   >
                     {RECURRENCE_TYPES.filter(r => r.value !== 0).map(r => (
                       <option key={r.value} value={r.value}>{r.label}</option>
@@ -422,13 +422,13 @@ export function AdminPricingPage() {
                     step="0.5"
                     value={discountForm.discountPercent}
                     onChange={(e) => setDiscountForm({ ...discountForm, discountPercent: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-6 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] disabled:opacity-50"
+                  className="px-6 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] disabled:opacity-50"
                 >
                   {saving ? 'Saving...' : 'Save'}
                 </button>
@@ -441,7 +441,7 @@ export function AdminPricingPage() {
         )}
 
         {/* Formula Info */}
-        <div className="bg-gradient-to-r from-[#00205B] to-blue-600 rounded-xl p-6 text-white">
+        <div className="bg-gradient-to-r from-[#2196f3] to-blue-600 rounded-xl p-6 text-white">
           <h3 className="text-lg font-semibold mb-2">How pricing is calculated</h3>
           <p className="text-blue-100 text-sm">
             Final Price = (Base Service Price + Room Prices) × Condition Multipliers − Recurrence Discount
@@ -497,7 +497,7 @@ export function AdminPricingPage() {
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="E.g.: Large area surcharge"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                   required
                 />
               </div>
@@ -509,7 +509,7 @@ export function AdminPricingPage() {
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   placeholder="Optional description"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                 />
               </div>
 
@@ -518,7 +518,7 @@ export function AdminPricingPage() {
                 <select
                   value={form.conditionType}
                   onChange={(e) => setForm({ ...form, conditionType: parseInt(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                 >
                   {CONDITION_TYPES.map(ct => (
                     <option key={ct.value} value={ct.value}>{ct.label}</option>
@@ -535,7 +535,7 @@ export function AdminPricingPage() {
                     min="0"
                     value={form.factor}
                     onChange={(e) => setForm({ ...form, factor: parseFloat(e.target.value) || 1 })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                     required
                   />
                   <p className="text-xs text-gray-400 mt-1">1.0 = no change, 1.2 = +20%</p>
@@ -547,7 +547,7 @@ export function AdminPricingPage() {
                     step="0.01"
                     value={form.minValue}
                     onChange={(e) => setForm({ ...form, minValue: e.target.value === '' ? '' : parseFloat(e.target.value) })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -557,7 +557,7 @@ export function AdminPricingPage() {
                     step="0.01"
                     value={form.maxValue}
                     onChange={(e) => setForm({ ...form, maxValue: e.target.value === '' ? '' : parseFloat(e.target.value) })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                   />
                 </div>
               </div>
@@ -568,7 +568,7 @@ export function AdminPricingPage() {
                     type="checkbox"
                     checked={form.appliesToPrice}
                     onChange={(e) => setForm({ ...form, appliesToPrice: e.target.checked })}
-                    className="w-4 h-4 text-[#00205B] border-gray-300 rounded focus:ring-[#00205B]"
+                    className="w-4 h-4 text-[#2196f3] border-gray-300 rounded focus:ring-[#2196f3]"
                   />
                   <span className="text-sm text-gray-700">Applies to price</span>
                 </label>
@@ -577,7 +577,7 @@ export function AdminPricingPage() {
                     type="checkbox"
                     checked={form.appliesToTime}
                     onChange={(e) => setForm({ ...form, appliesToTime: e.target.checked })}
-                    className="w-4 h-4 text-[#00205B] border-gray-300 rounded focus:ring-[#00205B]"
+                    className="w-4 h-4 text-[#2196f3] border-gray-300 rounded focus:ring-[#2196f3]"
                   />
                   <span className="text-sm text-gray-700">Applies to time</span>
                 </label>
@@ -590,7 +590,7 @@ export function AdminPricingPage() {
                   min="0"
                   value={form.displayOrder}
                   onChange={(e) => setForm({ ...form, displayOrder: parseInt(e.target.value) || 0 })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                 />
               </div>
 
@@ -600,7 +600,7 @@ export function AdminPricingPage() {
                     type="checkbox"
                     checked={form.isActive}
                     onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-                    className="w-4 h-4 text-[#00205B] border-gray-300 rounded focus:ring-[#00205B]"
+                    className="w-4 h-4 text-[#2196f3] border-gray-300 rounded focus:ring-[#2196f3]"
                   />
                   <span className="text-sm text-gray-700">Active</span>
                 </label>
@@ -617,7 +617,7 @@ export function AdminPricingPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] disabled:opacity-50"
                 >
                   {saving ? 'Saving...' : editingMultiplier ? 'Save' : 'Create'}
                 </button>

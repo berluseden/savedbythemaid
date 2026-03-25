@@ -122,15 +122,15 @@ export default function BookingSuccessPage() {
 
           {/* Confirmation Number */}
           {confirmation?.confirmationNumber && (
-            <div className="bg-[#FFE44D]/10 rounded-xl p-4 mb-6">
-              <p className="text-sm text-[#00205B] mb-1">Confirmation Number</p>
+            <div className="bg-[#b8e07c]/10 rounded-xl p-4 mb-6">
+              <p className="text-sm text-[#2196f3] mb-1">Confirmation Number</p>
               <div className="flex items-center justify-center gap-2">
-                <span className="text-xl font-bold text-[#001440] font-mono">
+                <span className="text-xl font-bold text-[#29338c] font-mono">
                   {confirmation.confirmationNumber}
                 </span>
                 <button
                   onClick={copyConfirmation}
-                  className="p-1.5 text-[#00205B] hover:bg-[#FFE44D]/20 rounded transition-colors"
+                  className="p-1.5 text-[#2196f3] hover:bg-[#b8e07c]/20 rounded transition-colors"
                   title="Copy to clipboard"
                 >
                   {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}

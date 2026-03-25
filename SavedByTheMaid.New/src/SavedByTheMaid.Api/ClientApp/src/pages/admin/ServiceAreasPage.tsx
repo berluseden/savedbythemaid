@@ -185,7 +185,7 @@ export function AdminServiceAreasPage() {
           </div>
           <button
             onClick={() => handleOpenModal()}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#00205B] px-4 py-2 text-sm font-medium text-white hover:bg-[#001440] transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg bg-[#2196f3] px-4 py-2 text-sm font-medium text-white hover:bg-[#29338c] transition-colors"
           >
             <Plus className="h-4 w-4" />
             New Zone
@@ -196,8 +196,8 @@ export function AdminServiceAreasPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="rounded-lg border border-gray-200 bg-white p-4">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-[#FFE44D]/20 p-2">
-                <Globe className="h-5 w-5 text-[#00205B]" />
+              <div className="rounded-lg bg-[#b8e07c]/20 p-2">
+                <Globe className="h-5 w-5 text-[#2196f3]" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-gray-900">{serviceAreas.length}</p>
@@ -237,14 +237,14 @@ export function AdminServiceAreasPage() {
             placeholder="Search by name, description or zip code..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-[#00205B] focus:outline-none focus:ring-1 focus:ring-[#00205B]"
+            className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
           />
         </div>
 
         {/* Service Areas List */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#00205B] border-t-transparent" />
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#2196f3] border-t-transparent" />
           </div>
         ) : filteredAreas.length === 0 ? (
           <div className="rounded-lg border border-gray-200 bg-white p-12 text-center">
@@ -258,7 +258,7 @@ export function AdminServiceAreasPage() {
             {!searchTerm && (
               <button
                 onClick={() => handleOpenModal()}
-                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#00205B] px-4 py-2 text-sm font-medium text-white hover:bg-[#001440]"
+                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#2196f3] px-4 py-2 text-sm font-medium text-white hover:bg-[#29338c]"
               >
                 <Plus className="h-4 w-4" />
                 New Zone
@@ -332,7 +332,7 @@ export function AdminServiceAreasPage() {
                       <h4 className="text-sm font-medium text-gray-700">Zip Codes</h4>
                       <button
                         onClick={() => handleOpenZipModal(area.id)}
-                        className="inline-flex items-center gap-1 rounded-md bg-[#00205B] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#001440]"
+                        className="inline-flex items-center gap-1 rounded-md bg-[#2196f3] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#29338c]"
                       >
                         <Plus className="h-3 w-3" />
                         Add ZIP
@@ -395,7 +395,7 @@ export function AdminServiceAreasPage() {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="E.g.: North Miami Zone"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#00205B] focus:outline-none focus:ring-1 focus:ring-[#00205B]"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
                   />
                 </div>
 
@@ -408,7 +408,7 @@ export function AdminServiceAreasPage() {
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     placeholder="Optional zone description"
                     rows={3}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#00205B] focus:outline-none focus:ring-1 focus:ring-[#00205B]"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
                   />
                 </div>
 
@@ -419,7 +419,7 @@ export function AdminServiceAreasPage() {
                       id="isActive"
                       checked={formData.isActive}
                       onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                      className="h-4 w-4 rounded border-gray-300 text-[#00205B] focus:ring-[#00205B]"
+                      className="h-4 w-4 rounded border-gray-300 text-[#2196f3] focus:ring-[#2196f3]"
                     />
                     <label htmlFor="isActive" className="text-sm text-gray-700">
                       Zone active
@@ -437,7 +437,7 @@ export function AdminServiceAreasPage() {
                   </button>
                   <button
                     type="submit"
-                    className="rounded-lg bg-[#00205B] px-4 py-2 text-sm font-medium text-white hover:bg-[#001440]"
+                    className="rounded-lg bg-[#2196f3] px-4 py-2 text-sm font-medium text-white hover:bg-[#29338c]"
                   >
                     {editingArea ? 'Save Changes' : 'Create Zone'}
                   </button>
@@ -479,7 +479,7 @@ export function AdminServiceAreasPage() {
                     className={`w-full rounded-lg border px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 ${
                       zipError
                         ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 focus:border-[#00205B] focus:ring-[#00205B]'
+                        : 'border-gray-300 focus:border-[#2196f3] focus:ring-[#2196f3]'
                     }`}
                   />
                   {zipError && <p className="mt-1 text-xs text-red-600">{zipError}</p>}
@@ -495,7 +495,7 @@ export function AdminServiceAreasPage() {
                   </button>
                   <button
                     type="submit"
-                    className="rounded-lg bg-[#00205B] px-4 py-2 text-sm font-medium text-white hover:bg-[#001440]"
+                    className="rounded-lg bg-[#2196f3] px-4 py-2 text-sm font-medium text-white hover:bg-[#29338c]"
                   >
                     Add
                   </button>

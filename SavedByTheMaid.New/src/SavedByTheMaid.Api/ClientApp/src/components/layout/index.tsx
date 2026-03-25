@@ -41,7 +41,7 @@ export function Header() {
                   className={cn(
                     'flex items-center space-x-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                     isActive
-                      ? 'bg-[#FFE44D]/10 text-[#00205B]'
+                      ? 'bg-[#b8e07c]/10 text-[#2196f3]'
                       : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                   )}
                 >
@@ -60,7 +60,7 @@ export function Header() {
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
                 >
-                  <div className="w-8 h-8 bg-[#00205B] rounded-full flex items-center justify-center text-white font-medium">
+                  <div className="w-8 h-8 bg-[#2196f3] rounded-full flex items-center justify-center text-white font-medium">
                     {user.firstName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
                   </div>
                   <span className="hidden sm:inline">
@@ -117,7 +117,7 @@ export function Header() {
                 </Link>
                 <Link
                   to="/booking"
-                  className="rounded-lg bg-[#00205B] px-4 py-2 text-sm font-medium text-white hover:bg-[#001440] transition-colors"
+                  className="rounded-lg bg-[#2196f3] px-4 py-2 text-sm font-medium text-white hover:bg-[#29338c] transition-colors"
                 >
                   Book Now
                 </Link>

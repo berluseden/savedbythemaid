@@ -2,15 +2,15 @@
 
 /* Custom CSS Variables - ecoMaid Palette */
 @theme {
-  /* Navy Blue (Logo principal) */
-  --color-brand: #00205B;
-  --color-brand-dark: #001440;
-  --color-brand-light: #003080;
-  
-  /* Yellow (Highlight del logo) */
-  --color-accent: #FFD700;
-  --color-accent-dark: #E5C100;
-  --color-accent-light: #FFE44D;
+  /* Blue (Template original) */
+  --color-brand: #2196f3;
+  --color-brand-dark: #29338c;
+  --color-brand-light: #1976D2;
+
+  /* Lime Green (Template original) */
+  --color-accent: #a2ce5f;
+  --color-accent-dark: #8BB83F;
+  --color-accent-light: #b8e07c;
   
   /* Green (Hoja del logo) */
   --color-eco: #90EE90;

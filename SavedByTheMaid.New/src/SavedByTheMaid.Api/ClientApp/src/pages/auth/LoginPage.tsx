@@ -41,12 +41,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#FFE44D]/5 to-blue-100 px-4 py-12">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#b8e07c]/5 to-blue-100 px-4 py-12">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2">
-            <div className="w-12 h-12 bg-[#00205B] rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-[#2196f3] rounded-xl flex items-center justify-center">
               <Sparkles className="w-7 h-7 text-white" />
             </div>
             <span className="text-2xl font-bold text-gray-900">ecoMaid</span>
@@ -85,7 +85,7 @@ export default function LoginPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium text-gray-700">Password</label>
-                  <Link to="/forgot-password" className="text-sm text-[#00205B] hover:text-[#001440]">
+                  <Link to="/forgot-password" className="text-sm text-[#2196f3] hover:text-[#29338c]">
                     Forgot password?
                   </Link>
                 </div>
@@ -109,7 +109,7 @@ export default function LoginPage() {
 
             <div className="mt-6 text-center text-sm text-gray-500">
               Don't have an account?{' '}
-              <Link to="/register" className="text-[#00205B] hover:text-[#001440] font-medium">
+              <Link to="/register" className="text-[#2196f3] hover:text-[#29338c] font-medium">
                 Sign up
               </Link>
             </div>

@@ -29,16 +29,16 @@ export default function HomePage() {
   return (
     <div>
       {/* Welcome Banner */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#FFF9E0] via-[#FFE44D]/10 to-[#FFF9E0]">
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#FFF9E0] via-[#b8e07c]/10 to-[#FFF9E0]">
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-[#FFE44D]/15 blur-3xl" />
-          <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-[#FFE44D]/10 blur-3xl" />
+          <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-[#b8e07c]/15 blur-3xl" />
+          <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-[#b8e07c]/10 blur-3xl" />
         </div>
         <div className="relative mx-auto max-w-3xl px-4 py-16 text-center sm:px-6 lg:px-8">
           <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
-            <Sparkles className="inline h-8 w-8 text-[#FFD700]" />{' '}
+            <Sparkles className="inline h-8 w-8 text-[#a2ce5f]" />{' '}
             Welcome to a Cleaner, Fresher Space!{' '}
-            <Sparkles className="inline h-8 w-8 text-[#FFD700]" />
+            <Sparkles className="inline h-8 w-8 text-[#a2ce5f]" />
           </h1>
           <p className="mt-6 text-lg text-gray-700 leading-relaxed">
             We believe a clean space creates peace, comfort, and happiness. Our professional
@@ -51,18 +51,18 @@ export default function HomePage() {
               Reliable service
             </div>
             <div className="flex items-center gap-2 text-lg text-gray-700">
-              <Home className="h-5 w-5 text-[#00205B] flex-shrink-0" />
+              <Home className="h-5 w-5 text-[#2196f3] flex-shrink-0" />
               Homes & offices
             </div>
             <div className="flex items-center gap-2 text-lg text-gray-700">
-              <Sparkles className="h-5 w-5 text-[#FFD700] flex-shrink-0" />
+              <Sparkles className="h-5 w-5 text-[#a2ce5f] flex-shrink-0" />
               Attention to every detail
             </div>
           </div>
           <p className="mt-8 text-lg text-gray-700">
             Let us take care of the cleaning so you can enjoy a spotless space every day!
           </p>
-          <p className="mt-6 text-lg font-semibold text-[#00205B]">
+          <p className="mt-6 text-lg font-semibold text-[#2196f3]">
             Contact us today to schedule your cleaning. Your sparkling space starts here!
           </p>
 
@@ -94,7 +94,7 @@ export default function HomePage() {
       <section className="py-20 bg-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <div className="inline-flex items-center rounded-full bg-[#00205B]/5 px-4 py-1.5 text-sm font-medium text-[#00205B] mb-4">
+            <div className="inline-flex items-center rounded-full bg-[#2196f3]/5 px-4 py-1.5 text-sm font-medium text-[#2196f3] mb-4">
               Why ecoMaid?
             </div>
             <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
@@ -108,8 +108,8 @@ export default function HomePage() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {features.map((feature) => (
               <Card key={feature.title} hover className="p-6 text-center group">
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-[#FFE44D]/20 group-hover:bg-[#FFE44D]/30 transition-colors">
-                  <feature.icon className="h-7 w-7 text-[#00205B]" />
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-[#b8e07c]/20 group-hover:bg-[#b8e07c]/30 transition-colors">
+                  <feature.icon className="h-7 w-7 text-[#2196f3]" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900">{feature.title}</h3>
                 <p className="mt-2 text-sm text-gray-600 leading-relaxed">{feature.description}</p>
@@ -123,7 +123,7 @@ export default function HomePage() {
       <section className="py-20 bg-gradient-to-b from-gray-50 to-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <div className="inline-flex items-center rounded-full bg-[#FFE44D]/20 px-4 py-1.5 text-sm font-medium text-[#001440] mb-4">
+            <div className="inline-flex items-center rounded-full bg-[#b8e07c]/20 px-4 py-1.5 text-sm font-medium text-[#29338c] mb-4">
               Simple process
             </div>
             <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
@@ -143,11 +143,11 @@ export default function HomePage() {
               <div key={item.step} className="relative text-center group">
                 {/* Connector line between steps */}
                 {index < 2 && (
-                  <div className="hidden md:block absolute top-8 left-[60%] w-[80%] h-px bg-gradient-to-r from-[#00205B]/20 to-[#00205B]/20" />
+                  <div className="hidden md:block absolute top-8 left-[60%] w-[80%] h-px bg-gradient-to-r from-[#2196f3]/20 to-[#2196f3]/20" />
                 )}
-                <div className="relative mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#00205B] text-white shadow-lg shadow-[#00205B]/20 group-hover:shadow-xl group-hover:shadow-[#00205B]/30 transition-shadow">
+                <div className="relative mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#2196f3] text-white shadow-lg shadow-[#2196f3]/20 group-hover:shadow-xl group-hover:shadow-[#2196f3]/30 transition-shadow">
                   <item.icon className="h-7 w-7" />
-                  <span className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-[#FFE44D] text-xs font-bold text-[#00205B]">
+                  <span className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-[#b8e07c] text-xs font-bold text-[#2196f3]">
                     {item.step}
                   </span>
                 </div>
@@ -169,9 +169,9 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="relative py-20 bg-[#00205B] overflow-hidden">
+      <section className="relative py-20 bg-[#2196f3] overflow-hidden">
         <div className="absolute inset-0">
-          <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-[#FFE44D]/10 blur-3xl" />
+          <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-[#b8e07c]/10 blur-3xl" />
           <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-white/5 blur-3xl" />
         </div>
         <div className="relative mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
@@ -183,7 +183,7 @@ export default function HomePage() {
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/booking">
-              <Button size="lg" variant="secondary" className="bg-[#FFE44D] text-[#00205B] hover:bg-[#FFD700] font-semibold">
+              <Button size="lg" variant="secondary" className="bg-[#b8e07c] text-[#2196f3] hover:bg-[#a2ce5f] font-semibold">
                 Book Now - It's Free to Schedule
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>

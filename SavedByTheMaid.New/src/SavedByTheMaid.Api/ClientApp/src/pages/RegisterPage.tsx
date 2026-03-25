@@ -64,18 +64,18 @@ export function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#FFE44D]/5 to-blue-100 flex items-center justify-center p-4 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-[#b8e07c]/5 to-blue-100 flex items-center justify-center p-4 py-12">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2">
             {/* 3 Bubbles icon */}
             <svg viewBox="0 0 100 100" fill="none" className="h-10 w-10">
-              <circle cx="58" cy="65" r="24" fill="#00205B"/>
+              <circle cx="58" cy="65" r="24" fill="#2196f3"/>
               <ellipse cx="50" cy="55" rx="7" ry="10" fill="white" opacity="0.35"/>
-              <circle cx="72" cy="32" r="16" fill="#00205B"/>
+              <circle cx="72" cy="32" r="16" fill="#2196f3"/>
               <ellipse cx="66" cy="26" rx="5" ry="7" fill="white" opacity="0.35"/>
-              <circle cx="38" cy="28" r="12" fill="#00205B"/>
+              <circle cx="38" cy="28" r="12" fill="#2196f3"/>
               <ellipse cx="34" cy="24" rx="4" ry="5" fill="white" opacity="0.35"/>
               <g transform="translate(18, 50)">
                 <path d="M0 -6 L0 6 M-6 0 L6 0" stroke="#F7C52D" strokeWidth="2.5" strokeLinecap="round"/>
@@ -108,7 +108,7 @@ export function RegisterPage() {
                     id="firstName"
                     value={formData.firstName}
                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent transition-all"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent transition-all"
                     placeholder="John"
                     required
                   />
@@ -123,7 +123,7 @@ export function RegisterPage() {
                   id="lastName"
                   value={formData.lastName}
                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent transition-all"
                   placeholder="Doe"
                   required
                 />
@@ -142,7 +142,7 @@ export function RegisterPage() {
                   id="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent transition-all"
                   placeholder="you@email.com"
                   required
                 />
@@ -161,7 +161,7 @@ export function RegisterPage() {
                   id="phone"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent transition-all"
                   placeholder="(555) 123-4567"
                   required
                 />
@@ -180,7 +180,7 @@ export function RegisterPage() {
                   id="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent transition-all"
                   placeholder="••••••••"
                   required
                 />
@@ -218,7 +218,7 @@ export function RegisterPage() {
                   id="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent transition-all ${
+                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent transition-all ${
                     formData.confirmPassword.length > 0
                       ? passwordsMatch
                         ? 'border-green-500'
@@ -242,15 +242,15 @@ export function RegisterPage() {
                 type="checkbox"
                 checked={formData.acceptTerms}
                 onChange={(e) => setFormData({ ...formData, acceptTerms: e.target.checked })}
-                className="w-4 h-4 mt-0.5 text-[#00205B] border-gray-300 rounded focus:ring-[#00205B]"
+                className="w-4 h-4 mt-0.5 text-[#2196f3] border-gray-300 rounded focus:ring-[#2196f3]"
               />
               <span className="text-sm text-gray-600">
                 I agree to the{' '}
-                <Link to="/terms" className="text-[#00205B] hover:underline">
+                <Link to="/terms" className="text-[#2196f3] hover:underline">
                   terms of service
                 </Link>{' '}
                 and{' '}
-                <Link to="/privacy" className="text-[#00205B] hover:underline">
+                <Link to="/privacy" className="text-[#2196f3] hover:underline">
                   privacy policy
                 </Link>
               </span>
@@ -260,7 +260,7 @@ export function RegisterPage() {
             <button
               type="submit"
               disabled={isLoading || !allRequirementsMet || !passwordsMatch || !formData.acceptTerms}
-              className="w-full py-3 px-4 bg-[#00205B] hover:bg-[#001440] text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 bg-[#2196f3] hover:bg-[#29338c] text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>
@@ -276,7 +276,7 @@ export function RegisterPage() {
           {/* Login Link */}
           <p className="mt-6 text-center text-sm text-gray-600">
             Already have an account?{' '}
-            <Link to="/login" className="text-[#00205B] hover:text-[#001440] font-medium">
+            <Link to="/login" className="text-[#2196f3] hover:text-[#29338c] font-medium">
               Sign in
             </Link>
           </p>

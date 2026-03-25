@@ -224,7 +224,7 @@ export function AdminBookingsPage() {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-[#00205B] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#2196f3] border-t-transparent rounded-full animate-spin" />
         </div>
       </AdminLayout>
     );
@@ -247,7 +247,7 @@ export function AdminBookingsPage() {
               onClick={() => setFilterStatus(filterStatus === status ? 'all' : status)}
               className={`p-4 rounded-lg border transition-all ${
                 filterStatus === status
-                  ? 'ring-2 ring-[#00205B] border-[#00205B]'
+                  ? 'ring-2 ring-[#2196f3] border-[#2196f3]'
                   : 'hover:border-gray-300'
               } bg-white`}
             >
@@ -275,19 +275,19 @@ export function AdminBookingsPage() {
               placeholder="Search by name, ID or address..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
             />
           </div>
           <input
             type="date"
             value={filterDate}
             onChange={(e) => setFilterDate(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
           />
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
           >
             <option value="all">All statuses</option>
             {Object.entries(statusConfig).map(([status, config]) => (
@@ -349,7 +349,7 @@ export function AdminBookingsPage() {
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => setSelectedBooking(booking)}
-                          className="p-2 text-gray-400 hover:text-[#00205B] hover:bg-[#FFE44D]/10 rounded-lg"
+                          className="p-2 text-gray-400 hover:text-[#2196f3] hover:bg-[#b8e07c]/10 rounded-lg"
                           title="View details"
                         >
                           <Eye className="h-4 w-4" />
@@ -582,7 +582,7 @@ export function AdminBookingsPage() {
                             <div className="flex gap-2">
                               <select
                                 onChange={(e) => assignEmployee(meeting.id, parseInt(e.target.value))}
-                                className="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#00205B]"
+                                className="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#2196f3]"
                                 defaultValue=""
                               >
                                 <option value="" disabled>Select employee...</option>
@@ -609,7 +609,7 @@ export function AdminBookingsPage() {
                               </div>
                               <button
                                 onClick={() => setAssigningMeetingId(meeting.id)}
-                                className="text-sm text-[#00205B] hover:text-[#001440] font-medium"
+                                className="text-sm text-[#2196f3] hover:text-[#29338c] font-medium"
                               >
                                 {meeting.employeeId ? 'Change' : 'Assign'}
                               </button>

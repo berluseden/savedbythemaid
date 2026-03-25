@@ -76,12 +76,12 @@ export default function RegisterPage() {
   );
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#FFE44D]/5 to-blue-100 px-4 py-12">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#b8e07c]/5 to-blue-100 px-4 py-12">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2">
-            <div className="w-12 h-12 bg-[#00205B] rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-[#2196f3] rounded-xl flex items-center justify-center">
               <Sparkles className="w-7 h-7 text-white" />
             </div>
             <span className="text-2xl font-bold text-gray-900">ecoMaid</span>
@@ -209,15 +209,15 @@ export default function RegisterPage() {
 
               <p className="text-xs text-gray-500 text-center">
                 By creating an account, you agree to our{' '}
-                <Link to="/terms" className="text-[#00205B] hover:underline">Terms of Service</Link>
+                <Link to="/terms" className="text-[#2196f3] hover:underline">Terms of Service</Link>
                 {' '}and{' '}
-                <Link to="/privacy" className="text-[#00205B] hover:underline">Privacy Policy</Link>
+                <Link to="/privacy" className="text-[#2196f3] hover:underline">Privacy Policy</Link>
               </p>
             </form>
 
             <div className="mt-6 text-center text-sm text-gray-500">
               Already have an account?{' '}
-              <Link to="/login" className="text-[#00205B] hover:text-[#001440] font-medium">
+              <Link to="/login" className="text-[#2196f3] hover:text-[#29338c] font-medium">
                 Sign in
               </Link>
             </div>

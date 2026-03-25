@@ -16,7 +16,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const baseStyles = 'inline-flex items-center justify-center rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50';
     
     const variants = {
-      primary: 'bg-[#00205B] text-white hover:bg-[#001440] focus-visible:ring-[#00205B]',
+      primary: 'bg-[#2196f3] text-white hover:bg-[#29338c] focus-visible:ring-[#2196f3]',
       secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200 focus-visible:ring-gray-500',
       outline: 'border border-gray-300 bg-transparent hover:bg-gray-100 focus-visible:ring-gray-500',
       ghost: 'hover:bg-gray-100 focus-visible:ring-gray-500',
@@ -75,7 +75,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           className={cn(
             'flex h-10 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors',
             'placeholder:text-gray-400',
-            'focus:outline-none focus:ring-2 focus:ring-[#00205B] focus:border-transparent',
+            'focus:outline-none focus:ring-2 focus:ring-[#2196f3] focus:border-transparent',
             'disabled:cursor-not-allowed disabled:opacity-50',
             error ? 'border-red-500' : 'border-gray-300',
             className
@@ -159,7 +159,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           id={selectId}
           className={cn(
             'flex h-10 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors',
-            'focus:outline-none focus:ring-2 focus:ring-[#00205B] focus:border-transparent',
+            'focus:outline-none focus:ring-2 focus:ring-[#2196f3] focus:border-transparent',
             'disabled:cursor-not-allowed disabled:opacity-50',
             error ? 'border-red-500' : 'border-gray-300',
             className
@@ -225,7 +225,7 @@ export const Spinner = ({ className, size = 'md' }: { className?: string; size?:
 
   return (
     <svg
-      className={cn('animate-spin text-[#00205B]', sizes[size], className)}
+      className={cn('animate-spin text-[#2196f3]', sizes[size], className)}
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"

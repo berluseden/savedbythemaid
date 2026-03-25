@@ -135,7 +135,7 @@ export function AdminAdditionalServicesPage() {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-[#00205B] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#2196f3] border-t-transparent rounded-full animate-spin" />
         </div>
       </AdminLayout>
     );
@@ -152,7 +152,7 @@ export function AdminAdditionalServicesPage() {
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] transition-colors"
           >
             <Plus className="h-5 w-5" />
             New Service
@@ -174,7 +174,7 @@ export function AdminAdditionalServicesPage() {
             placeholder="Search additional services..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
           />
         </div>
 
@@ -198,10 +198,10 @@ export function AdminAdditionalServicesPage() {
           </div>
           <div className="bg-white rounded-lg p-4 border">
             <div className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-[#00205B]" />
+              <DollarSign className="h-5 w-5 text-[#2196f3]" />
               <p className="text-sm text-gray-500">Average Price</p>
             </div>
-            <p className="text-2xl font-bold text-[#00205B] mt-1">
+            <p className="text-2xl font-bold text-[#2196f3] mt-1">
               {formatCurrency(services.length > 0 ? totalRevenue / services.length : 0)}
             </p>
           </div>
@@ -247,7 +247,7 @@ export function AdminAdditionalServicesPage() {
                   </button>
                   <button
                     onClick={() => handleEdit(service)}
-                    className="p-1 text-gray-400 hover:text-[#00205B] hover:bg-[#FFE44D]/10 rounded"
+                    className="p-1 text-gray-400 hover:text-[#2196f3] hover:bg-[#b8e07c]/10 rounded"
                     title="Edit"
                   >
                     <Edit2 className="h-4 w-4" />
@@ -268,9 +268,9 @@ export function AdminAdditionalServicesPage() {
               </p>
 
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="text-center p-2 bg-[#FFE44D]/10 rounded-lg">
-                  <p className="text-[#00205B] text-xs">Price</p>
-                  <p className="font-semibold text-[#001440]">{formatCurrency(service.price)}</p>
+                <div className="text-center p-2 bg-[#b8e07c]/10 rounded-lg">
+                  <p className="text-[#2196f3] text-xs">Price</p>
+                  <p className="font-semibold text-[#29338c]">{formatCurrency(service.price)}</p>
                 </div>
                 <div className="text-center p-2 bg-purple-50 rounded-lg">
                   <p className="text-purple-600 text-xs">Time</p>
@@ -290,7 +290,7 @@ export function AdminAdditionalServicesPage() {
             <p className="text-gray-500">No additional services found</p>
             <button
               onClick={() => setShowModal(true)}
-              className="mt-4 text-[#00205B] hover:underline"
+              className="mt-4 text-[#2196f3] hover:underline"
             >
               Create the first one
             </button>
@@ -345,7 +345,7 @@ export function AdminAdditionalServicesPage() {
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                   placeholder="E.g.: Refrigerator cleaning"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                   required
                 />
               </div>
@@ -356,7 +356,7 @@ export function AdminAdditionalServicesPage() {
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   placeholder="Additional service description"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                   rows={3}
                 />
               </div>
@@ -370,7 +370,7 @@ export function AdminAdditionalServicesPage() {
                     step="0.01"
                     value={form.price}
                     onChange={(e) => setForm({ ...form, price: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                     required
                   />
                 </div>
@@ -382,7 +382,7 @@ export function AdminAdditionalServicesPage() {
                     step="5"
                     value={form.additionalMinutes}
                     onChange={(e) => setForm({ ...form, additionalMinutes: parseInt(e.target.value) || 0 })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#00205B] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                   />
                 </div>
               </div>
@@ -393,7 +393,7 @@ export function AdminAdditionalServicesPage() {
                     type="checkbox"
                     checked={form.isActive}
                     onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-                    className="w-4 h-4 text-[#00205B] border-gray-300 rounded focus:ring-[#00205B]"
+                    className="w-4 h-4 text-[#2196f3] border-gray-300 rounded focus:ring-[#2196f3]"
                   />
                   <span className="text-sm text-gray-700">Active</span>
                 </label>
@@ -410,7 +410,7 @@ export function AdminAdditionalServicesPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 px-4 py-2 bg-[#00205B] text-white rounded-lg hover:bg-[#001440] disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] disabled:opacity-50"
                 >
                   {saving ? 'Saving...' : editingService ? 'Save' : 'Create'}
                 </button>

@@ -64,7 +64,7 @@ export function ReservationTimer({ expiresAt, onExpire, className }: Reservation
       "fixed top-4 right-4 z-40 flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold shadow-lg transition-colors animate-in fade-in slide-in-from-top-4",
       isWarning 
         ? "bg-red-500 text-white animate-pulse" 
-        : "bg-[#00205B] text-white",
+        : "bg-[#2196f3] text-white",
       className
     )}>
       <Clock className="h-4 w-4" />

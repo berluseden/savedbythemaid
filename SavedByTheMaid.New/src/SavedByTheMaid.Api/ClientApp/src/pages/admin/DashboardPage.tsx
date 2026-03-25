@@ -165,7 +165,7 @@ export function AdminDashboardPage() {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-[#00205B] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#2196f3] border-t-transparent rounded-full animate-spin" />
         </div>
       </AdminLayout>
     );
@@ -189,8 +189,8 @@ export function AdminDashboardPage() {
                 <p className="text-sm text-gray-500">Total Bookings</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.totalBookings}</p>
               </div>
-              <div className="w-12 h-12 bg-[#FFE44D]/20 rounded-lg flex items-center justify-center">
-                <Calendar className="h-6 w-6 text-[#00205B]" />
+              <div className="w-12 h-12 bg-[#b8e07c]/20 rounded-lg flex items-center justify-center">
+                <Calendar className="h-6 w-6 text-[#2196f3]" />
               </div>
             </div>
             <div className="mt-4 flex items-center gap-2">
@@ -275,7 +275,7 @@ export function AdminDashboardPage() {
             <div className="p-6 border-b">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-gray-900">Recent Bookings</h2>
-                <a href="/admin/bookings" className="text-sm text-[#00205B] hover:text-[#001440]">
+                <a href="/admin/bookings" className="text-sm text-[#2196f3] hover:text-[#29338c]">
                   View all →
                 </a>
               </div>

@@ -237,9 +237,9 @@ export default function BookingPage() {
                   className={cn(
                     'flex h-10 w-10 items-center justify-center rounded-full border-2 transition-colors',
                     index < currentStepIndex
-                      ? 'border-[#00205B] bg-[#00205B] text-white'
+                      ? 'border-[#2196f3] bg-[#2196f3] text-white'
                       : index === currentStepIndex
-                      ? 'border-[#00205B] bg-white text-[#00205B]'
+                      ? 'border-[#2196f3] bg-white text-[#2196f3]'
                       : 'border-gray-300 bg-white text-gray-400'
                   )}
                 >
@@ -253,7 +253,7 @@ export default function BookingPage() {
                   <div
                     className={cn(
                       'hidden sm:block h-0.5 w-12 lg:w-24',
-                      index < currentStepIndex ? 'bg-[#00205B]' : 'bg-gray-300'
+                      index < currentStepIndex ? 'bg-[#2196f3]' : 'bg-gray-300'
                     )}
                   />
                 )}
@@ -266,7 +266,7 @@ export default function BookingPage() {
                 key={step.id}
                 className={cn(
                   'text-xs font-medium',
-                  index <= currentStepIndex ? 'text-[#00205B]' : 'text-gray-400'
+                  index <= currentStepIndex ? 'text-[#2196f3]' : 'text-gray-400'
                 )}
               >
                 {step.title}
@@ -397,7 +397,7 @@ function ZipCodeStep({
 
   return (
     <div className="text-center max-w-md mx-auto">
-      <MapPin className="mx-auto h-16 w-16 text-[#00205B] mb-6" />
+      <MapPin className="mx-auto h-16 w-16 text-[#2196f3] mb-6" />
       <h2 className="text-2xl font-bold text-gray-900 mb-2">Where do you need cleaning?</h2>
       <p className="text-gray-600 mb-8">Enter your ZIP code to check if we service your area.</p>
 
@@ -470,14 +470,14 @@ function ServiceStep({
             className={cn(
               'p-6 rounded-xl border-2 text-left transition-all',
               selectedId === service.id
-                ? 'border-[#00205B] bg-[#FFE44D]/10 ring-2 ring-[#00205B]/20'
+                ? 'border-[#2196f3] bg-[#b8e07c]/10 ring-2 ring-[#2196f3]/20'
                 : 'border-gray-200 hover:border-gray-300'
             )}
           >
-            <Sparkles className={cn('h-8 w-8 mb-3', selectedId === service.id ? 'text-[#00205B]' : 'text-gray-400')} />
+            <Sparkles className={cn('h-8 w-8 mb-3', selectedId === service.id ? 'text-[#2196f3]' : 'text-gray-400')} />
             <h3 className="font-semibold text-gray-900">{service.name}</h3>
             <p className="text-sm text-gray-600 mt-1">{service.description}</p>
-            <p className="text-lg font-bold text-[#00205B] mt-3">From {formatCurrency(service.price)}</p>
+            <p className="text-lg font-bold text-[#2196f3] mt-3">From {formatCurrency(service.price)}</p>
           </button>
         ))}
       </div>
@@ -589,11 +589,11 @@ function DetailsStep({
                 className={cn(
                   'p-4 rounded-lg border-2 text-center transition-all',
                   data.cleaningPlaceId === place.id
-                    ? 'border-[#00205B] bg-[#FFE44D]/10'
+                    ? 'border-[#2196f3] bg-[#b8e07c]/10'
                     : 'border-gray-200 hover:border-gray-300'
                 )}
               >
-                <Home className={cn('h-6 w-6 mx-auto mb-2', data.cleaningPlaceId === place.id ? 'text-[#00205B]' : 'text-gray-400')} />
+                <Home className={cn('h-6 w-6 mx-auto mb-2', data.cleaningPlaceId === place.id ? 'text-[#2196f3]' : 'text-gray-400')} />
                 <span className="text-sm font-medium">{place.name}</span>
               </button>
             ))}
@@ -668,7 +668,7 @@ function DetailsStep({
                   className={cn(
                     'p-4 rounded-lg border-2 text-left transition-all',
                     data.additionalServiceIds.includes(extra.id)
-                      ? 'border-[#00205B] bg-[#FFE44D]/10'
+                      ? 'border-[#2196f3] bg-[#b8e07c]/10'
                       : 'border-gray-200 hover:border-gray-300'
                   )}
                 >
@@ -679,7 +679,7 @@ function DetailsStep({
                         <p className="text-sm text-gray-500 mt-1">{extra.description}</p>
                       )}
                     </div>
-                    <span className="text-[#00205B] font-semibold">+{formatCurrency(extra.price)}</span>
+                    <span className="text-[#2196f3] font-semibold">+{formatCurrency(extra.price)}</span>
                   </div>
                 </button>
               ))}
@@ -690,7 +690,7 @@ function DetailsStep({
         {/* Price Preview */}
         <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
           <h3 className="font-semibold text-gray-900 mb-2">Estimated Total</h3>
-          <p className="text-2xl font-bold text-[#00205B]">{formatCurrency(previewTotal)}</p>
+          <p className="text-2xl font-bold text-[#2196f3]">{formatCurrency(previewTotal)}</p>
           <p className="text-xs text-gray-500 mt-1">Final price calculated on next step</p>
         </div>
 
@@ -789,7 +789,7 @@ function ScheduleStep({
                 className={cn(
                   'flex-shrink-0 w-16 p-3 rounded-lg border-2 text-center transition-all',
                   isSelected
-                    ? 'border-[#00205B] bg-[#FFE44D]/10'
+                    ? 'border-[#2196f3] bg-[#b8e07c]/10'
                     : 'border-gray-200 hover:border-gray-300'
                 )}
               >
@@ -831,7 +831,7 @@ function ScheduleStep({
                       'p-3 rounded-lg border-2 text-sm font-medium transition-all',
                       !isAvailable && 'opacity-50 cursor-not-allowed bg-gray-100',
                       isSelected
-                        ? 'border-[#00205B] bg-[#FFE44D]/10 text-[#001440]'
+                        ? 'border-[#2196f3] bg-[#b8e07c]/10 text-[#29338c]'
                         : 'border-gray-200 hover:border-gray-300'
                     )}
                   >
@@ -1034,7 +1034,7 @@ function ContactStep({
             onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
           />
           
-          <a href="/forgot-password" className="text-sm text-[#00205B] hover:text-[#001440]">
+          <a href="/forgot-password" className="text-sm text-[#2196f3] hover:text-[#29338c]">
             Forgot your password?
           </a>
           
@@ -1139,7 +1139,7 @@ function ContactStep({
             value={data.specialInstructions}
             onChange={(e) => onChange({ specialInstructions: e.target.value })}
             rows={3}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#00205B]"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2196f3]"
             placeholder="Gate code, parking instructions, pet info, etc."
           />
         </div>
@@ -1225,16 +1225,16 @@ function ConfirmStep({
 
       <div className="space-y-6">
         {/* Schedule Summary */}
-        <div className="bg-[#FFE44D]/10 rounded-xl p-6">
+        <div className="bg-[#b8e07c]/10 rounded-xl p-6">
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#FFE44D]/20">
-              <Calendar className="h-7 w-7 text-[#00205B]" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#b8e07c]/20">
+              <Calendar className="h-7 w-7 text-[#2196f3]" />
             </div>
             <div>
               <p className="text-lg font-semibold text-gray-900">
                 {scheduledDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
               </p>
-              <p className="text-[#00205B] font-medium">
+              <p className="text-[#2196f3] font-medium">
                 {new Date(`2000-01-01T${data.timeSlot}`).toLocaleTimeString('en-US', {
                   hour: 'numeric',
                   minute: '2-digit',
@@ -1275,7 +1275,7 @@ function ConfirmStep({
               </div>
               <div className="border-t pt-2 mt-2 flex justify-between">
                 <span className="font-semibold text-gray-900">Total</span>
-                <span className="text-xl font-bold text-[#00205B]">{formatCurrency(estimate.total)}</span>
+                <span className="text-xl font-bold text-[#2196f3]">{formatCurrency(estimate.total)}</span>
               </div>
             </div>
           </div>
