@@ -20,6 +20,7 @@ public class AdditionalServicesController : ControllerBase
     public async Task<ActionResult<IEnumerable<AdditionalServiceType>>> GetAll()
     {
         return await _context.AdditionalServiceTypes
+            .AsNoTracking()
             .Where(s => !s.IsDeleted)
             .OrderBy(s => s.Title)
             .ToListAsync();
@@ -28,7 +29,9 @@ public class AdditionalServicesController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<AdditionalServiceType>> GetById(int id)
     {
-        var service = await _context.AdditionalServiceTypes.FindAsync(id);
+        var service = await _context.AdditionalServiceTypes
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Id == id);
         return service == null || service.IsDeleted ? NotFound() : service;
     }
 

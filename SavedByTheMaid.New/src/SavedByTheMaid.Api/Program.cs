@@ -93,6 +93,9 @@ builder.Services.AddScoped<IStatusHistoryService, StatusHistoryService>();
 // Booking Service - pricing, confirmation, recurring meeting logic
 builder.Services.AddScoped<IBookingService, BookingService>();
 
+// Order Cancellation Service - shared cancellation logic
+builder.Services.AddScoped<IOrderCancellationService, OrderCancellationService>();
+
 // JWT Authentication
 var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>();
 if (jwtSettings == null || string.IsNullOrEmpty(jwtSettings.Secret))
@@ -270,6 +273,12 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+// HSTS in production
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+
 // Security headers
 app.Use(async (context, next) =>
 {
@@ -277,6 +286,8 @@ app.Use(async (context, next) =>
     context.Response.Headers.Append("X-Frame-Options", "DENY");
     context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
     context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+    context.Response.Headers.Append("Content-Security-Policy",
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'");
     await next();
 });
 

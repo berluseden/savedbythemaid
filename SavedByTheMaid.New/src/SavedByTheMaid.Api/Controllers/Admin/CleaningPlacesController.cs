@@ -20,6 +20,7 @@ public class CleaningPlacesController : ControllerBase
     public async Task<ActionResult<IEnumerable<CleaningPlace>>> GetAll()
     {
         return await _context.CleaningPlaces
+            .AsNoTracking()
             .Where(p => !p.IsDeleted)
             .Include(p => p.Rooms.Where(r => !r.IsDeleted))
             .OrderBy(p => p.Name)
@@ -30,6 +31,7 @@ public class CleaningPlacesController : ControllerBase
     public async Task<ActionResult<CleaningPlace>> GetById(int id)
     {
         var place = await _context.CleaningPlaces
+            .AsNoTracking()
             .Include(p => p.Rooms.Where(r => !r.IsDeleted))
             .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
 
@@ -82,6 +84,7 @@ public class CleaningPlacesController : ControllerBase
     public async Task<ActionResult<IEnumerable<CleaningPlaceRoom>>> GetRooms(int placeId)
     {
         return await _context.CleaningPlaceRooms
+            .AsNoTracking()
             .Where(r => r.CleaningPlaceId == placeId && !r.IsDeleted)
             .OrderBy(r => r.DisplayOrder)
             .ToListAsync();

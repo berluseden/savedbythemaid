@@ -18,17 +18,20 @@ public class AdminOrdersController : ControllerBase
     private readonly ILogger<AdminOrdersController> _logger;
     private readonly ISchedulingService _schedulingService;
     private readonly IStatusHistoryService _statusHistoryService;
+    private readonly IOrderCancellationService _orderCancellationService;
 
     public AdminOrdersController(
         ApplicationDbContext context,
         ILogger<AdminOrdersController> logger,
         ISchedulingService schedulingService,
-        IStatusHistoryService statusHistoryService)
+        IStatusHistoryService statusHistoryService,
+        IOrderCancellationService orderCancellationService)
     {
         _context = context;
         _logger = logger;
         _schedulingService = schedulingService;
         _statusHistoryService = statusHistoryService;
+        _orderCancellationService = orderCancellationService;
     }
 
     [HttpGet]
@@ -59,8 +62,7 @@ public class AdminOrdersController : ControllerBase
             query = query.Where(o => o.ServiceAreaId == serviceAreaId.Value);
 
         return await query
-            .Include(o => o.ServiceArea)
-            .Include(o => o.ServiceType)
+            .AsNoTracking()
             .OrderByDescending(o => o.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -79,7 +81,10 @@ public class AdminOrdersController : ControllerBase
                 OrderStatus = o.OrderStatus,
                 RecurrenceType = o.RecurrenceType,
                 CreatedAt = o.CreatedAt,
-                ScheduledDate = o.Meetings.OrderBy(m => m.ScheduledStart).Select(m => (DateTime?)m.ScheduledStart).FirstOrDefault()
+                ScheduledDate = o.Meetings
+                    .OrderBy(m => m.ScheduledStart)
+                    .Select(m => (DateTime?)m.ScheduledStart)
+                    .FirstOrDefault()
             })
             .ToListAsync();
     }
@@ -88,6 +93,7 @@ public class AdminOrdersController : ControllerBase
     public async Task<ActionResult<ServiceOrder>> GetById(int id)
     {
         var order = await _context.ServiceOrders
+            .AsNoTracking()
             .Include(o => o.Customer)
             .Include(o => o.ServiceArea)
             .Include(o => o.ServiceType)
@@ -146,37 +152,17 @@ public class AdminOrdersController : ControllerBase
     [HttpPost("{id}/cancel")]
     public async Task<IActionResult> CancelOrder(int id, [FromBody] CancelOrderRequest? request = null)
     {
-        var order = await _context.ServiceOrders
-            .Include(o => o.Meetings)
-            .FirstOrDefaultAsync(o => o.Id == id);
+        var adminId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var reason = request?.Reason ?? "Order cancelled by admin";
 
-        if (order == null || order.IsDeleted) return NotFound();
-
-        order.OrderStatus = OrderStatus.Cancelled;
-
-        // Cancel all pending appointments
-        foreach (var meet in order.Meetings.Where(m => 
-            m.Status == MeetStatus.Scheduled || 
-            m.Status == MeetStatus.Assigned ||
-            m.Status == MeetStatus.Rescheduled))
-        {
-            meet.Status = MeetStatus.Cancelled;
-            meet.CancellationReason = request?.Reason ?? "Order cancelled";
-            
-            // Release occupied slots if an employee is assigned
-            if (meet.AssignedEmployeeId.HasValue)
-            {
-                await _schedulingService.ReleaseSlotsAsync(meet.Id, OccupancyType.Meeting);
-            }
-        }
-
-        await _context.SaveChangesAsync();
+        var (success, error) = await _orderCancellationService.CancelOrderAsync(id, reason, adminId);
+        if (!success)
+            return NotFound(new { message = error });
 
         // Record audit trail for cancellation
-        var adminId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         await _statusHistoryService.RecordOrderStatusChangeAsync(
-            id, order.OrderStatus, OrderStatus.Cancelled, adminId,
-            reasonCode: "ADMIN_CANCEL", notes: request?.Reason ?? "Order cancelled by admin");
+            id, OrderStatus.Cancelled, OrderStatus.Cancelled, adminId,
+            reasonCode: "ADMIN_CANCEL", notes: reason);
 
         return NoContent();
     }
@@ -211,6 +197,7 @@ public class AdminOrdersController : ControllerBase
             query = query.Where(m => m.ServiceOrderId == orderId.Value);
 
         return await query
+            .AsNoTracking()
             .Include(m => m.ServiceOrder)
             .Include(m => m.AssignedEmployee)
             .Include(m => m.ServiceArea)
@@ -246,6 +233,7 @@ public class AdminOrdersController : ControllerBase
     public async Task<ActionResult<ServiceMeet>> GetMeetingById(int id)
     {
         var meet = await _context.ServiceMeets
+            .AsNoTracking()
             .Include(m => m.ServiceOrder)
                 .ThenInclude(o => o!.Items)
             .Include(m => m.AssignedEmployee)
@@ -568,6 +556,7 @@ public class AdminOrdersController : ControllerBase
             query = query.Where(m => m.ServiceAreaId == serviceAreaId.Value);
 
         var meetings = await query
+            .AsNoTracking()
             .Include(m => m.AssignedEmployee)
             .Include(m => m.ServiceOrder)
             .ToListAsync();

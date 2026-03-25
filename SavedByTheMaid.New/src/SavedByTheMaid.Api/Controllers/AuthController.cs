@@ -1,10 +1,13 @@
 using System.ComponentModel.DataAnnotations;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using SavedByTheMaid.Api.Auth;
+using SavedByTheMaid.Api.Services;
 using SavedByTheMaid.Domain.Entities;
 using SavedByTheMaid.Infrastructure.Data;
 
@@ -18,17 +21,23 @@ public class AuthController : ControllerBase
     private readonly IJwtService _jwtService;
     private readonly IPasswordHasher<ApplicationUser> _passwordHasher;
     private readonly ILogger<AuthController> _logger;
+    private readonly IEmailService _emailService;
+    private readonly IConfiguration _configuration;
 
     public AuthController(
         ApplicationDbContext context,
         IJwtService jwtService,
         IPasswordHasher<ApplicationUser> passwordHasher,
-        ILogger<AuthController> logger)
+        ILogger<AuthController> logger,
+        IEmailService emailService,
+        IConfiguration configuration)
     {
         _context = context;
         _jwtService = jwtService;
         _passwordHasher = passwordHasher;
         _logger = logger;
+        _emailService = emailService;
+        _configuration = configuration;
     }
 
     /// <summary>
@@ -63,6 +72,7 @@ public class AuthController : ControllerBase
     /// </summary>
     [HttpPost("register")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth-sensitive")]
     public async Task<ActionResult<AuthResponse>> Register([FromBody] RegisterRequest request)
     {
         if (!ModelState.IsValid)
@@ -133,6 +143,7 @@ public class AuthController : ControllerBase
     /// </summary>
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth-sensitive")]
     public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request)
     {
         if (!ModelState.IsValid)
@@ -198,6 +209,7 @@ public class AuthController : ControllerBase
             return NotFound();
 
         var userRoles = await _context.UserRoles
+            .AsNoTracking()
             .Where(ur => ur.UserId == user.Id)
             .Join(_context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => r.Name)
             .ToListAsync();
@@ -246,13 +258,14 @@ public class AuthController : ControllerBase
     /// </summary>
     [HttpPost("forgot-password")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth-sensitive")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
-        
+
         // Always return OK for security (don't reveal if the email exists)
         if (user == null)
         {
@@ -260,16 +273,100 @@ public class AuthController : ControllerBase
             return Ok(new { message = "If the email exists, you will receive a recovery link." });
         }
 
-        // TODO: Generate reset token and send email
-        // For now we just log the request
-        _logger.LogInformation("Password recovery request for: {Email}", request.Email);
+        // Generate a cryptographically secure token
+        var tokenBytes = RandomNumberGenerator.GetBytes(32);
+        var rawToken = Convert.ToBase64String(tokenBytes);
 
-        // Here we would:
-        // 1. Generate reset token with UserManager.GeneratePasswordResetTokenAsync
-        // 2. Save token in DB with expiration
-        // 3. Send email with reset link
+        // Hash the token before storing (SHA256)
+        var tokenHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawToken)));
+
+        // Store the hashed token with 1-hour expiry
+        var resetToken = new PasswordResetToken
+        {
+            UserId = user.Id,
+            TokenHash = tokenHash,
+            ExpiresAt = DateTime.UtcNow.AddHours(1),
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.PasswordResetTokens.Add(resetToken);
+        await _context.SaveChangesAsync();
+
+        // Build the reset link
+        var baseUrl = _configuration["App:FrontendUrl"] ?? "http://localhost:5173";
+        var resetLink = $"{baseUrl}/reset-password?token={Uri.EscapeDataString(rawToken)}";
+
+        // Send reset email
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await _emailService.SendPasswordResetAsync(user.Email!, resetLink);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send password reset email for user {UserId}", user.Id);
+            }
+        });
+
+        _logger.LogInformation("Password recovery token generated for: {Email}", request.Email);
 
         return Ok(new { message = "If the email exists, you will receive a recovery link." });
+    }
+
+    /// <summary>
+    /// Reset password using a token from the forgot-password email
+    /// </summary>
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    [EnableRateLimiting("auth-sensitive")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordWithTokenRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        // Hash the incoming token to compare with stored hash
+        var tokenHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(request.Token)));
+
+        var resetToken = await _context.PasswordResetTokens
+            .Include(t => t.User)
+            .FirstOrDefaultAsync(t => t.TokenHash == tokenHash);
+
+        if (resetToken == null)
+        {
+            _logger.LogWarning("Password reset attempt with invalid token");
+            return BadRequest(new { message = "Invalid or expired reset token." });
+        }
+
+        if (resetToken.ExpiresAt < DateTime.UtcNow)
+        {
+            _logger.LogWarning("Password reset attempt with expired token for user {UserId}", resetToken.UserId);
+            return BadRequest(new { message = "Invalid or expired reset token." });
+        }
+
+        if (resetToken.UsedAt.HasValue)
+        {
+            _logger.LogWarning("Password reset attempt with already-used token for user {UserId}", resetToken.UserId);
+            return BadRequest(new { message = "This reset token has already been used." });
+        }
+
+        var user = resetToken.User;
+        if (user == null)
+        {
+            return BadRequest(new { message = "Invalid or expired reset token." });
+        }
+
+        // Update the password
+        user.PasswordHash = _passwordHasher.HashPassword(user, request.NewPassword);
+
+        // Mark token as used
+        resetToken.UsedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Password successfully reset for user {UserId}", user.Id);
+
+        return Ok(new { message = "Password has been reset successfully." });
     }
 }
 
@@ -315,6 +412,16 @@ public record ChangePasswordRequest
 {
     [Required(ErrorMessage = "Current password is required")]
     public string CurrentPassword { get; init; } = "";
+
+    [Required(ErrorMessage = "New password is required")]
+    [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be between 8 and 100 characters")]
+    public string NewPassword { get; init; } = "";
+}
+
+public record ResetPasswordWithTokenRequest
+{
+    [Required(ErrorMessage = "Token is required")]
+    public string Token { get; init; } = "";
 
     [Required(ErrorMessage = "New password is required")]
     [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be between 8 and 100 characters")]

@@ -53,6 +53,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<OrderStatusHistory> OrderStatusHistories => Set<OrderStatusHistory>();
     public DbSet<MeetStatusHistory> MeetStatusHistories => Set<MeetStatusHistory>();
 
+    // Password Reset Tokens
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -149,6 +152,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<ServiceMeet>()
             .HasIndex(sm => new { sm.ServiceAreaId, sm.ScheduledStart });
 
+        // ServiceOrder - index for customer lookups
+        builder.Entity<ServiceOrder>()
+            .HasIndex(so => so.CustomerId);
+
         // ServiceOrder - index for admin listings sorted by date
         builder.Entity<ServiceOrder>()
             .HasIndex(so => so.CreatedAt)
@@ -173,6 +180,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<MeetStatusHistory>()
             .HasIndex(h => h.ChangedAt)
             .IsDescending();
+
+        // PasswordResetToken - index for token lookup
+        builder.Entity<PasswordResetToken>()
+            .HasIndex(t => t.TokenHash);
+
+        builder.Entity<PasswordResetToken>()
+            .HasIndex(t => t.UserId);
+
+        builder.Entity<PasswordResetToken>()
+            .HasIndex(t => t.ExpiresAt);
 
         // ========== RELATIONSHIPS ==========
 
@@ -202,6 +219,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasOne(so => so.Employee)
             .WithMany()
             .HasForeignKey(so => so.EmployeeId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // PasswordResetToken -> User
+        builder.Entity<PasswordResetToken>()
+            .HasOne(t => t.User)
+            .WithMany()
+            .HasForeignKey(t => t.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // ServiceOrder -> Customer
@@ -309,6 +333,30 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<ServiceMeet>()
             .Property(m => m.CheckOutLongitude).HasPrecision(10, 7);
     }
+
+    // ========== COMPILED QUERIES ==========
+    // Frequently used lookups pre-compiled for performance
+
+    /// <summary>
+    /// Compiled query: Get employee by ID (non-deleted)
+    /// </summary>
+    public static readonly Func<ApplicationDbContext, int, Task<Employee?>> GetEmployeeByIdAsync =
+        EF.CompileAsyncQuery((ApplicationDbContext ctx, int id) =>
+            ctx.Employees.FirstOrDefault(e => e.Id == id && !e.IsDeleted));
+
+    /// <summary>
+    /// Compiled query: Get service order by ID (non-deleted)
+    /// </summary>
+    public static readonly Func<ApplicationDbContext, int, Task<ServiceOrder?>> GetOrderByIdAsync =
+        EF.CompileAsyncQuery((ApplicationDbContext ctx, int id) =>
+            ctx.ServiceOrders.FirstOrDefault(o => o.Id == id && !o.IsDeleted));
+
+    /// <summary>
+    /// Compiled query: Get service area zip by zip code
+    /// </summary>
+    public static readonly Func<ApplicationDbContext, string, Task<ServiceAreaZip?>> GetServiceAreaZipAsync =
+        EF.CompileAsyncQuery((ApplicationDbContext ctx, string zipCode) =>
+            ctx.ServiceAreaZips.FirstOrDefault(z => z.ZipCode == zipCode && !z.IsDeleted));
 
     public override int SaveChanges()
     {

@@ -128,6 +128,61 @@ public class EmailService : IEmailService
         await SendEmailAsync(email, subject, body);
     }
 
+    public async Task SendPasswordResetAsync(string email, string resetLink)
+    {
+        var subject = "Reset Your Password - SavedByTheMaid";
+        var body = $@"
+            <html>
+            <body style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                <div style='background-color: #0ea5e9; padding: 20px; text-align: center;'>
+                    <h1 style='color: white; margin: 0;'>Password Reset Request</h1>
+                </div>
+                <div style='padding: 20px; background-color: #f8fafc;'>
+                    <p>Hi,</p>
+                    <p>We received a request to reset your password. Click the link below to set a new password:</p>
+
+                    <div style='text-align: center; margin: 30px 0;'>
+                        <a href='{resetLink}' style='display: inline-block; background-color: #0ea5e9; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;'>Reset Password</a>
+                    </div>
+
+                    <p>This link will expire in 1 hour.</p>
+                    <p>If you did not request a password reset, you can safely ignore this email.</p>
+
+                    <p>Thank you,<br/>SavedByTheMaid Team</p>
+                </div>
+                <div style='background-color: #1e293b; padding: 15px; text-align: center; color: #94a3b8; font-size: 12px;'>
+                    <p>SavedByTheMaid - Professional Cleaning Services</p>
+                </div>
+            </body>
+            </html>";
+
+        await SendEmailAsync(email, subject, body);
+    }
+
+    public async Task SendContactFormAsync(string adminEmail, ContactFormEmail data)
+    {
+        var subject = $"Contact Form: Message from {data.Name}";
+        var body = $@"
+            <html>
+            <body style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                <div style='background-color: #0ea5e9; padding: 20px; text-align: center;'>
+                    <h1 style='color: white; margin: 0;'>New Contact Form Submission</h1>
+                </div>
+                <div style='padding: 20px; background-color: #f8fafc;'>
+                    <div style='background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0;'>
+                        <p><strong>Name:</strong> {data.Name}</p>
+                        <p><strong>Email:</strong> {data.Email}</p>
+                        <hr style='margin: 15px 0; border: none; border-top: 1px solid #e5e7eb;' />
+                        <p><strong>Message:</strong></p>
+                        <p>{data.Message}</p>
+                    </div>
+                </div>
+            </body>
+            </html>";
+
+        await SendEmailAsync(adminEmail, subject, body);
+    }
+
     private async Task SendEmailAsync(string toEmail, string subject, string htmlBody)
     {
         var smtpHost = _config["Email:SmtpHost"];

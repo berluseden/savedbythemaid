@@ -228,6 +228,7 @@ public class UsersController : ControllerBase
     public async Task<ActionResult<IEnumerable<RoleDto>>> GetRoles()
     {
         var roles = await _roleManager.Roles
+            .AsNoTracking()
             .OrderBy(r => r.Name)
             .Select(r => new RoleDto
             {

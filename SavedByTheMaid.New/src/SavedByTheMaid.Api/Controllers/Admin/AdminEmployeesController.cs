@@ -26,6 +26,7 @@ public class AdminEmployeesController : ControllerBase
             query = query.Where(e => e.IsActive == isActive.Value);
 
         return await query
+            .AsNoTracking()
             .Include(e => e.PrimaryServiceArea)
             .Include(e => e.ServiceAreas)
                 .ThenInclude(sa => sa.ServiceArea)
@@ -50,6 +51,7 @@ public class AdminEmployeesController : ControllerBase
     public async Task<ActionResult<Employee>> GetById(int id)
     {
         var employee = await _context.Employees
+            .AsNoTracking()
             .Include(e => e.PrimaryServiceArea)
             .Include(e => e.ServiceAreas).ThenInclude(sa => sa.ServiceArea)
             .Include(e => e.Schedules)
@@ -204,6 +206,7 @@ public class AdminEmployeesController : ControllerBase
     public async Task<ActionResult<IEnumerable<EmployeeTimeOff>>> GetTimeOffs(int id, [FromQuery] DateTime? from = null)
     {
         var query = _context.EmployeeTimeOffs
+            .AsNoTracking()
             .Where(t => t.EmployeeId == id && !t.IsDeleted);
 
         if (from.HasValue)
@@ -253,6 +256,7 @@ public class AdminEmployeesController : ControllerBase
     public async Task<ActionResult<IEnumerable<EmployeeSchedule>>> GetSchedules(int id)
     {
         return await _context.EmployeeSchedules
+            .AsNoTracking()
             .Where(s => s.EmployeeId == id && !s.IsDeleted)
             .OrderBy(s => s.DayOfWeek)
             .ToListAsync();
