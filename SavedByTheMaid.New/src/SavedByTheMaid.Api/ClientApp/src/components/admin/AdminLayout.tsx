@@ -49,10 +49,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
   return (
     <div className="min-h-screen bg-gray-100">
+      <a href="#admin-main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-white focus:text-brand">
+        Skip to main content
+      </a>
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          aria-hidden="true"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -72,13 +76,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           <button
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden p-2 text-gray-500 hover:text-gray-700"
+            aria-label="Close sidebar"
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-4 py-6 space-y-1">
+        <nav aria-label="Admin navigation" className="flex-1 px-4 py-6 space-y-1">
           {navigation.map((item) => {
             const isActive = location.pathname === item.href;
             return (
@@ -91,7 +96,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
-                <item.icon className="h-5 w-5" />
+                <item.icon className="h-5 w-5" aria-hidden="true" />
                 <span className="font-medium">{item.name}</span>
               </Link>
             );
@@ -104,7 +109,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             onClick={handleLogout}
             className="flex items-center gap-3 w-full px-4 py-3 text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-lg transition-colors"
           >
-            <LogOut className="h-5 w-5" />
+            <LogOut className="h-5 w-5" aria-hidden="true" />
             <span className="font-medium">Sign Out</span>
           </button>
         </div>
@@ -119,14 +124,16 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             <button
               onClick={() => setSidebarOpen(true)}
               className="lg:hidden p-2 text-gray-500 hover:text-gray-700"
+              aria-label="Open sidebar"
             >
-              <Menu className="h-6 w-6" />
+              <Menu className="h-6 w-6" aria-hidden="true" />
             </button>
 
             {/* Search (placeholder) */}
             <div className="flex-1 max-w-md mx-4 lg:mx-0">
               <input
                 type="search"
+                aria-label="Search"
                 placeholder="Search..."
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
               />
@@ -135,15 +142,18 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             {/* Right side */}
             <div className="flex items-center gap-4">
               {/* Notifications */}
-              <button className="relative p-2 text-gray-500 hover:text-gray-700">
-                <Bell className="h-6 w-6" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+              <button className="relative p-2 text-gray-500 hover:text-gray-700" aria-label="Notifications">
+                <Bell className="h-6 w-6" aria-hidden="true" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" aria-hidden="true" />
               </button>
 
               {/* User menu */}
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  aria-expanded={userMenuOpen}
+                  aria-haspopup="true"
+                  aria-label="User menu"
                   className="flex items-center gap-2 p-2 text-gray-700 hover:bg-gray-50 rounded-lg"
                 >
                   <div className="w-8 h-8 bg-brand rounded-full flex items-center justify-center text-white font-medium">
@@ -152,7 +162,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                   <span className="hidden sm:block font-medium">
                     {user?.firstName || 'Admin'}
                   </span>
-                  <ChevronDown className="h-4 w-4" />
+                  <ChevronDown className="h-4 w-4" aria-hidden="true" />
                 </button>
 
                 {userMenuOpen && (
@@ -160,8 +170,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                     <div
                       className="fixed inset-0 z-40"
                       onClick={() => setUserMenuOpen(false)}
+                      aria-hidden="true"
                     />
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
+                    <div role="menu" className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
                       <div className="p-3 border-b">
                         <p className="font-medium text-gray-900">
                           {user?.firstName} {user?.lastName}
@@ -192,7 +203,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         </header>
 
         {/* Page content */}
-        <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+        <main id="admin-main-content" className="p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );

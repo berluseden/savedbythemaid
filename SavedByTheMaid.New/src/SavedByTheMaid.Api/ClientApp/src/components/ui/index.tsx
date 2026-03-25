@@ -1,15 +1,54 @@
 import React, { forwardRef } from 'react';
 import { cn } from '@/lib/utils';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
 
 // ==========================================
-// Re-export new standalone component files
+// Button Component
 // ==========================================
 
-export { Button, buttonVariants, type ButtonProps } from './Button';
-export { ConfirmDialog, type ConfirmDialogProps } from './ConfirmDialog';
-export { FormField, type FormFieldProps } from './FormField';
-export { Spinner, type SpinnerProps } from './Spinner';
-export { StatusBadge, type StatusBadgeProps } from './StatusBadge';
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+  size?: 'sm' | 'md' | 'lg';
+  loading?: boolean;
+}
+
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant = 'primary', size = 'md', loading, children, disabled, ...props }, ref) => {
+    const baseStyles = 'inline-flex items-center justify-center rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50';
+    
+    const variants = {
+      primary: 'bg-[#2196f3] text-white hover:bg-[#29338c] focus-visible:ring-[#2196f3]',
+      secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200 focus-visible:ring-gray-500',
+      outline: 'border border-gray-300 bg-transparent hover:bg-gray-100 focus-visible:ring-gray-500',
+      ghost: 'hover:bg-gray-100 focus-visible:ring-gray-500',
+      danger: 'bg-red-500 text-white hover:bg-red-600 focus-visible:ring-red-500',
+    };
+
+    const sizes = {
+      sm: 'h-8 px-3 text-sm',
+      md: 'h-10 px-4 text-sm',
+      lg: 'h-12 px-6 text-base',
+    };
+
+    return (
+      <button
+        ref={ref}
+        className={cn(baseStyles, variants[variant], sizes[size], className)}
+        disabled={disabled || loading}
+        {...props}
+      >
+        {loading && (
+          <svg className="mr-2 h-4 w-4 animate-spin" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+        )}
+        {children}
+      </button>
+    );
+  }
+);
+Button.displayName = 'Button';
 
 // ==========================================
 // Input Component
@@ -23,34 +62,28 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, label, error, id, ...props }, ref) => {
     const inputId = id || label?.toLowerCase().replace(/\s/g, '-');
-
+    
     return (
       <div className="space-y-1">
         {label && (
-          <label htmlFor={inputId} className="block text-sm font-medium text-text-secondary">
+          <label htmlFor={inputId} className="block text-sm font-medium text-gray-700">
             {label}
           </label>
         )}
         <input
           ref={ref}
           id={inputId}
-          aria-invalid={!!error || undefined}
-          aria-describedby={error ? `${inputId}-error` : undefined}
           className={cn(
-            'flex h-10 w-full rounded-lg border bg-surface px-3 py-2 text-sm transition-colors',
-            'placeholder:text-muted',
-            'focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent',
+            'flex h-10 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors',
+            'placeholder:text-gray-400',
+            'focus:outline-none focus:ring-2 focus:ring-[#2196f3] focus:border-transparent',
             'disabled:cursor-not-allowed disabled:opacity-50',
-            error ? 'border-danger' : 'border-border',
+            error ? 'border-red-500' : 'border-gray-300',
             className
           )}
           {...props}
         />
-        {error && (
-          <p id={`${inputId}-error`} className="text-sm text-danger" role="alert">
-            {error}
-          </p>
-        )}
+        {error && <p className="text-sm text-red-500">{error}</p>}
       </div>
     );
   }
@@ -70,7 +103,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
     <div
       ref={ref}
       className={cn(
-        'rounded-xl border border-border bg-surface shadow-sm',
+        'rounded-xl border border-gray-200 bg-white shadow-sm',
         hover && 'transition-shadow hover:shadow-md cursor-pointer',
         className
       )}
@@ -89,7 +122,7 @@ CardHeader.displayName = 'CardHeader';
 
 export const CardTitle = forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTMLHeadingElement>>(
   ({ className, ...props }, ref) => (
-    <h3 ref={ref} className={cn('text-lg font-semibold text-text-primary', className)} {...props} />
+    <h3 ref={ref} className={cn('text-lg font-semibold text-gray-900', className)} {...props} />
   )
 );
 CardTitle.displayName = 'CardTitle';
@@ -114,24 +147,22 @@ export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElemen
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   ({ className, label, error, options, id, ...props }, ref) => {
     const selectId = id || label?.toLowerCase().replace(/\s/g, '-');
-
+    
     return (
       <div className="space-y-1">
         {label && (
-          <label htmlFor={selectId} className="block text-sm font-medium text-text-secondary">
+          <label htmlFor={selectId} className="block text-sm font-medium text-gray-700">
             {label}
           </label>
         )}
         <select
           ref={ref}
           id={selectId}
-          aria-invalid={!!error || undefined}
-          aria-describedby={error ? `${selectId}-error` : undefined}
           className={cn(
-            'flex h-10 w-full rounded-lg border bg-surface px-3 py-2 text-sm transition-colors',
-            'focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent',
+            'flex h-10 w-full rounded-lg border bg-white px-3 py-2 text-sm transition-colors',
+            'focus:outline-none focus:ring-2 focus:ring-[#2196f3] focus:border-transparent',
             'disabled:cursor-not-allowed disabled:opacity-50',
-            error ? 'border-danger' : 'border-border',
+            error ? 'border-red-500' : 'border-gray-300',
             className
           )}
           {...props}
@@ -142,11 +173,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             </option>
           ))}
         </select>
-        {error && (
-          <p id={`${selectId}-error`} className="text-sm text-danger" role="alert">
-            {error}
-          </p>
-        )}
+        {error && <p className="text-sm text-red-500">{error}</p>}
       </div>
     );
   }
@@ -187,6 +214,34 @@ export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
 Badge.displayName = 'Badge';
 
 // ==========================================
+// Spinner Component
+// ==========================================
+
+export const Spinner = ({ className, size = 'md' }: { className?: string; size?: 'sm' | 'md' | 'lg' }) => {
+  const sizes = {
+    sm: 'h-4 w-4',
+    md: 'h-8 w-8',
+    lg: 'h-12 w-12',
+  };
+
+  return (
+    <svg
+      className={cn('animate-spin text-[#2196f3]', sizes[size], className)}
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+      />
+    </svg>
+  );
+};
+
+// ==========================================
 // Modal Component
 // ==========================================
 
@@ -198,43 +253,15 @@ export interface ModalProps {
   showCloseButton?: boolean;
 }
 
-export const Modal = ({ isOpen, onClose, title, children, showCloseButton = true }: ModalProps) => {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/50 transition-opacity"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative w-full max-w-md transform rounded-xl bg-surface p-6 shadow-xl transition-all">
-          {/* Header */}
-          {(title || showCloseButton) && (
-            <div className="flex items-center justify-between mb-4">
-              {title && <h3 className="text-lg font-semibold text-text-primary">{title}</h3>}
-              {showCloseButton && (
-                <button
-                  onClick={onClose}
-                  aria-label="Close dialog"
-                  className="rounded-full p-1 text-muted hover:bg-surface-secondary hover:text-text-primary"
-                >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Content */}
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-};
+export const Modal = ({ isOpen, onClose, title, children, showCloseButton = true }: ModalProps) => (
+  <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <DialogContent hideCloseButton={!showCloseButton} className="max-w-md">
+      {(title || showCloseButton) && (
+        <DialogHeader>
+          {title && <DialogTitle>{title}</DialogTitle>}
+        </DialogHeader>
+      )}
+      {children}
+    </DialogContent>
+  </Dialog>
+);

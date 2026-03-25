@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Plus,
   Search,
@@ -12,9 +14,11 @@ import {
   ToggleRight,
 } from 'lucide-react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
-import { useCRUD } from '@/shared/hooks/use-crud';
-import { useFormModal } from '@/shared/hooks/use-form-modal';
-import { getErrorMessage } from '@/shared/lib/error-utils';
+import api from '../../lib/api';
+import {
+  additionalServiceSchema,
+  type AdditionalServiceFormData,
+} from '@/shared/schemas/admin.schema';
 
 interface AdditionalService {
   id: number;
@@ -25,80 +29,105 @@ interface AdditionalService {
   isActive: boolean;
 }
 
-export function AdminAdditionalServicesPage() {
-  const { data: services, isLoading, create, update, remove } = useCRUD<AdditionalService>({
-    endpoint: '/admin/additionalservices',
-    queryKey: ['admin', 'additional-services'],
-  });
+const defaultValues: AdditionalServiceFormData = {
+  title: '',
+  description: '',
+  price: 0,
+  additionalMinutes: 30,
+  isActive: true,
+};
 
-  const modal = useFormModal<AdditionalService>();
+export function AdminAdditionalServicesPage() {
+  const [services, setServices] = useState<AdditionalService[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [editingService, setEditingService] = useState<AdditionalService | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const [form, setForm] = useState({
-    title: '',
-    description: '',
-    price: 0,
-    additionalMinutes: 30,
-    isActive: true,
+  const form = useForm<AdditionalServiceFormData>({
+    resolver: zodResolver(additionalServiceSchema),
+    defaultValues,
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+  useEffect(() => {
+    fetchServices();
+  }, []);
 
+  const fetchServices = async () => {
+    setIsLoading(true);
     try {
-      if (modal.isEditing && modal.editingItem) {
-        await update.mutateAsync({ ...form, id: modal.editingItem.id } as AdditionalService);
-      } else {
-        await create.mutateAsync(form);
-      }
-      closeModal();
-    } catch (err) {
-      setError(getErrorMessage(err, 'Error saving additional service'));
+      const response = await api.get<AdditionalService[]>('/admin/additionalservices');
+      setServices(response.data);
+    } catch (_err) {
+      setError('Error loading additional services');
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const onSubmit = form.handleSubmit(async (data) => {
+    setSaving(true);
+    setError('');
+
+    try {
+      if (editingService) {
+        await api.put(`/admin/additionalservices/${editingService.id}`, data);
+      } else {
+        await api.post('/admin/additionalservices', data);
+      }
+      await fetchServices();
+      closeModal();
+    } catch (_err) {
+      setError('Error saving additional service');
+    } finally {
+      setSaving(false);
+    }
+  });
+
   const handleEdit = (service: AdditionalService) => {
-    setForm({
+    setEditingService(service);
+    form.reset({
       title: service.title,
       description: service.description || '',
       price: service.price,
       additionalMinutes: service.additionalMinutes,
       isActive: service.isActive,
     });
-    modal.open(service);
+    setShowModal(true);
   };
 
   const handleDelete = async (id: number) => {
     try {
-      await remove.mutateAsync(id);
+      await api.delete(`/admin/additionalservices/${id}`);
+      await fetchServices();
       setDeleteConfirm(null);
-    } catch (err) {
-      setError(getErrorMessage(err, 'Error deleting service'));
+    } catch (_err) {
+      setError('Error deleting service');
     }
   };
 
   const handleToggleActive = async (service: AdditionalService) => {
     try {
-      await update.mutateAsync({
-        ...service,
+      await api.put(`/admin/additionalservices/${service.id}`, {
+        title: service.title,
+        description: service.description,
+        price: service.price,
+        additionalMinutes: service.additionalMinutes,
         isActive: !service.isActive,
       });
-    } catch (err) {
-      setError(getErrorMessage(err, 'Error updating service'));
+      await fetchServices();
+    } catch (_err) {
+      setError('Error updating service');
     }
   };
 
-  const openCreateModal = () => {
-    setForm({ title: '', description: '', price: 0, additionalMinutes: 30, isActive: true });
-    modal.open();
-  };
-
   const closeModal = () => {
-    modal.close();
-    setForm({ title: '', description: '', price: 0, additionalMinutes: 30, isActive: true });
+    setShowModal(false);
+    setEditingService(null);
+    form.reset(defaultValues);
   };
 
   const filteredServices = services.filter(
@@ -112,13 +141,11 @@ export function AdminAdditionalServicesPage() {
 
   const totalRevenue = services.reduce((acc, s) => acc + s.price, 0);
 
-  const saving = create.isPending || update.isPending;
-
   if (isLoading) {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#2196f3] border-t-transparent rounded-full animate-spin" />
         </div>
       </AdminLayout>
     );
@@ -134,8 +161,8 @@ export function AdminAdditionalServicesPage() {
             <p className="text-gray-600">Manage extra services that can be added to bookings</p>
           </div>
           <button
-            onClick={openCreateModal}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors"
+            onClick={() => { form.reset(defaultValues); setShowModal(true); }}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] transition-colors"
           >
             <Plus className="h-5 w-5" />
             New Service
@@ -157,7 +184,7 @@ export function AdminAdditionalServicesPage() {
             placeholder="Search additional services..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
           />
         </div>
 
@@ -181,10 +208,10 @@ export function AdminAdditionalServicesPage() {
           </div>
           <div className="bg-white rounded-lg p-4 border">
             <div className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-brand" />
+              <DollarSign className="h-5 w-5 text-[#2196f3]" />
               <p className="text-sm text-gray-500">Average Price</p>
             </div>
-            <p className="text-2xl font-bold text-brand mt-1">
+            <p className="text-2xl font-bold text-[#2196f3] mt-1">
               {formatCurrency(services.length > 0 ? totalRevenue / services.length : 0)}
             </p>
           </div>
@@ -230,7 +257,7 @@ export function AdminAdditionalServicesPage() {
                   </button>
                   <button
                     onClick={() => handleEdit(service)}
-                    className="p-1 text-gray-400 hover:text-brand hover:bg-accent-light/10 rounded"
+                    className="p-1 text-gray-400 hover:text-[#2196f3] hover:bg-[#b8e07c]/10 rounded"
                     title="Edit"
                   >
                     <Edit2 className="h-4 w-4" />
@@ -251,9 +278,9 @@ export function AdminAdditionalServicesPage() {
               </p>
 
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="text-center p-2 bg-accent-light/10 rounded-lg">
-                  <p className="text-brand text-xs">Price</p>
-                  <p className="font-semibold text-brand-dark">{formatCurrency(service.price)}</p>
+                <div className="text-center p-2 bg-[#b8e07c]/10 rounded-lg">
+                  <p className="text-[#2196f3] text-xs">Price</p>
+                  <p className="font-semibold text-[#29338c]">{formatCurrency(service.price)}</p>
                 </div>
                 <div className="text-center p-2 bg-purple-50 rounded-lg">
                   <p className="text-purple-600 text-xs">Time</p>
@@ -272,8 +299,8 @@ export function AdminAdditionalServicesPage() {
             <Sparkles className="h-12 w-12 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500">No additional services found</p>
             <button
-              onClick={openCreateModal}
-              className="mt-4 text-brand hover:underline"
+              onClick={() => { form.reset(defaultValues); setShowModal(true); }}
+              className="mt-4 text-[#2196f3] hover:underline"
             >
               Create the first one
             </button>
@@ -308,40 +335,47 @@ export function AdminAdditionalServicesPage() {
       )}
 
       {/* Create/Edit Modal */}
-      {modal.isOpen && (
+      {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
             <div className="flex items-center justify-between p-6 border-b">
               <h2 className="text-xl font-semibold text-gray-900">
-                {modal.isEditing ? 'Edit Additional Service' : 'New Additional Service'}
+                {editingService ? 'Edit Additional Service' : 'New Additional Service'}
               </h2>
               <button onClick={closeModal} className="p-2 text-gray-400 hover:text-gray-600">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={onSubmit} className="p-6 space-y-4">
+              {form.formState.errors.root && (
+                <p className="text-sm text-red-500">{form.formState.errors.root.message}</p>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Title *</label>
                 <input
                   type="text"
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  {...form.register('title')}
                   placeholder="E.g.: Refrigerator cleaning"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
-                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                 />
+                {form.formState.errors.title && (
+                  <p className="text-sm text-red-500 mt-1">{form.formState.errors.title.message}</p>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                 <textarea
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  {...form.register('description')}
                   placeholder="Additional service description"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                   rows={3}
                 />
+                {form.formState.errors.description && (
+                  <p className="text-sm text-red-500 mt-1">{form.formState.errors.description.message}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -351,11 +385,12 @@ export function AdminAdditionalServicesPage() {
                     type="number"
                     min="0"
                     step="0.01"
-                    value={form.price}
-                    onChange={(e) => setForm({ ...form, price: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
-                    required
+                    {...form.register('price', { valueAsNumber: true })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                   />
+                  {form.formState.errors.price && (
+                    <p className="text-sm text-red-500 mt-1">{form.formState.errors.price.message}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Extra minutes</label>
@@ -363,20 +398,21 @@ export function AdminAdditionalServicesPage() {
                     type="number"
                     min="0"
                     step="5"
-                    value={form.additionalMinutes}
-                    onChange={(e) => setForm({ ...form, additionalMinutes: parseInt(e.target.value) || 0 })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                    {...form.register('additionalMinutes', { valueAsNumber: true })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                   />
+                  {form.formState.errors.additionalMinutes && (
+                    <p className="text-sm text-red-500 mt-1">{form.formState.errors.additionalMinutes.message}</p>
+                  )}
                 </div>
               </div>
 
-              {modal.isEditing && (
+              {editingService && (
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={form.isActive}
-                    onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-                    className="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand"
+                    {...form.register('isActive')}
+                    className="w-4 h-4 text-[#2196f3] border-gray-300 rounded focus:ring-[#2196f3]"
                   />
                   <span className="text-sm text-gray-700">Active</span>
                 </label>
@@ -393,9 +429,9 @@ export function AdminAdditionalServicesPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] disabled:opacity-50"
                 >
-                  {saving ? 'Saving...' : modal.isEditing ? 'Save' : 'Create'}
+                  {saving ? 'Saving...' : editingService ? 'Save' : 'Create'}
                 </button>
               </div>
             </form>

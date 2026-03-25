@@ -157,7 +157,7 @@ export function ProfilePage() {
 
         {/* Success Message */}
         {success && (
-          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
+          <div role="status" className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
             <CheckCircle className="w-5 h-5 text-green-500" />
             <p className="text-green-700">{success}</p>
           </div>
@@ -165,10 +165,10 @@ export function ProfilePage() {
 
         {/* Error Message */}
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+          <div role="alert" className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
             <AlertCircle className="w-5 h-5 text-red-500" />
             <p className="text-red-700">{error}</p>
-            <button onClick={() => setError('')} className="ml-auto text-red-500">
+            <button onClick={() => setError('')} className="ml-auto text-red-500" aria-label="Dismiss">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -202,7 +202,7 @@ export function ProfilePage() {
             {/* Personal Information */}
             <section>
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <User className="w-5 h-5 text-brand" />
+                <User className="w-5 h-5 text-brand" aria-hidden="true" />
                 Personal Information
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -240,7 +240,7 @@ export function ProfilePage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                    <Mail className="w-4 h-4" /> Email
+                    <Mail className="w-4 h-4" aria-hidden="true" /> Email
                   </label>
                   <p className="text-gray-900 py-2">{profile.email}</p>
                   {isEditing && (
@@ -250,7 +250,7 @@ export function ProfilePage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                    <Phone className="w-4 h-4" /> Phone
+                    <Phone className="w-4 h-4" aria-hidden="true" /> Phone
                   </label>
                   {isEditing ? (
                     <input
@@ -270,7 +270,7 @@ export function ProfilePage() {
             {/* Address */}
             <section>
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-brand" />
+                <MapPin className="w-5 h-5 text-brand" aria-hidden="true" />
                 Address
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -357,7 +357,7 @@ export function ProfilePage() {
                   disabled={isSaving}
                   className="px-6 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors flex items-center gap-2 disabled:opacity-50"
                 >
-                  <Save className="w-4 h-4" />
+                  <Save className="w-4 h-4" aria-hidden="true" />
                   {isSaving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>

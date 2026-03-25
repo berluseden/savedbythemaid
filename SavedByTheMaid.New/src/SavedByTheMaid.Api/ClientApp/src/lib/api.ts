@@ -1,16 +1,62 @@
 import axios from 'axios';
 import { pushToast } from '@/lib/toast';
-import { authStorage } from '@/lib/auth-storage';
-import { getErrorMessage } from '@/lib/errors';
+import { authStorage } from '@/shared/lib/auth-storage';
+import { getErrorMessage } from '@/shared/lib/error-utils';
+
+import type {
+  CoverageResponse,
+  ServiceType,
+  CleaningPlace,
+  EstimateRequest,
+  EstimateResponse,
+  AvailabilityResponse,
+  SoftReserveRequest,
+  SoftReserveResponse,
+  ConfirmBookingRequest,
+  BookingConfirmation,
+  AdditionalService,
+  RecurrenceDiscount,
+  LoginRequest,
+  RegisterRequest,
+  AuthResponse,
+  UserInfo,
+} from '@/shared/types/api.types';
+
+// Re-export all types for backward compatibility
+export type {
+  CoverageResponse,
+  ServiceType,
+  CleaningPlace,
+  CleaningPlaceRoom,
+  RoomSelection,
+  EstimateRequest,
+  EstimateResponse,
+  AvailabilityResponse,
+  TimeSlotDto,
+  SoftReserveRequest,
+  SoftReserveResponse,
+  ConfirmBookingRequest,
+  BookingConfirmation,
+  AdditionalService,
+  RecurrenceDiscount,
+  LoginRequest,
+  RegisterRequest,
+  AuthResponse,
+  UserInfo,
+  User,
+} from '@/shared/types/api.types';
 
 const api = axios.create({
   baseURL: '/api',
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Send HttpOnly cookies automatically
 });
 
-// Interceptor to add JWT token
+// Interceptor to add JWT token (fallback for backward compatibility)
+// With HttpOnly cookies, the browser sends the token automatically.
+// This interceptor handles the legacy case where tokens are in storage.
 api.interceptors.request.use((config) => {
   const token = authStorage.getToken();
   if (token) {
@@ -58,184 +104,6 @@ api.interceptors.response.use(
 // Booking API
 // ==========================================
 
-export interface CoverageResponse {
-  isCovered: boolean;
-  serviceAreaId?: number;
-  serviceAreaName?: string;
-  city?: string;
-  state?: string;
-  county?: string;
-  message: string;
-}
-
-export interface ServiceType {
-  id: number;
-  name: string;
-  description: string;
-  price: number;
-  pricePerBedroom: number;
-  pricePerBathroom: number;
-  estimatedMinutes: number;
-  minutesPerBedroom: number;
-  minutesPerBathroom: number;
-  iconUrl?: string;
-}
-
-export interface CleaningPlaceRoom {
-  id: number;
-  name: string;
-  description?: string;
-  baseMinutes: number;
-  basePrice: number;
-}
-
-export interface CleaningPlace {
-  id: number;
-  name: string;
-  description?: string;
-  rooms: CleaningPlaceRoom[];
-}
-
-export interface RoomSelection {
-  roomId: number;
-  quantity: number;
-}
-
-export interface EstimateRequest {
-  serviceTypeId: number;
-  cleaningPlaceId?: number;
-  rooms?: RoomSelection[];
-  additionalServiceIds?: number[];
-  bedrooms?: number;
-  bathrooms?: number;
-  squareFootage?: number;
-  dirtLevel?: string;
-  hasPets?: boolean;
-  hasElevator?: boolean;
-  isFirstTime?: boolean;
-  recurrenceType?: string;
-}
-
-export interface EstimateResponse {
-  estimatedMinutes: number;
-  formattedDuration: string;
-  subtotal: number;
-  discount: number;
-  total: number;
-  recurrenceType: string;
-  discountPercent: number;
-}
-
-export interface AvailabilityResponse {
-  date: string;
-  zipCode: string;
-  serviceAreaId: number;
-  slots: TimeSlotDto[];
-  totalSlotsAvailable: number;
-}
-
-export interface TimeSlotDto {
-  date: string;
-  startTime: string;
-  endTime: string;
-  formattedTime: string;
-  availableEmployeeIds: number[];
-}
-
-export interface SoftReserveRequest {
-  date: Date;
-  startTime: string;
-  estimatedMinutes: number;
-  zipCode: string;
-  employeeId: number;
-  customerId?: string;
-  sessionId?: string;
-}
-
-export interface SoftReserveResponse {
-  softReserveId: number;
-  sessionId: string;
-  scheduledStart: string;
-  scheduledEnd: string;
-  expiresAt: string;
-  ttlSeconds: number;
-  message: string;
-}
-
-export interface ConfirmBookingRequest {
-  softReserveId: number;
-  sessionId: string;
-  customerId?: string;
-
-  // Address
-  zipCode: string;
-  address: string;
-  addressLine2?: string;
-  city?: string;
-  state?: string;
-
-  // Service
-  serviceTypeId: number;
-  cleaningPlaceId?: number;
-  bedrooms: number;
-  bathrooms: number;
-  squareFootage?: number;
-  dirtLevel?: string;
-  hasPets?: boolean;
-  floorLevel?: number;
-  hasElevator?: boolean;
-  additionalServiceIds?: number[];
-
-  // Pricing
-  subtotal: number;
-  tax: number;
-  discount: number;
-  total: number;
-
-  // Recurrence
-  recurrenceType?: string;
-  recurrenceEndDate?: string;
-
-  // Contact
-  contactName?: string;
-  contactPhone?: string;
-  contactEmail: string;
-  password?: string;
-  specialInstructions?: string;
-}
-
-export interface BookingConfirmation {
-  orderId: number;
-  meetId: number;
-  confirmationNumber: string;
-  scheduledStart: string;
-  scheduledEnd: string;
-  total: number;
-  orderStatus: string;
-  message: string;
-  authToken?: {
-    accessToken: string;
-    refreshToken: string;
-    expiresAt: string;
-    isNewUser: boolean;
-  };
-  isGuest: boolean;
-}
-
-export interface AdditionalService {
-  id: number;
-  title: string;
-  description?: string;
-  price: number;
-  additionalMinutes: number;
-}
-
-export interface RecurrenceDiscount {
-  recurrenceType: string;
-  recurrenceTypeName: string;
-  discountPercent: number;
-}
-
 export const bookingApi = {
   checkCoverage: (zipCode: string) =>
     api.get<CoverageResponse>(`/booking/coverage/${zipCode}`),
@@ -268,38 +136,6 @@ export const bookingApi = {
 // ==========================================
 // Auth API
 // ==========================================
-
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface RegisterRequest {
-  email: string;
-  password: string;
-  firstName?: string;
-  lastName?: string;
-  phone?: string;
-}
-
-export interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: string;
-  user: UserInfo;
-}
-
-export interface UserInfo {
-  id: string;
-  email: string;
-  firstName?: string;
-  lastName?: string;
-  phone?: string;
-  roles: string[];
-}
-
-// Alias for backward compatibility
-export type User = UserInfo;
 
 export const authApi = {
   login: (request: LoginRequest) =>

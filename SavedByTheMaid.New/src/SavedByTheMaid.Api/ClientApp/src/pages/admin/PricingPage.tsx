@@ -1,17 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Plus,
   Edit2,
   Trash2,
-  X,
   Percent,
   Settings,
   Repeat,
 } from 'lucide-react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
-import { useCRUD } from '@/shared/hooks/use-crud';
-import { useFormModal } from '@/shared/hooks/use-form-modal';
-import { getErrorMessage } from '@/shared/lib/error-utils';
+import api from '../../lib/api';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from '@/shared/components/ui/alert-dialog';
 
 // Backend types
 interface PriceMultiplier {
@@ -58,31 +57,14 @@ type ActiveTab = 'multipliers' | 'recurrence';
 
 export function AdminPricingPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('multipliers');
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  // Multipliers via useCRUD
-  const {
-    data: multipliers,
-    isLoading: multipliersLoading,
-    create: createMultiplier,
-    update: updateMultiplier,
-    remove: removeMultiplier,
-  } = useCRUD<PriceMultiplier>({
-    endpoint: '/admin/pricemultipliers',
-    queryKey: ['admin', 'price-multipliers'],
-  });
-
-  // Discounts via useCRUD
-  const {
-    data: discounts,
-    isLoading: discountsLoading,
-    create: createDiscount,
-  } = useCRUD<RecurrenceDiscount>({
-    endpoint: '/admin/pricemultipliers/recurrence-discounts',
-    queryKey: ['admin', 'recurrence-discounts'],
-  });
-
-  const modal = useFormModal<PriceMultiplier>();
+  // Multipliers state
+  const [multipliers, setMultipliers] = useState<PriceMultiplier[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [editingMultiplier, setEditingMultiplier] = useState<PriceMultiplier | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
 
   const [form, setForm] = useState({
@@ -100,16 +82,36 @@ export function AdminPricingPage() {
   });
 
   // Recurrence discounts state
+  const [discounts, setDiscounts] = useState<RecurrenceDiscount[]>([]);
   const [discountForm, setDiscountForm] = useState({
     recurrenceType: 1,
     discountPercent: 0,
   });
 
-  const isLoading = multipliersLoading || discountsLoading;
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const [multipliersRes, discountsRes] = await Promise.all([
+        api.get<PriceMultiplier[]>('/admin/pricemultipliers'),
+        api.get<RecurrenceDiscount[]>('/admin/pricemultipliers/recurrence-discounts'),
+      ]);
+      setMultipliers(multipliersRes.data);
+      setDiscounts(discountsRes.data);
+    } catch {
+      setError('Error loading pricing data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Multiplier CRUD
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaving(true);
     setError('');
 
     const payload = {
@@ -127,18 +129,22 @@ export function AdminPricingPage() {
     };
 
     try {
-      if (modal.isEditing && modal.editingItem) {
-        await updateMultiplier.mutateAsync({ ...payload, id: modal.editingItem.id } as unknown as PriceMultiplier);
+      if (editingMultiplier) {
+        await api.put(`/admin/pricemultipliers/${editingMultiplier.id}`, payload);
       } else {
-        await createMultiplier.mutateAsync(payload);
+        await api.post('/admin/pricemultipliers', payload);
       }
+      await fetchData();
       closeModal();
-    } catch (err) {
-      setError(getErrorMessage(err, 'Error saving multiplier'));
+    } catch {
+      setError('Error saving multiplier');
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleEdit = (m: PriceMultiplier) => {
+    setEditingMultiplier(m);
     setForm({
       name: m.name,
       description: m.description || '',
@@ -152,29 +158,22 @@ export function AdminPricingPage() {
       displayOrder: m.displayOrder,
       isActive: m.isActive,
     });
-    modal.open(m);
+    setShowModal(true);
   };
 
   const handleDelete = async (id: number) => {
     try {
-      await removeMultiplier.mutateAsync(id);
+      await api.delete(`/admin/pricemultipliers/${id}`);
+      await fetchData();
       setDeleteConfirm(null);
-    } catch (err) {
-      setError(getErrorMessage(err, 'Error deleting multiplier'));
+    } catch {
+      setError('Error deleting multiplier');
     }
   };
 
-  const openCreateModal = () => {
-    setForm({
-      name: '', description: '', conditionType: 0, factor: 1.0,
-      minValue: '', maxValue: '', appliesToTime: true, appliesToPrice: true,
-      serviceTypeId: null, displayOrder: 0, isActive: true,
-    });
-    modal.open();
-  };
-
   const closeModal = () => {
-    modal.close();
+    setShowModal(false);
+    setEditingMultiplier(null);
     setForm({
       name: '', description: '', conditionType: 0, factor: 1.0,
       minValue: '', maxValue: '', appliesToTime: true, appliesToPrice: true,
@@ -185,11 +184,15 @@ export function AdminPricingPage() {
   // Recurrence discounts
   const handleSaveDiscount = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaving(true);
     try {
-      await createDiscount.mutateAsync(discountForm as unknown as Partial<RecurrenceDiscount>);
+      await api.post('/admin/pricemultipliers/recurrence-discounts', discountForm);
+      await fetchData();
       setDiscountForm({ recurrenceType: 1, discountPercent: 0 });
-    } catch (err) {
-      setError(getErrorMessage(err, 'Error saving discount'));
+    } catch {
+      setError('Error saving discount');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -197,7 +200,7 @@ export function AdminPricingPage() {
     const pct = ((factor - 1) * 100).toFixed(0);
     if (factor > 1) return `+${pct}%`;
     if (factor < 1) return `${pct}%`;
-    return 'Base (x1.0)';
+    return 'Base (×1.0)';
   };
 
   // Group multipliers by conditionType
@@ -206,14 +209,11 @@ export function AdminPricingPage() {
     items: multipliers.filter(m => m.conditionType === ct.value),
   })).filter(g => g.items.length > 0);
 
-  const saving = createMultiplier.isPending || updateMultiplier.isPending;
-  const discountSaving = createDiscount.isPending;
-
   if (isLoading) {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#2196f3] border-t-transparent rounded-full animate-spin" />
         </div>
       </AdminLayout>
     );
@@ -230,8 +230,8 @@ export function AdminPricingPage() {
           </div>
           {activeTab === 'multipliers' && (
             <button
-              onClick={openCreateModal}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors"
+              onClick={() => setShowModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] transition-colors"
             >
               <Plus className="h-5 w-5" />
               New Multiplier
@@ -253,7 +253,7 @@ export function AdminPricingPage() {
               onClick={() => setActiveTab('multipliers')}
               className={`flex items-center gap-2 pb-4 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === 'multipliers'
-                  ? 'border-brand text-brand'
+                  ? 'border-[#2196f3] text-[#2196f3]'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -264,7 +264,7 @@ export function AdminPricingPage() {
               onClick={() => setActiveTab('recurrence')}
               className={`flex items-center gap-2 pb-4 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === 'recurrence'
-                  ? 'border-brand text-brand'
+                  ? 'border-[#2196f3] text-[#2196f3]'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -282,8 +282,8 @@ export function AdminPricingPage() {
                 <Settings className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-500">No price multipliers configured</p>
                 <button
-                  onClick={openCreateModal}
-                  className="mt-4 text-brand hover:underline"
+                  onClick={() => setShowModal(true)}
+                  className="mt-4 text-[#2196f3] hover:underline"
                 >
                   Create the first one
                 </button>
@@ -317,10 +317,10 @@ export function AdminPricingPage() {
                             <td className="py-4 px-6 text-sm text-gray-600">
                               {m.minValue != null || m.maxValue != null ? (
                                 <>
-                                  {m.minValue != null ? m.minValue : '\u2014'} \u2192 {m.maxValue != null ? m.maxValue : '\u221E'}
+                                  {m.minValue != null ? m.minValue : '—'} → {m.maxValue != null ? m.maxValue : '∞'}
                                 </>
                               ) : (
-                                <span className="text-gray-400">\u2014</span>
+                                <span className="text-gray-400">—</span>
                               )}
                             </td>
                             <td className="py-4 px-6">
@@ -332,7 +332,7 @@ export function AdminPricingPage() {
                                     : 'bg-gray-50 text-gray-700'
                               }`}>
                                 <Percent className="h-3 w-3" />
-                                {formatFactor(m.factor)} (x{m.factor})
+                                {formatFactor(m.factor)} (×{m.factor})
                               </span>
                             </td>
                             <td className="py-4 px-6 text-sm">
@@ -354,7 +354,7 @@ export function AdminPricingPage() {
                               <div className="flex items-center justify-end gap-1">
                                 <button
                                   onClick={() => handleEdit(m)}
-                                  className="p-2 text-gray-400 hover:text-brand hover:bg-accent-light/10 rounded-lg"
+                                  className="p-2 text-gray-400 hover:text-[#2196f3] hover:bg-[#b8e07c]/10 rounded-lg"
                                 >
                                   <Edit2 className="h-4 w-4" />
                                 </button>
@@ -391,7 +391,7 @@ export function AdminPricingPage() {
                       <p className="text-sm text-gray-500">
                         {RECURRENCE_TYPES.find(r => r.value === d.recurrenceType)?.label || `Type ${d.recurrenceType}`}
                       </p>
-                      <p className="text-2xl font-bold text-brand">{d.discountPercent}%</p>
+                      <p className="text-2xl font-bold text-[#2196f3]">{d.discountPercent}%</p>
                       <p className="text-xs text-gray-400">discount</p>
                     </div>
                   ))}
@@ -407,7 +407,7 @@ export function AdminPricingPage() {
                   <select
                     value={discountForm.recurrenceType}
                     onChange={(e) => setDiscountForm({ ...discountForm, recurrenceType: parseInt(e.target.value) })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                   >
                     {RECURRENCE_TYPES.filter(r => r.value !== 0).map(r => (
                       <option key={r.value} value={r.value}>{r.label}</option>
@@ -423,15 +423,15 @@ export function AdminPricingPage() {
                     step="0.5"
                     value={discountForm.discountPercent}
                     onChange={(e) => setDiscountForm({ ...discountForm, discountPercent: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                   />
                 </div>
                 <button
                   type="submit"
-                  disabled={discountSaving}
-                  className="px-6 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark disabled:opacity-50"
+                  disabled={saving}
+                  className="px-6 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] disabled:opacity-50"
                 >
-                  {discountSaving ? 'Saving...' : 'Save'}
+                  {saving ? 'Saving...' : 'Save'}
                 </button>
               </form>
               <p className="text-xs text-gray-400 mt-3">
@@ -442,10 +442,10 @@ export function AdminPricingPage() {
         )}
 
         {/* Formula Info */}
-        <div className="bg-gradient-to-r from-brand to-blue-600 rounded-xl p-6 text-white">
+        <div className="bg-gradient-to-r from-[#2196f3] to-blue-600 rounded-xl p-6 text-white">
           <h3 className="text-lg font-semibold mb-2">How pricing is calculated</h3>
           <p className="text-blue-100 text-sm">
-            Final Price = (Base Service Price + Room Prices) x Condition Multipliers - Recurrence Discount
+            Final Price = (Base Service Price + Room Prices) × Condition Multipliers − Recurrence Discount
           </p>
           <p className="text-xs text-blue-200 mt-2">
             Each active multiplier whose condition matches the booking is applied. Multipliers that apply to time affect estimated duration; those that apply to price affect cost.
@@ -454,43 +454,27 @@ export function AdminPricingPage() {
       </div>
 
       {/* Delete Confirmation */}
-      {deleteConfirm !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete multiplier?</h3>
-            <p className="text-gray-600 mb-6">This action cannot be undone.</p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(deleteConfirm)}
-                className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AlertDialog open={deleteConfirm !== null} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+        <AlertDialogContent className="max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete multiplier?</AlertDialogTitle>
+            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-3 sm:space-x-0">
+            <AlertDialogCancel className="flex-1" onClick={() => setDeleteConfirm(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="flex-1" onClick={() => deleteConfirm !== null && handleDelete(deleteConfirm)}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Create/Edit Modal */}
-      {modal.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-semibold text-gray-900">
-                {modal.isEditing ? 'Edit Multiplier' : 'New Multiplier'}
-              </h2>
-              <button onClick={closeModal} className="p-2 text-gray-400 hover:text-gray-600">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+      <Dialog open={showModal} onOpenChange={(open) => !open && closeModal()}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingMultiplier ? 'Edit Multiplier' : 'New Multiplier'}</DialogTitle>
+          </DialogHeader>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
                 <input
@@ -498,7 +482,7 @@ export function AdminPricingPage() {
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="E.g.: Large area surcharge"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                   required
                 />
               </div>
@@ -510,7 +494,7 @@ export function AdminPricingPage() {
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   placeholder="Optional description"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                 />
               </div>
 
@@ -519,7 +503,7 @@ export function AdminPricingPage() {
                 <select
                   value={form.conditionType}
                   onChange={(e) => setForm({ ...form, conditionType: parseInt(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                 >
                   {CONDITION_TYPES.map(ct => (
                     <option key={ct.value} value={ct.value}>{ct.label}</option>
@@ -536,7 +520,7 @@ export function AdminPricingPage() {
                     min="0"
                     value={form.factor}
                     onChange={(e) => setForm({ ...form, factor: parseFloat(e.target.value) || 1 })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                     required
                   />
                   <p className="text-xs text-gray-400 mt-1">1.0 = no change, 1.2 = +20%</p>
@@ -548,7 +532,7 @@ export function AdminPricingPage() {
                     step="0.01"
                     value={form.minValue}
                     onChange={(e) => setForm({ ...form, minValue: e.target.value === '' ? '' : parseFloat(e.target.value) })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -558,7 +542,7 @@ export function AdminPricingPage() {
                     step="0.01"
                     value={form.maxValue}
                     onChange={(e) => setForm({ ...form, maxValue: e.target.value === '' ? '' : parseFloat(e.target.value) })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                   />
                 </div>
               </div>
@@ -569,7 +553,7 @@ export function AdminPricingPage() {
                     type="checkbox"
                     checked={form.appliesToPrice}
                     onChange={(e) => setForm({ ...form, appliesToPrice: e.target.checked })}
-                    className="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand"
+                    className="w-4 h-4 text-[#2196f3] border-gray-300 rounded focus:ring-[#2196f3]"
                   />
                   <span className="text-sm text-gray-700">Applies to price</span>
                 </label>
@@ -578,7 +562,7 @@ export function AdminPricingPage() {
                     type="checkbox"
                     checked={form.appliesToTime}
                     onChange={(e) => setForm({ ...form, appliesToTime: e.target.checked })}
-                    className="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand"
+                    className="w-4 h-4 text-[#2196f3] border-gray-300 rounded focus:ring-[#2196f3]"
                   />
                   <span className="text-sm text-gray-700">Applies to time</span>
                 </label>
@@ -591,17 +575,17 @@ export function AdminPricingPage() {
                   min="0"
                   value={form.displayOrder}
                   onChange={(e) => setForm({ ...form, displayOrder: parseInt(e.target.value) || 0 })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                 />
               </div>
 
-              {modal.isEditing && (
+              {editingMultiplier && (
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={form.isActive}
                     onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-                    className="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand"
+                    className="w-4 h-4 text-[#2196f3] border-gray-300 rounded focus:ring-[#2196f3]"
                   />
                   <span className="text-sm text-gray-700">Active</span>
                 </label>
@@ -618,15 +602,14 @@ export function AdminPricingPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] disabled:opacity-50"
                 >
-                  {saving ? 'Saving...' : modal.isEditing ? 'Save' : 'Create'}
+                  {saving ? 'Saving...' : editingMultiplier ? 'Save' : 'Create'}
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }

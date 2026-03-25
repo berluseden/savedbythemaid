@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Plus,
   Search,
@@ -13,9 +15,12 @@ import {
 } from 'lucide-react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import api from '../../lib/api';
-import { useCRUD } from '@/shared/hooks/use-crud';
-import { useFormModal } from '@/shared/hooks/use-form-modal';
-import { getErrorMessage } from '@/shared/lib/error-utils';
+import {
+  cleaningPlaceSchema,
+  cleaningPlaceRoomSchema,
+  type CleaningPlaceFormData,
+  type CleaningPlaceRoomFormData,
+} from '@/shared/schemas/admin.schema';
 
 interface CleaningPlaceRoom {
   id: number;
@@ -35,15 +40,23 @@ interface CleaningPlace {
   rooms: CleaningPlaceRoom[];
 }
 
-export function AdminCleaningPlacesPage() {
-  const { data: places, isLoading, create, update, remove, refetch } = useCRUD<CleaningPlace>({
-    endpoint: '/admin/cleaningplaces',
-    queryKey: ['admin', 'cleaning-places'],
-  });
+const placeDefaults: CleaningPlaceFormData = { name: '', description: '', isActive: true };
+const roomDefaults: CleaningPlaceRoomFormData = {
+  name: '',
+  description: '',
+  baseMinutes: 15,
+  basePrice: 10,
+  displayOrder: 0,
+  isActive: true,
+};
 
-  const modal = useFormModal<CleaningPlace>();
+export function AdminCleaningPlacesPage() {
+  const [places, setPlaces] = useState<CleaningPlace[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showModal, setShowModal] = useState(false);
   const [showRoomModal, setShowRoomModal] = useState(false);
+  const [editingPlace, setEditingPlace] = useState<CleaningPlace | null>(null);
   const [editingRoom, setEditingRoom] = useState<CleaningPlaceRoom | null>(null);
   const [selectedPlaceId, setSelectedPlaceId] = useState<number | null>(null);
   const [expandedPlaces, setExpandedPlaces] = useState<Set<number>>(new Set());
@@ -51,15 +64,31 @@ export function AdminCleaningPlacesPage() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const [placeForm, setPlaceForm] = useState({ name: '', description: '', isActive: true });
-  const [roomForm, setRoomForm] = useState({
-    name: '',
-    description: '',
-    baseMinutes: 15,
-    basePrice: 10,
-    displayOrder: 0,
-    isActive: true,
+  const placeForm = useForm<CleaningPlaceFormData>({
+    resolver: zodResolver(cleaningPlaceSchema),
+    defaultValues: placeDefaults,
   });
+
+  const roomForm = useForm<CleaningPlaceRoomFormData>({
+    resolver: zodResolver(cleaningPlaceRoomSchema),
+    defaultValues: roomDefaults,
+  });
+
+  useEffect(() => {
+    fetchPlaces();
+  }, []);
+
+  const fetchPlaces = async () => {
+    setIsLoading(true);
+    try {
+      const response = await api.get<CleaningPlace[]>('/admin/cleaningplaces');
+      setPlaces(response.data);
+    } catch (_err) {
+      setError('Error loading property types');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const toggleExpand = (id: number) => {
     setExpandedPlaces(prev => {
@@ -74,83 +103,83 @@ export function AdminCleaningPlacesPage() {
   };
 
   // Place handlers
-  const handlePlaceSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onPlaceSubmit = placeForm.handleSubmit(async (data) => {
+    setSaving(true);
     setError('');
 
     try {
-      if (modal.isEditing && modal.editingItem) {
-        await update.mutateAsync({ ...placeForm, id: modal.editingItem.id } as unknown as CleaningPlace);
+      if (editingPlace) {
+        await api.put(`/admin/cleaningplaces/${editingPlace.id}`, data);
       } else {
-        await create.mutateAsync(placeForm);
+        await api.post('/admin/cleaningplaces', data);
       }
+      await fetchPlaces();
       closePlaceModal();
-    } catch (err) {
-      setError(getErrorMessage(err, 'Error saving property type'));
+    } catch (_err) {
+      setError('Error saving property type');
+    } finally {
+      setSaving(false);
     }
-  };
+  });
 
   const handleEditPlace = (place: CleaningPlace) => {
-    setPlaceForm({
+    setEditingPlace(place);
+    placeForm.reset({
       name: place.name,
       description: place.description || '',
       isActive: place.isActive,
     });
-    modal.open(place);
+    setShowModal(true);
   };
 
   const handleDeletePlace = async (id: number) => {
     try {
-      await remove.mutateAsync(id);
+      await api.delete(`/admin/cleaningplaces/${id}`);
+      await fetchPlaces();
       setDeleteConfirm(null);
-    } catch (err) {
-      setError(getErrorMessage(err, 'Error deleting property type'));
+    } catch (_err) {
+      setError('Error deleting property type');
     }
   };
 
-  const openCreatePlaceModal = () => {
-    setPlaceForm({ name: '', description: '', isActive: true });
-    modal.open();
-  };
-
   const closePlaceModal = () => {
-    modal.close();
-    setPlaceForm({ name: '', description: '', isActive: true });
+    setShowModal(false);
+    setEditingPlace(null);
+    placeForm.reset(placeDefaults);
   };
 
   // Room handlers
-  const handleRoomSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onRoomSubmit = roomForm.handleSubmit(async (data) => {
     if (!selectedPlaceId) return;
     setSaving(true);
     setError('');
 
     try {
       if (editingRoom) {
-        await api.put(`/admin/cleaningplaces/${selectedPlaceId}/rooms/${editingRoom.id}`, roomForm);
+        await api.put(`/admin/cleaningplaces/${selectedPlaceId}/rooms/${editingRoom.id}`, data);
       } else {
-        await api.post(`/admin/cleaningplaces/${selectedPlaceId}/rooms`, roomForm);
+        await api.post(`/admin/cleaningplaces/${selectedPlaceId}/rooms`, data);
       }
-      await refetch();
+      await fetchPlaces();
       closeRoomModal();
-    } catch (err) {
-      setError(getErrorMessage(err, 'Error saving room'));
+    } catch (_err) {
+      setError('Error saving room');
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   const handleAddRoom = (placeId: number) => {
     setSelectedPlaceId(placeId);
     setEditingRoom(null);
-    setRoomForm({ name: '', description: '', baseMinutes: 15, basePrice: 10, displayOrder: 0, isActive: true });
+    roomForm.reset(roomDefaults);
     setShowRoomModal(true);
   };
 
   const handleEditRoom = (placeId: number, room: CleaningPlaceRoom) => {
     setSelectedPlaceId(placeId);
     setEditingRoom(room);
-    setRoomForm({
+    roomForm.reset({
       name: room.name,
       description: room.description || '',
       baseMinutes: room.baseMinutes,
@@ -164,10 +193,10 @@ export function AdminCleaningPlacesPage() {
   const handleDeleteRoom = async (placeId: number, roomId: number) => {
     try {
       await api.delete(`/admin/cleaningplaces/${placeId}/rooms/${roomId}`);
-      await refetch();
+      await fetchPlaces();
       setDeleteConfirm(null);
-    } catch (err) {
-      setError(getErrorMessage(err, 'Error deleting room'));
+    } catch (_err) {
+      setError('Error deleting room');
     }
   };
 
@@ -175,7 +204,7 @@ export function AdminCleaningPlacesPage() {
     setShowRoomModal(false);
     setEditingRoom(null);
     setSelectedPlaceId(null);
-    setRoomForm({ name: '', description: '', baseMinutes: 15, basePrice: 10, displayOrder: 0, isActive: true });
+    roomForm.reset(roomDefaults);
   };
 
   const filteredPlaces = places.filter(
@@ -187,13 +216,11 @@ export function AdminCleaningPlacesPage() {
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
-  const placeSaving = create.isPending || update.isPending;
-
   if (isLoading) {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#2196f3] border-t-transparent rounded-full animate-spin" />
         </div>
       </AdminLayout>
     );
@@ -209,8 +236,8 @@ export function AdminCleaningPlacesPage() {
             <p className="text-gray-600">Manage property types and their rooms</p>
           </div>
           <button
-            onClick={openCreatePlaceModal}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors"
+            onClick={() => { placeForm.reset(placeDefaults); setShowModal(true); }}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] transition-colors"
           >
             <Plus className="h-5 w-5" />
             New Type
@@ -232,7 +259,7 @@ export function AdminCleaningPlacesPage() {
             placeholder="Search property types..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
           />
         </div>
 
@@ -250,7 +277,7 @@ export function AdminCleaningPlacesPage() {
           </div>
           <div className="bg-white rounded-lg p-4 border">
             <p className="text-sm text-gray-500">Total Rooms</p>
-            <p className="text-2xl font-bold text-brand">
+            <p className="text-2xl font-bold text-[#2196f3]">
               {places.reduce((acc, p) => acc + p.rooms.length, 0)}
             </p>
           </div>
@@ -279,8 +306,8 @@ export function AdminCleaningPlacesPage() {
                       <ChevronRight className="h-5 w-5" />
                     )}
                   </button>
-                  <div className="w-10 h-10 bg-accent-light/20 rounded-lg flex items-center justify-center">
-                    <Home className="h-5 w-5 text-brand" />
+                  <div className="w-10 h-10 bg-[#b8e07c]/20 rounded-lg flex items-center justify-center">
+                    <Home className="h-5 w-5 text-[#2196f3]" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">{place.name}</h3>
@@ -297,14 +324,14 @@ export function AdminCleaningPlacesPage() {
                   </span>
                   <button
                     onClick={() => handleAddRoom(place.id)}
-                    className="p-2 text-gray-400 hover:text-brand hover:bg-accent-light/10 rounded-lg"
+                    className="p-2 text-gray-400 hover:text-[#2196f3] hover:bg-[#b8e07c]/10 rounded-lg"
                     title="Add room"
                   >
                     <Plus className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleEditPlace(place)}
-                    className="p-2 text-gray-400 hover:text-brand hover:bg-accent-light/10 rounded-lg"
+                    className="p-2 text-gray-400 hover:text-[#2196f3] hover:bg-[#b8e07c]/10 rounded-lg"
                     title="Edit"
                   >
                     <Edit2 className="h-4 w-4" />
@@ -354,7 +381,7 @@ export function AdminCleaningPlacesPage() {
                           </span>
                           <button
                             onClick={() => handleEditRoom(place.id, room)}
-                            className="p-1 text-gray-400 hover:text-brand"
+                            className="p-1 text-gray-400 hover:text-[#2196f3]"
                           >
                             <Edit2 className="h-4 w-4" />
                           </button>
@@ -376,7 +403,7 @@ export function AdminCleaningPlacesPage() {
                   No rooms configured.{' '}
                   <button
                     onClick={() => handleAddRoom(place.id)}
-                    className="text-brand hover:underline"
+                    className="text-[#2196f3] hover:underline"
                   >
                     Add one
                   </button>
@@ -426,47 +453,53 @@ export function AdminCleaningPlacesPage() {
       )}
 
       {/* Place Modal */}
-      {modal.isOpen && (
+      {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
             <div className="flex items-center justify-between p-6 border-b">
               <h2 className="text-xl font-semibold text-gray-900">
-                {modal.isEditing ? 'Edit Property Type' : 'New Property Type'}
+                {editingPlace ? 'Edit Property Type' : 'New Property Type'}
               </h2>
               <button onClick={closePlaceModal} className="p-2 text-gray-400 hover:text-gray-600">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <form onSubmit={handlePlaceSubmit} className="p-6 space-y-4">
+            <form onSubmit={onPlaceSubmit} className="p-6 space-y-4">
+              {placeForm.formState.errors.root && (
+                <p className="text-sm text-red-500">{placeForm.formState.errors.root.message}</p>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
                 <input
                   type="text"
-                  value={placeForm.name}
-                  onChange={(e) => setPlaceForm({ ...placeForm, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
-                  required
+                  {...placeForm.register('name')}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                 />
+                {placeForm.formState.errors.name && (
+                  <p className="text-sm text-red-500 mt-1">{placeForm.formState.errors.name.message}</p>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                 <textarea
-                  value={placeForm.description}
-                  onChange={(e) => setPlaceForm({ ...placeForm, description: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                  {...placeForm.register('description')}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                   rows={3}
                 />
+                {placeForm.formState.errors.description && (
+                  <p className="text-sm text-red-500 mt-1">{placeForm.formState.errors.description.message}</p>
+                )}
               </div>
 
-              {modal.isEditing && (
+              {editingPlace && (
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={placeForm.isActive}
-                    onChange={(e) => setPlaceForm({ ...placeForm, isActive: e.target.checked })}
-                    className="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand"
+                    {...placeForm.register('isActive')}
+                    className="w-4 h-4 text-[#2196f3] border-gray-300 rounded focus:ring-[#2196f3]"
                   />
                   <span className="text-sm text-gray-700">Active</span>
                 </label>
@@ -482,10 +515,10 @@ export function AdminCleaningPlacesPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={placeSaving}
-                  className="flex-1 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark disabled:opacity-50"
+                  disabled={saving}
+                  className="flex-1 px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] disabled:opacity-50"
                 >
-                  {placeSaving ? 'Saving...' : modal.isEditing ? 'Save' : 'Create'}
+                  {saving ? 'Saving...' : editingPlace ? 'Save' : 'Create'}
                 </button>
               </div>
             </form>
@@ -506,26 +539,33 @@ export function AdminCleaningPlacesPage() {
               </button>
             </div>
 
-            <form onSubmit={handleRoomSubmit} className="p-6 space-y-4">
+            <form onSubmit={onRoomSubmit} className="p-6 space-y-4">
+              {roomForm.formState.errors.root && (
+                <p className="text-sm text-red-500">{roomForm.formState.errors.root.message}</p>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
                 <input
                   type="text"
-                  value={roomForm.name}
-                  onChange={(e) => setRoomForm({ ...roomForm, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
-                  required
+                  {...roomForm.register('name')}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                 />
+                {roomForm.formState.errors.name && (
+                  <p className="text-sm text-red-500 mt-1">{roomForm.formState.errors.name.message}</p>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                 <textarea
-                  value={roomForm.description}
-                  onChange={(e) => setRoomForm({ ...roomForm, description: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                  {...roomForm.register('description')}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                   rows={2}
                 />
+                {roomForm.formState.errors.description && (
+                  <p className="text-sm text-red-500 mt-1">{roomForm.formState.errors.description.message}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-3 gap-4">
@@ -535,10 +575,12 @@ export function AdminCleaningPlacesPage() {
                     type="number"
                     min="5"
                     step="5"
-                    value={roomForm.baseMinutes}
-                    onChange={(e) => setRoomForm({ ...roomForm, baseMinutes: parseInt(e.target.value) || 15 })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                    {...roomForm.register('baseMinutes', { valueAsNumber: true })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                   />
+                  {roomForm.formState.errors.baseMinutes && (
+                    <p className="text-sm text-red-500 mt-1">{roomForm.formState.errors.baseMinutes.message}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Base price ($)</label>
@@ -546,20 +588,24 @@ export function AdminCleaningPlacesPage() {
                     type="number"
                     min="0"
                     step="0.01"
-                    value={roomForm.basePrice}
-                    onChange={(e) => setRoomForm({ ...roomForm, basePrice: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                    {...roomForm.register('basePrice', { valueAsNumber: true })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                   />
+                  {roomForm.formState.errors.basePrice && (
+                    <p className="text-sm text-red-500 mt-1">{roomForm.formState.errors.basePrice.message}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Order</label>
                   <input
                     type="number"
                     min="0"
-                    value={roomForm.displayOrder}
-                    onChange={(e) => setRoomForm({ ...roomForm, displayOrder: parseInt(e.target.value) || 0 })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                    {...roomForm.register('displayOrder', { valueAsNumber: true })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                   />
+                  {roomForm.formState.errors.displayOrder && (
+                    <p className="text-sm text-red-500 mt-1">{roomForm.formState.errors.displayOrder.message}</p>
+                  )}
                 </div>
               </div>
 
@@ -567,9 +613,8 @@ export function AdminCleaningPlacesPage() {
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={roomForm.isActive}
-                    onChange={(e) => setRoomForm({ ...roomForm, isActive: e.target.checked })}
-                    className="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand"
+                    {...roomForm.register('isActive')}
+                    className="w-4 h-4 text-[#2196f3] border-gray-300 rounded focus:ring-[#2196f3]"
                   />
                   <span className="text-sm text-gray-700">Active</span>
                 </label>
@@ -586,7 +631,7 @@ export function AdminCleaningPlacesPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] disabled:opacity-50"
                 >
                   {saving ? 'Saving...' : editingRoom ? 'Save' : 'Create'}
                 </button>

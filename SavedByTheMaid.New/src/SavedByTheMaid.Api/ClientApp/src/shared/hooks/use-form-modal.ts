@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 
-export function useFormModal<T extends { id: number } | null = null>() {
+export function useFormModal<T extends { id: number | string } | null = null>() {
   const [isOpen, setIsOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<T | null>(null);
 

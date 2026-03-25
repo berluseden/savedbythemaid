@@ -54,7 +54,7 @@ export default function ContactPage() {
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 bg-accent-light/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Phone className="w-5 h-5 text-brand" />
+                    <Phone className="w-5 h-5 text-brand" aria-hidden="true" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">Phone</h3>
@@ -65,7 +65,7 @@ export default function ContactPage() {
 
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 bg-accent-light/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Mail className="w-5 h-5 text-brand" />
+                    <Mail className="w-5 h-5 text-brand" aria-hidden="true" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">Email</h3>
@@ -76,7 +76,7 @@ export default function ContactPage() {
 
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 bg-accent-light/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <MapPin className="w-5 h-5 text-brand" />
+                    <MapPin className="w-5 h-5 text-brand" aria-hidden="true" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">Office</h3>
@@ -87,7 +87,7 @@ export default function ContactPage() {
 
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 bg-accent-light/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Clock className="w-5 h-5 text-brand" />
+                    <Clock className="w-5 h-5 text-brand" aria-hidden="true" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">Business Hours</h3>
@@ -122,17 +122,18 @@ export default function ContactPage() {
                     <h3 className="text-xl font-semibold text-gray-900 mb-4">Send us a message</h3>
 
                     {error && (
-                      <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                      <div role="alert" className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
                         {error}
                       </div>
                     )}
 
                     <div className="grid sm:grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor="contact-name" className="block text-sm font-medium text-gray-700 mb-2">
                           Your Name *
                         </label>
                         <input
+                          id="contact-name"
                           type="text"
                           {...register('name')}
                           className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand focus:border-brand"
@@ -143,10 +144,11 @@ export default function ContactPage() {
                         )}
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor="contact-email" className="block text-sm font-medium text-gray-700 mb-2">
                           Email Address *
                         </label>
                         <input
+                          id="contact-email"
                           type="email"
                           {...register('email')}
                           className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand focus:border-brand"
@@ -160,10 +162,11 @@ export default function ContactPage() {
 
                     <div className="grid sm:grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor="contact-phone" className="block text-sm font-medium text-gray-700 mb-2">
                           Phone Number
                         </label>
                         <input
+                          id="contact-phone"
                           type="tel"
                           {...register('phone')}
                           className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand focus:border-brand"
@@ -174,10 +177,11 @@ export default function ContactPage() {
                         )}
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor="contact-subject" className="block text-sm font-medium text-gray-700 mb-2">
                           Subject *
                         </label>
                         <select
+                          id="contact-subject"
                           {...register('subject')}
                           className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand focus:border-brand"
                         >
@@ -196,10 +200,11 @@ export default function ContactPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label htmlFor="contact-message" className="block text-sm font-medium text-gray-700 mb-2">
                         Your Message *
                       </label>
                       <textarea
+                        id="contact-message"
                         {...register('message')}
                         rows={5}
                         className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand focus:border-brand resize-none"
@@ -222,7 +227,7 @@ export default function ContactPage() {
                         </>
                       ) : (
                         <>
-                          <Send className="w-5 h-5" />
+                          <Send className="w-5 h-5" aria-hidden="true" />
                           Send Message
                         </>
                       )}

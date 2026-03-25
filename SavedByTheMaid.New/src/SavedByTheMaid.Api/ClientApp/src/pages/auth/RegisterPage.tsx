@@ -88,7 +88,7 @@ export default function RegisterPage() {
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               {error && (
-                <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                <div role="alert" className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
                   <AlertCircle className="w-4 h-4 flex-shrink-0" />
                   {error}
                 </div>
@@ -98,7 +98,7 @@ export default function RegisterPage() {
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700">First Name</label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true" />
                     <Input
                       type="text"
                       placeholder="John"
@@ -126,7 +126,7 @@ export default function RegisterPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Email</label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true" />
                   <Input
                     type="email"
                     placeholder="you@example.com"
@@ -142,7 +142,7 @@ export default function RegisterPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Phone Number</label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true" />
                   <Input
                     type="tel"
                     placeholder="(555) 123-4567"
@@ -158,7 +158,7 @@ export default function RegisterPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Password</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true" />
                   <Input
                     type="password"
                     placeholder="••••••••"
@@ -182,7 +182,7 @@ export default function RegisterPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Confirm Password</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true" />
                   <Input
                     type="password"
                     placeholder="••••••••"

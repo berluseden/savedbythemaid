@@ -223,7 +223,7 @@ export function AdminDashboardPage() {
         </div>
 
         {(error || ordersQuery.isError || employeesQuery.isError) && (
-          <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg">
+          <div role="alert" className="bg-red-50 text-red-600 px-4 py-3 rounded-lg">
             {error || 'Error loading dashboard data'}
             <button onClick={() => setError('')} className="ml-2 underline">Close</button>
           </div>
@@ -245,12 +245,12 @@ export function AdminDashboardPage() {
               <table className="w-full">
                 <thead>
                   <tr className="text-left text-sm text-gray-500 border-b">
-                    <th className="px-6 py-3 font-medium">ID</th>
-                    <th className="px-6 py-3 font-medium">Customer</th>
-                    <th className="px-6 py-3 font-medium">Service</th>
-                    <th className="px-6 py-3 font-medium">Date</th>
-                    <th className="px-6 py-3 font-medium">Status</th>
-                    <th className="px-6 py-3 font-medium text-right">Amount</th>
+                    <th scope="col" className="px-6 py-3 font-medium">ID</th>
+                    <th scope="col" className="px-6 py-3 font-medium">Customer</th>
+                    <th scope="col" className="px-6 py-3 font-medium">Service</th>
+                    <th scope="col" className="px-6 py-3 font-medium">Date</th>
+                    <th scope="col" className="px-6 py-3 font-medium">Status</th>
+                    <th scope="col" className="px-6 py-3 font-medium text-right">Amount</th>
                   </tr>
                 </thead>
                 <tbody>

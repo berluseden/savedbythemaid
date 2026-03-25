@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Plus,
   Search,
@@ -10,9 +12,11 @@ import {
   X,
 } from 'lucide-react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
-import { useCRUD } from '@/shared/hooks/use-crud';
-import { useFormModal } from '@/shared/hooks/use-form-modal';
-import { getErrorMessage } from '@/shared/lib/error-utils';
+import api from '../../lib/api';
+import {
+  serviceTypeSchema,
+  type ServiceTypeFormData,
+} from '@/shared/schemas/admin.schema';
 
 interface ServiceType {
   id: number;
@@ -28,48 +32,72 @@ interface ServiceType {
   isActive: boolean;
 }
 
-export function AdminServicesPage() {
-  const { data: services, isLoading, create, update, remove } = useCRUD<ServiceType>({
-    endpoint: '/admin/service-types',
-    queryKey: ['admin', 'service-types'],
-  });
+const defaultValues: ServiceTypeFormData = {
+  name: '',
+  description: '',
+  price: 0,
+  pricePerBedroom: 15,
+  pricePerBathroom: 20,
+  estimatedMinutes: 60,
+  minutesPerBedroom: 20,
+  minutesPerBathroom: 15,
+  displayOrder: 0,
+  isActive: true,
+};
 
-  const modal = useFormModal<ServiceType>();
+export function AdminServicesPage() {
+  const [services, setServices] = useState<ServiceType[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [editingService, setEditingService] = useState<ServiceType | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: 0,
-    pricePerBedroom: 15,
-    pricePerBathroom: 20,
-    estimatedMinutes: 60,
-    minutesPerBedroom: 20,
-    minutesPerBathroom: 15,
-    displayOrder: 0,
-    isActive: true,
+  const form = useForm<ServiceTypeFormData>({
+    resolver: zodResolver(serviceTypeSchema),
+    defaultValues,
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+  useEffect(() => {
+    fetchServices();
+  }, []);
 
+  const fetchServices = async () => {
+    setIsLoading(true);
     try {
-      if (modal.isEditing && modal.editingItem) {
-        await update.mutateAsync({ ...formData, id: modal.editingItem.id } as ServiceType);
-      } else {
-        await create.mutateAsync(formData);
-      }
-      closeModal();
-    } catch (err) {
-      setError(getErrorMessage(err, 'Error saving service'));
+      const response = await api.get<ServiceType[]>('/admin/service-types');
+      setServices(response.data);
+    } catch (_err) {
+      setError('Error loading services');
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const onSubmit = form.handleSubmit(async (data) => {
+    setSaving(true);
+    setError('');
+
+    try {
+      if (editingService) {
+        await api.put(`/admin/service-types/${editingService.id}`, data);
+      } else {
+        await api.post('/admin/service-types', data);
+      }
+      await fetchServices();
+      closeModal();
+    } catch (_err) {
+      setError('Error saving service');
+    } finally {
+      setSaving(false);
+    }
+  });
+
   const handleEdit = (service: ServiceType) => {
-    setFormData({
+    setEditingService(service);
+    form.reset({
       name: service.name,
       description: service.description || '',
       price: service.price,
@@ -81,59 +109,35 @@ export function AdminServicesPage() {
       displayOrder: service.displayOrder,
       isActive: service.isActive,
     });
-    modal.open(service);
+    setShowModal(true);
   };
 
   const handleDelete = async (id: number) => {
     try {
-      await remove.mutateAsync(id);
+      await api.delete(`/admin/service-types/${id}`);
+      await fetchServices();
       setDeleteConfirm(null);
-    } catch (err) {
-      setError(getErrorMessage(err, 'Error deleting service'));
+    } catch (_err) {
+      setError('Error deleting service');
     }
   };
 
   const toggleActive = async (service: ServiceType) => {
     try {
-      await update.mutateAsync({
+      await api.put(`/admin/service-types/${service.id}`, {
         ...service,
         isActive: !service.isActive,
       });
-    } catch (err) {
-      setError(getErrorMessage(err, 'Error updating service'));
+      await fetchServices();
+    } catch (_err) {
+      setError('Error updating service');
     }
   };
 
-  const openCreateModal = () => {
-    setFormData({
-      name: '',
-      description: '',
-      price: 0,
-      pricePerBedroom: 15,
-      pricePerBathroom: 20,
-      estimatedMinutes: 60,
-      minutesPerBedroom: 20,
-      minutesPerBathroom: 15,
-      displayOrder: 0,
-      isActive: true,
-    });
-    modal.open();
-  };
-
   const closeModal = () => {
-    modal.close();
-    setFormData({
-      name: '',
-      description: '',
-      price: 0,
-      pricePerBedroom: 15,
-      pricePerBathroom: 20,
-      estimatedMinutes: 60,
-      minutesPerBedroom: 20,
-      minutesPerBathroom: 15,
-      displayOrder: 0,
-      isActive: true,
-    });
+    setShowModal(false);
+    setEditingService(null);
+    form.reset(defaultValues);
   };
 
   const filteredServices = services.filter(
@@ -151,13 +155,11 @@ export function AdminServicesPage() {
     return hours > 0 ? `${hours}h ${mins > 0 ? `${mins}m` : ''}` : `${mins}m`;
   };
 
-  const saving = create.isPending || update.isPending;
-
   if (isLoading) {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-[#2196f3] border-t-transparent rounded-full animate-spin" />
         </div>
       </AdminLayout>
     );
@@ -173,8 +175,8 @@ export function AdminServicesPage() {
             <p className="text-gray-600">Manage cleaning service types</p>
           </div>
           <button
-            onClick={openCreateModal}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors"
+            onClick={() => { form.reset(defaultValues); setShowModal(true); }}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] transition-colors"
           >
             <Plus className="h-5 w-5" />
             New Service
@@ -196,7 +198,7 @@ export function AdminServicesPage() {
             placeholder="Search services..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
           />
         </div>
 
@@ -214,7 +216,7 @@ export function AdminServicesPage() {
           </div>
           <div className="bg-white rounded-lg p-4 border">
             <p className="text-sm text-gray-500">Average price</p>
-            <p className="text-2xl font-bold text-brand">
+            <p className="text-2xl font-bold text-[#2196f3]">
               {services.length > 0
                 ? formatCurrency(services.reduce((acc, s) => acc + s.price, 0) / services.length)
                 : '$0'}
@@ -325,30 +327,35 @@ export function AdminServicesPage() {
       </div>
 
       {/* Modal */}
-      {modal.isOpen && (
+      {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b">
               <h2 className="text-xl font-semibold text-gray-900">
-                {modal.isEditing ? 'Edit Service' : 'New Service'}
+                {editingService ? 'Edit Service' : 'New Service'}
               </h2>
               <button onClick={closeModal} className="p-2 text-gray-400 hover:text-gray-600">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={onSubmit} className="p-6 space-y-4">
+              {form.formState.errors.root && (
+                <p className="text-sm text-red-500">{form.formState.errors.root.message}</p>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Service name *
                 </label>
                 <input
                   type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
-                  required
+                  {...form.register('name')}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                 />
+                {form.formState.errors.name && (
+                  <p className="text-sm text-red-500 mt-1">{form.formState.errors.name.message}</p>
+                )}
               </div>
 
               <div>
@@ -356,11 +363,13 @@ export function AdminServicesPage() {
                   Description
                 </label>
                 <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                  {...form.register('description')}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                   rows={3}
                 />
+                {form.formState.errors.description && (
+                  <p className="text-sm text-red-500 mt-1">{form.formState.errors.description.message}</p>
+                )}
               </div>
 
               <div className="bg-gray-50 p-4 rounded-lg space-y-4">
@@ -374,11 +383,12 @@ export function AdminServicesPage() {
                       type="number"
                       step="0.01"
                       min="0"
-                      value={formData.price}
-                      onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
-                      required
+                      {...form.register('price', { valueAsNumber: true })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                     />
+                    {form.formState.errors.price && (
+                      <p className="text-sm text-red-500 mt-1">{form.formState.errors.price.message}</p>
+                    )}
                     <p className="text-xs text-gray-500 mt-1">Includes 1 bedroom + 1 bathroom</p>
                   </div>
 
@@ -390,10 +400,12 @@ export function AdminServicesPage() {
                       type="number"
                       step="0.01"
                       min="0"
-                      value={formData.pricePerBedroom}
-                      onChange={(e) => setFormData({ ...formData, pricePerBedroom: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                      {...form.register('pricePerBedroom', { valueAsNumber: true })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                     />
+                    {form.formState.errors.pricePerBedroom && (
+                      <p className="text-sm text-red-500 mt-1">{form.formState.errors.pricePerBedroom.message}</p>
+                    )}
                   </div>
 
                   <div>
@@ -404,10 +416,12 @@ export function AdminServicesPage() {
                       type="number"
                       step="0.01"
                       min="0"
-                      value={formData.pricePerBathroom}
-                      onChange={(e) => setFormData({ ...formData, pricePerBathroom: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                      {...form.register('pricePerBathroom', { valueAsNumber: true })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                     />
+                    {form.formState.errors.pricePerBathroom && (
+                      <p className="text-sm text-red-500 mt-1">{form.formState.errors.pricePerBathroom.message}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -423,10 +437,12 @@ export function AdminServicesPage() {
                       type="number"
                       min="15"
                       step="15"
-                      value={formData.estimatedMinutes}
-                      onChange={(e) => setFormData({ ...formData, estimatedMinutes: parseInt(e.target.value) || 60 })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                      {...form.register('estimatedMinutes', { valueAsNumber: true })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                     />
+                    {form.formState.errors.estimatedMinutes && (
+                      <p className="text-sm text-red-500 mt-1">{form.formState.errors.estimatedMinutes.message}</p>
+                    )}
                   </div>
 
                   <div>
@@ -437,10 +453,12 @@ export function AdminServicesPage() {
                       type="number"
                       min="0"
                       step="5"
-                      value={formData.minutesPerBedroom}
-                      onChange={(e) => setFormData({ ...formData, minutesPerBedroom: parseInt(e.target.value) || 0 })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                      {...form.register('minutesPerBedroom', { valueAsNumber: true })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                     />
+                    {form.formState.errors.minutesPerBedroom && (
+                      <p className="text-sm text-red-500 mt-1">{form.formState.errors.minutesPerBedroom.message}</p>
+                    )}
                   </div>
 
                   <div>
@@ -451,10 +469,12 @@ export function AdminServicesPage() {
                       type="number"
                       min="0"
                       step="5"
-                      value={formData.minutesPerBathroom}
-                      onChange={(e) => setFormData({ ...formData, minutesPerBathroom: parseInt(e.target.value) || 0 })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                      {...form.register('minutesPerBathroom', { valueAsNumber: true })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                     />
+                    {form.formState.errors.minutesPerBathroom && (
+                      <p className="text-sm text-red-500 mt-1">{form.formState.errors.minutesPerBathroom.message}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -467,18 +487,19 @@ export function AdminServicesPage() {
                   <input
                     type="number"
                     min="0"
-                    value={formData.displayOrder}
-                    onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 0 })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                    {...form.register('displayOrder', { valueAsNumber: true })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
                   />
+                  {form.formState.errors.displayOrder && (
+                    <p className="text-sm text-red-500 mt-1">{form.formState.errors.displayOrder.message}</p>
+                  )}
                 </div>
                 <div className="flex items-end">
                   <label className="flex items-center gap-2 cursor-pointer pb-2">
                     <input
                       type="checkbox"
-                      checked={formData.isActive}
-                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                      className="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand"
+                      {...form.register('isActive')}
+                      className="w-4 h-4 text-[#2196f3] border-gray-300 rounded focus:ring-[#2196f3]"
                     />
                     <span className="text-sm text-gray-700">Service active</span>
                   </label>
@@ -496,9 +517,9 @@ export function AdminServicesPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] transition-colors disabled:opacity-50"
                 >
-                  {saving ? 'Saving...' : modal.isEditing ? 'Save Changes' : 'Create Service'}
+                  {saving ? 'Saving...' : editingService ? 'Save Changes' : 'Create Service'}
                 </button>
               </div>
             </form>

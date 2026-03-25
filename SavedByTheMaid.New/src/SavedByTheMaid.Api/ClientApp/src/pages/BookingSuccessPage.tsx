@@ -121,7 +121,7 @@ export default function BookingSuccessPage() {
                 <button
                   onClick={copyConfirmation}
                   className="p-1.5 text-brand hover:bg-accent-light/20 rounded transition-colors"
-                  title="Copy to clipboard"
+                  aria-label="Copy to clipboard" aria-label="Copy to clipboard" title="Copy to clipboard"
                 >
                   {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 </button>

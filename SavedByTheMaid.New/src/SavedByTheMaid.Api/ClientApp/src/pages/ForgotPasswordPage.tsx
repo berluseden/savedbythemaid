@@ -57,7 +57,7 @@ export function ForgotPasswordPage() {
               to="/login"
               className="inline-flex items-center gap-2 text-brand hover:text-brand-dark font-medium"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-4 h-4" aria-hidden="true" />
               Back to Login
             </Link>
           </div>
@@ -91,7 +91,7 @@ export function ForgotPasswordPage() {
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {error && (
-              <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm">
+              <div role="alert" className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm">
                 {error}
               </div>
             )}
@@ -101,7 +101,7 @@ export function ForgotPasswordPage() {
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" aria-hidden="true" />
                 <input
                   type="email"
                   id="email"
@@ -136,7 +136,7 @@ export function ForgotPasswordPage() {
               to="/login"
               className="inline-flex items-center gap-2 text-sm text-brand hover:text-brand-dark font-medium"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-4 h-4" aria-hidden="true" />
               Back to Login
             </Link>
           </div>

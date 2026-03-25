@@ -29,13 +29,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   // Check if user is authenticated on mount
+  // With HttpOnly cookies, the token is sent automatically by the browser.
+  // We always call /auth/me to verify — the cookie handles authentication.
   useEffect(() => {
-    const token = authStorage.getToken();
-    if (token) {
-      refreshUser().finally(() => setIsLoading(false));
-    } else {
-      setIsLoading(false);
-    }
+    refreshUser().finally(() => setIsLoading(false));
   }, []);
 
   const refreshUser = async () => {
@@ -60,7 +57,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       const response = await authApi.login({ email, password });
-      authStorage.setToken(response.data.accessToken, rememberMe);
+      // Backend sets HttpOnly cookies automatically.
+      // Also store in localStorage as fallback for backward compatibility.
+      if (response.data.accessToken) {
+        authStorage.setToken(response.data.accessToken, rememberMe);
+      }
       setUser(response.data.user);
       return getRedirectPath(response.data.user.roles);
     } catch (err: unknown) {
@@ -71,12 +72,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-
   const register = async (data: RegisterData): Promise<string> => {
     setIsLoading(true);
     try {
       const response = await authApi.register(data);
-      authStorage.setToken(response.data.accessToken, true); // Always remember on register
+      // Backend sets HttpOnly cookies automatically.
+      if (response.data.accessToken) {
+        authStorage.setToken(response.data.accessToken, true);
+      }
       setUser(response.data.user);
       return getRedirectPath(response.data.user.roles);
     } finally {
