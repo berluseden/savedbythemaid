@@ -1,7 +1,9 @@
-using System.ComponentModel.DataAnnotations;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using SavedByTheMaid.Api.Extensions;
 using SavedByTheMaid.Api.Services;
+using SavedByTheMaid.Application.DTOs.Contact;
 
 namespace SavedByTheMaid.Api.Controllers;
 
@@ -12,15 +14,18 @@ public class ContactController : ControllerBase
     private readonly IEmailService _emailService;
     private readonly ILogger<ContactController> _logger;
     private readonly IConfiguration _configuration;
+    private readonly IValidator<ContactRequest> _contactValidator;
 
     public ContactController(
         IEmailService emailService,
         ILogger<ContactController> logger,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IValidator<ContactRequest> contactValidator)
     {
         _emailService = emailService;
         _logger = logger;
         _configuration = configuration;
+        _contactValidator = contactValidator;
     }
 
     /// <summary>
@@ -30,8 +35,8 @@ public class ContactController : ControllerBase
     [EnableRateLimiting("auth-sensitive")]
     public async Task<IActionResult> SendContactRequest([FromBody] ContactRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+        var validationError = await _contactValidator.ValidateAndReturnErrors(request);
+        if (validationError != null) return validationError;
 
         var adminEmail = _configuration["Email:ContactRecipient"]
             ?? _configuration["AdminSeed:Email"]
@@ -55,20 +60,4 @@ public class ContactController : ControllerBase
             return StatusCode(500, new { message = "An error occurred sending your message. Please try again later." });
         }
     }
-}
-
-public record ContactRequest
-{
-    [Required(ErrorMessage = "Name is required")]
-    [StringLength(100, MinimumLength = 2, ErrorMessage = "Name must be between 2 and 100 characters")]
-    public string Name { get; init; } = "";
-
-    [Required(ErrorMessage = "Email is required")]
-    [EmailAddress(ErrorMessage = "Invalid email format")]
-    [StringLength(256, ErrorMessage = "Email cannot exceed 256 characters")]
-    public string Email { get; init; } = "";
-
-    [Required(ErrorMessage = "Message is required")]
-    [StringLength(5000, MinimumLength = 10, ErrorMessage = "Message must be between 10 and 5000 characters")]
-    public string Message { get; init; } = "";
 }

@@ -1,13 +1,16 @@
 using System.ComponentModel.DataAnnotations;
 using System.Security.Cryptography;
 using System.Text;
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using SavedByTheMaid.Api.Auth;
+using SavedByTheMaid.Api.Extensions;
 using SavedByTheMaid.Api.Services;
+using SavedByTheMaid.Application.DTOs.Auth;
 using SavedByTheMaid.Domain.Entities;
 using SavedByTheMaid.Infrastructure.Data;
 
@@ -23,6 +26,8 @@ public class AuthController : ControllerBase
     private readonly ILogger<AuthController> _logger;
     private readonly IEmailService _emailService;
     private readonly IConfiguration _configuration;
+    private readonly IValidator<RegisterRequest> _registerValidator;
+    private readonly IValidator<LoginRequest> _loginValidator;
 
     public AuthController(
         ApplicationDbContext context,
@@ -30,7 +35,9 @@ public class AuthController : ControllerBase
         IPasswordHasher<ApplicationUser> passwordHasher,
         ILogger<AuthController> logger,
         IEmailService emailService,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IValidator<RegisterRequest> registerValidator,
+        IValidator<LoginRequest> loginValidator)
     {
         _context = context;
         _jwtService = jwtService;
@@ -38,6 +45,8 @@ public class AuthController : ControllerBase
         _logger = logger;
         _emailService = emailService;
         _configuration = configuration;
+        _registerValidator = registerValidator;
+        _loginValidator = loginValidator;
     }
 
     /// <summary>
@@ -75,8 +84,8 @@ public class AuthController : ControllerBase
     [EnableRateLimiting("auth-sensitive")]
     public async Task<ActionResult<AuthResponse>> Register([FromBody] RegisterRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+        var validationError = await _registerValidator.ValidateAndReturnErrors(request);
+        if (validationError != null) return validationError;
 
         // Check if email already exists
         var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
@@ -146,8 +155,8 @@ public class AuthController : ControllerBase
     [EnableRateLimiting("auth-sensitive")]
     public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+        var validationError = await _loginValidator.ValidateAndReturnErrors(request);
+        if (validationError != null) return validationError;
 
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
         if (user == null)
@@ -370,42 +379,13 @@ public class AuthController : ControllerBase
     }
 }
 
-#region DTOs
+#region DTOs (controller-specific, not duplicated in Application layer)
 
 public record ForgotPasswordRequest
 {
     [Required(ErrorMessage = "Email is required")]
     [EmailAddress(ErrorMessage = "Invalid email format")]
     public string Email { get; init; } = "";
-}
-
-public record RegisterRequest
-{
-    [Required(ErrorMessage = "Email is required")]
-    [EmailAddress(ErrorMessage = "Invalid email format")]
-    [StringLength(256, ErrorMessage = "Email cannot exceed 256 characters")]
-    public string Email { get; init; } = "";
-
-    [Required(ErrorMessage = "Password is required")]
-    [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be between 8 and 100 characters")]
-    public string Password { get; init; } = "";
-
-    [Phone(ErrorMessage = "Invalid phone number format")]
-    [StringLength(20, ErrorMessage = "Phone number cannot exceed 20 characters")]
-    public string? Phone { get; init; }
-
-    [StringLength(100, ErrorMessage = "Name cannot exceed 100 characters")]
-    public string? Name { get; init; }
-}
-
-public record LoginRequest
-{
-    [Required(ErrorMessage = "Email is required")]
-    [EmailAddress(ErrorMessage = "Invalid email format")]
-    public string Email { get; init; } = "";
-
-    [Required(ErrorMessage = "Password is required")]
-    public string Password { get; init; } = "";
 }
 
 public record ChangePasswordRequest
@@ -426,22 +406,6 @@ public record ResetPasswordWithTokenRequest
     [Required(ErrorMessage = "New password is required")]
     [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be between 8 and 100 characters")]
     public string NewPassword { get; init; } = "";
-}
-
-public record AuthResponse
-{
-    public string AccessToken { get; init; } = "";
-    public string RefreshToken { get; init; } = "";
-    public DateTime ExpiresAt { get; init; }
-    public UserDto User { get; init; } = null!;
-}
-
-public record UserDto
-{
-    public string Id { get; init; } = "";
-    public string Email { get; init; } = "";
-    public string? Phone { get; init; }
-    public string[] Roles { get; init; } = Array.Empty<string>();
 }
 
 public record EmailCheckResponse

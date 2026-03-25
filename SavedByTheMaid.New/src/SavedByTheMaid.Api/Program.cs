@@ -1,5 +1,6 @@
 using System.Text;
 using System.Threading.RateLimiting;
+using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
@@ -8,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using SavedByTheMaid.Api.Auth;
 using SavedByTheMaid.Api.Middleware;
 using SavedByTheMaid.Api.Services;
+using SavedByTheMaid.Application.Validators;
 using SavedByTheMaid.Domain.Entities;
 using SavedByTheMaid.Infrastructure;
 using SavedByTheMaid.Infrastructure.Data;
@@ -95,6 +97,9 @@ builder.Services.AddScoped<IBookingService, BookingService>();
 
 // Order Cancellation Service - shared cancellation logic
 builder.Services.AddScoped<IOrderCancellationService, OrderCancellationService>();
+
+// FluentValidation - register all validators from the Application assembly
+builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 
 // JWT Authentication
 var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>();
