@@ -259,3 +259,22 @@ paket-files/
 # Python Tools for Visual Studio (PTVS)
 __pycache__/
 *.pyc
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.production
+
+# Secrets
+appsettings.secrets.json
+
+# VS Code
+.vscode/
+
+# Frontend build output
+**/wwwroot/
+
+# OS
+Thumbs.db
+.DS_Store
