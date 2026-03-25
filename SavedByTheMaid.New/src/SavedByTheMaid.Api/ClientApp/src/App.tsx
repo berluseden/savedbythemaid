@@ -1,10 +1,9 @@
-import { lazy, Suspense } from 'react';
+import { lazy } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Header, Footer } from '@/components/layout';
-import { AuthProvider, ProtectedRoute } from '@/contexts/AuthContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { ToastProvider } from '@/contexts/ToastProvider';
-import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { AppErrorBoundary, QueryProvider, SuspenseBoundary, ProtectedRoute } from '@/shared/components';
 import HomePage from '@/pages/HomePage';
 import BookingPage from '@/pages/BookingPage';
 import BookingSuccessPage from '@/pages/BookingSuccessPage';
@@ -28,15 +27,6 @@ const AdminCleaningPlacesPage = lazy(() => import('@/pages/admin/CleaningPlacesP
 const AdminAdditionalServicesPage = lazy(() => import('@/pages/admin/AdditionalServicesPage').then(m => ({ default: m.AdminAdditionalServicesPage })));
 const AdminPricingPage = lazy(() => import('@/pages/admin/PricingPage').then(m => ({ default: m.AdminPricingPage })));
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      retry: 1,
-    },
-  },
-});
-
 // Layout wrapper for public pages (with header/footer)
 function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -48,22 +38,10 @@ function PublicLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function AdminSuspense({ children }: { children: React.ReactNode }) {
-  return (
-    <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#2196f3] border-t-transparent" role="status" aria-label="Loading" />
-      </div>
-    }>
-      {children}
-    </Suspense>
-  );
-}
-
 function App() {
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
+    <AppErrorBoundary variant="page">
+      <QueryProvider>
         <ToastProvider>
           <AuthProvider>
           <BrowserRouter>
@@ -105,7 +83,7 @@ function App() {
                 path="/admin"
                 element={
                   <ProtectedRoute requiredRoles={['Admin']}>
-                    <AdminSuspense><AdminDashboardPage /></AdminSuspense>
+                    <SuspenseBoundary variant="page"><AdminDashboardPage /></SuspenseBoundary>
                   </ProtectedRoute>
                 }
               />
@@ -113,7 +91,7 @@ function App() {
                 path="/admin/bookings"
                 element={
                   <ProtectedRoute requiredRoles={['Admin']}>
-                    <AdminSuspense><AdminBookingsPage /></AdminSuspense>
+                    <SuspenseBoundary variant="page"><AdminBookingsPage /></SuspenseBoundary>
                   </ProtectedRoute>
                 }
               />
@@ -121,7 +99,7 @@ function App() {
                 path="/admin/employees"
                 element={
                   <ProtectedRoute requiredRoles={['Admin']}>
-                    <AdminSuspense><AdminEmployeesPage /></AdminSuspense>
+                    <SuspenseBoundary variant="page"><AdminEmployeesPage /></SuspenseBoundary>
                   </ProtectedRoute>
                 }
               />
@@ -129,7 +107,7 @@ function App() {
                 path="/admin/services"
                 element={
                   <ProtectedRoute requiredRoles={['Admin']}>
-                    <AdminSuspense><AdminServicesPage /></AdminSuspense>
+                    <SuspenseBoundary variant="page"><AdminServicesPage /></SuspenseBoundary>
                   </ProtectedRoute>
                 }
               />
@@ -137,7 +115,7 @@ function App() {
                 path="/admin/service-areas"
                 element={
                   <ProtectedRoute requiredRoles={['Admin']}>
-                    <AdminSuspense><AdminServiceAreasPage /></AdminSuspense>
+                    <SuspenseBoundary variant="page"><AdminServiceAreasPage /></SuspenseBoundary>
                   </ProtectedRoute>
                 }
               />
@@ -145,7 +123,7 @@ function App() {
                 path="/admin/users"
                 element={
                   <ProtectedRoute requiredRoles={['Admin']}>
-                    <AdminSuspense><AdminUsersPage /></AdminSuspense>
+                    <SuspenseBoundary variant="page"><AdminUsersPage /></SuspenseBoundary>
                   </ProtectedRoute>
                 }
               />
@@ -153,7 +131,7 @@ function App() {
                 path="/admin/cleaning-places"
                 element={
                   <ProtectedRoute requiredRoles={['Admin']}>
-                    <AdminSuspense><AdminCleaningPlacesPage /></AdminSuspense>
+                    <SuspenseBoundary variant="page"><AdminCleaningPlacesPage /></SuspenseBoundary>
                   </ProtectedRoute>
                 }
               />
@@ -161,7 +139,7 @@ function App() {
                 path="/admin/additional-services"
                 element={
                   <ProtectedRoute requiredRoles={['Admin']}>
-                    <AdminSuspense><AdminAdditionalServicesPage /></AdminSuspense>
+                    <SuspenseBoundary variant="page"><AdminAdditionalServicesPage /></SuspenseBoundary>
                   </ProtectedRoute>
                 }
               />
@@ -169,7 +147,7 @@ function App() {
                 path="/admin/pricing"
                 element={
                   <ProtectedRoute requiredRoles={['Admin']}>
-                    <AdminSuspense><AdminPricingPage /></AdminSuspense>
+                    <SuspenseBoundary variant="page"><AdminPricingPage /></SuspenseBoundary>
                   </ProtectedRoute>
                 }
               />
@@ -183,8 +161,8 @@ function App() {
           </BrowserRouter>
           </AuthProvider>
         </ToastProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
+      </QueryProvider>
+    </AppErrorBoundary>
   );
 }
 

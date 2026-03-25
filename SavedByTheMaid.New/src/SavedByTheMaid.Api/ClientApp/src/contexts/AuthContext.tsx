@@ -1,22 +1,8 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { authApi, type User } from '../lib/api';
-
-const setToken = (token: string, rememberMe: boolean) => {
-  localStorage.setItem('rememberMe', rememberMe ? 'true' : 'false');
-  const storage = rememberMe ? localStorage : sessionStorage;
-  storage.setItem('token', token);
-};
-
-const getToken = () => {
-  return localStorage.getItem('token') || sessionStorage.getItem('token');
-};
-
-const clearToken = () => {
-  localStorage.removeItem('token');
-  localStorage.removeItem('rememberMe');
-  sessionStorage.removeItem('token');
-};
+import { authStorage } from '@/shared/lib/auth-storage';
+import { getErrorMessage } from '@/shared/lib/error-utils';
 
 interface AuthContextType {
   user: User | null;
@@ -44,7 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Check if user is authenticated on mount
   useEffect(() => {
-    const token = getToken();
+    const token = authStorage.getToken();
     if (token) {
       refreshUser().finally(() => setIsLoading(false));
     } else {
@@ -58,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(response.data);
     } catch {
       // Token invalid or expired
-      clearToken();
+      authStorage.clear();
       setUser(null);
     }
   };
@@ -74,14 +60,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       const response = await authApi.login({ email, password });
-      setToken(response.data.accessToken, rememberMe);
+      authStorage.setToken(response.data.accessToken, rememberMe);
       setUser(response.data.user);
       return getRedirectPath(response.data.user.roles);
     } catch (err: unknown) {
-      // Prefer the normalized userMessage attached by the API layer
-      type ErrLike = { userMessage?: string; response?: { data?: { message?: string } } };
-      const e = err as ErrLike;
-      const msg = e?.userMessage || e?.response?.data?.message || (err instanceof Error ? err.message : 'Invalid email or password');
+      const msg = getErrorMessage(err, 'Invalid email or password');
       throw new Error(msg);
     } finally {
       setIsLoading(false);
@@ -93,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       const response = await authApi.register(data);
-      setToken(response.data.accessToken, true); // Always remember on register
+      authStorage.setToken(response.data.accessToken, true); // Always remember on register
       setUser(response.data.user);
       return getRedirectPath(response.data.user.roles);
     } finally {
@@ -108,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Ignore errors on logout
     } finally {
-      clearToken();
+      authStorage.clear();
       setUser(null);
       setIsLoading(false);
     }
@@ -137,38 +120,4 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}
-
-// Protected Route Component
-import { Navigate, useLocation } from 'react-router-dom';
-
-interface ProtectedRouteProps {
-  children: ReactNode;
-  requiredRoles?: string[];
-}
-
-export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps) {
-  const { user, isLoading, isAuthenticated } = useAuth();
-  const location = useLocation();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-[#2196f3] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  if (requiredRoles && requiredRoles.length > 0) {
-    const hasRequiredRole = user?.roles?.some((role: string) => requiredRoles.includes(role));
-    if (!hasRequiredRole) {
-      return <Navigate to="/" replace />;
-    }
-  }
-
-  return <>{children}</>;
 }

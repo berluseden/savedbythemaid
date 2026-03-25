@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Plus,
   Search,
@@ -13,6 +13,9 @@ import {
 } from 'lucide-react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import api from '../../lib/api';
+import { useCRUD } from '@/shared/hooks/use-crud';
+import { useFormModal } from '@/shared/hooks/use-form-modal';
+import { getErrorMessage } from '@/shared/lib/error-utils';
 
 interface ServiceAreaZip {
   id: number;
@@ -29,73 +32,54 @@ interface ServiceArea {
 }
 
 export function AdminServiceAreasPage() {
-  const [serviceAreas, setServiceAreas] = useState<ServiceArea[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: serviceAreas, isLoading, create, update, remove, refetch } = useCRUD<ServiceArea>({
+    endpoint: '/serviceareas',
+    queryKey: ['admin', 'service-areas'],
+  });
+
+  const modal = useFormModal<ServiceArea>();
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedArea, setExpandedArea] = useState<number | null>(null);
-  
-  // Modal state
-  const [showModal, setShowModal] = useState(false);
-  const [editingArea, setEditingArea] = useState<ServiceArea | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     isActive: true,
   });
-  
+
   // Zip code modal
   const [showZipModal, setShowZipModal] = useState(false);
   const [selectedAreaId, setSelectedAreaId] = useState<number | null>(null);
   const [newZipCode, setNewZipCode] = useState('');
   const [zipError, setZipError] = useState('');
 
-  useEffect(() => {
-    fetchServiceAreas();
-  }, []);
-
-  const fetchServiceAreas = async () => {
-    setIsLoading(true);
-    try {
-      const response = await api.get<ServiceArea[]>('/serviceareas');
-      setServiceAreas(response.data);
-    } catch {
-      // Error handled by API interceptor
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleOpenModal = (area?: ServiceArea) => {
     if (area) {
-      setEditingArea(area);
       setFormData({
         name: area.name,
         description: area.description || '',
         isActive: area.isActive,
       });
+      modal.open(area);
     } else {
-      setEditingArea(null);
       setFormData({ name: '', description: '', isActive: true });
+      modal.open();
     }
-    setShowModal(true);
   };
 
   const handleCloseModal = () => {
-    setShowModal(false);
-    setEditingArea(null);
+    modal.close();
     setFormData({ name: '', description: '', isActive: true });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (editingArea) {
-        await api.put(`/serviceareas/${editingArea.id}`, formData);
+      if (modal.isEditing && modal.editingItem) {
+        await update.mutateAsync({ ...formData, id: modal.editingItem.id } as unknown as ServiceArea);
       } else {
-        await api.post('/serviceareas', formData);
+        await create.mutateAsync(formData);
       }
       handleCloseModal();
-      fetchServiceAreas();
     } catch {
       // Error handled by API interceptor
     }
@@ -106,8 +90,7 @@ export function AdminServiceAreasPage() {
       return;
     }
     try {
-      await api.delete(`/serviceareas/${id}`);
-      fetchServiceAreas();
+      await remove.mutateAsync(id);
     } catch {
       // Error handled by API interceptor
     }
@@ -136,23 +119,23 @@ export function AdminServiceAreasPage() {
       });
       setShowZipModal(false);
       setNewZipCode('');
-      fetchServiceAreas();
+      refetch();
     } catch (error: unknown) {
       const maybe = error as { response?: { status?: number } };
       if (maybe.response?.status === 409) {
         setZipError('This zip code is already assigned to another zone');
       } else {
-        setZipError('Error adding zip code');
+        setZipError(getErrorMessage(error, 'Error adding zip code'));
       }
     }
   };
 
   const handleDeleteZipCode = async (areaId: number, zipId: number, zipCode: string) => {
     if (!confirm(`Delete zip code ${zipCode}?`)) return;
-    
+
     try {
       await api.delete(`/serviceareas/${areaId}/zipcodes/${zipId}`);
-      fetchServiceAreas();
+      refetch();
     } catch {
       // Error handled by API interceptor
     }
@@ -185,7 +168,7 @@ export function AdminServiceAreasPage() {
           </div>
           <button
             onClick={() => handleOpenModal()}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#2196f3] px-4 py-2 text-sm font-medium text-white hover:bg-[#29338c] transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark transition-colors"
           >
             <Plus className="h-4 w-4" />
             New Zone
@@ -196,8 +179,8 @@ export function AdminServiceAreasPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="rounded-lg border border-gray-200 bg-white p-4">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-[#b8e07c]/20 p-2">
-                <Globe className="h-5 w-5 text-[#2196f3]" />
+              <div className="rounded-lg bg-accent-light/20 p-2">
+                <Globe className="h-5 w-5 text-brand" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-gray-900">{serviceAreas.length}</p>
@@ -237,14 +220,14 @@ export function AdminServiceAreasPage() {
             placeholder="Search by name, description or zip code..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
+            className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
           />
         </div>
 
         {/* Service Areas List */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#2196f3] border-t-transparent" />
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand border-t-transparent" />
           </div>
         ) : filteredAreas.length === 0 ? (
           <div className="rounded-lg border border-gray-200 bg-white p-12 text-center">
@@ -258,7 +241,7 @@ export function AdminServiceAreasPage() {
             {!searchTerm && (
               <button
                 onClick={() => handleOpenModal()}
-                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#2196f3] px-4 py-2 text-sm font-medium text-white hover:bg-[#29338c]"
+                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
               >
                 <Plus className="h-4 w-4" />
                 New Zone
@@ -332,7 +315,7 @@ export function AdminServiceAreasPage() {
                       <h4 className="text-sm font-medium text-gray-700">Zip Codes</h4>
                       <button
                         onClick={() => handleOpenZipModal(area.id)}
-                        className="inline-flex items-center gap-1 rounded-md bg-[#2196f3] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#29338c]"
+                        className="inline-flex items-center gap-1 rounded-md bg-brand px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-dark"
                       >
                         <Plus className="h-3 w-3" />
                         Add ZIP
@@ -369,12 +352,12 @@ export function AdminServiceAreasPage() {
         )}
 
         {/* Create/Edit Area Modal */}
-        {showModal && (
+        {modal.isOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900">
-                  {editingArea ? 'Edit Zone' : 'New Service Area'}
+                  {modal.isEditing ? 'Edit Zone' : 'New Service Area'}
                 </h2>
                 <button
                   onClick={handleCloseModal}
@@ -395,7 +378,7 @@ export function AdminServiceAreasPage() {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="E.g.: North Miami Zone"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                   />
                 </div>
 
@@ -408,18 +391,18 @@ export function AdminServiceAreasPage() {
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     placeholder="Optional zone description"
                     rows={3}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                   />
                 </div>
 
-                {editingArea && (
+                {modal.isEditing && (
                   <div className="flex items-center gap-2">
                     <input
                       type="checkbox"
                       id="isActive"
                       checked={formData.isActive}
                       onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                      className="h-4 w-4 rounded border-gray-300 text-[#2196f3] focus:ring-[#2196f3]"
+                      className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
                     />
                     <label htmlFor="isActive" className="text-sm text-gray-700">
                       Zone active
@@ -437,9 +420,9 @@ export function AdminServiceAreasPage() {
                   </button>
                   <button
                     type="submit"
-                    className="rounded-lg bg-[#2196f3] px-4 py-2 text-sm font-medium text-white hover:bg-[#29338c]"
+                    className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
                   >
-                    {editingArea ? 'Save Changes' : 'Create Zone'}
+                    {modal.isEditing ? 'Save Changes' : 'Create Zone'}
                   </button>
                 </div>
               </form>
@@ -479,7 +462,7 @@ export function AdminServiceAreasPage() {
                     className={`w-full rounded-lg border px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 ${
                       zipError
                         ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 focus:border-[#2196f3] focus:ring-[#2196f3]'
+                        : 'border-gray-300 focus:border-brand focus:ring-brand'
                     }`}
                   />
                   {zipError && <p className="mt-1 text-xs text-red-600">{zipError}</p>}
@@ -495,7 +478,7 @@ export function AdminServiceAreasPage() {
                   </button>
                   <button
                     type="submit"
-                    className="rounded-lg bg-[#2196f3] px-4 py-2 text-sm font-medium text-white hover:bg-[#29338c]"
+                    className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
                   >
                     Add
                   </button>

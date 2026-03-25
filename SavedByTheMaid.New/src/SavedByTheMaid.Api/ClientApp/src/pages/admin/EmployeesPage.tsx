@@ -444,7 +444,7 @@ export function AdminEmployeesPage() {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-[#2196f3] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin" />
         </div>
       </AdminLayout>
     );
@@ -461,7 +461,7 @@ export function AdminEmployeesPage() {
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors"
           >
             <Plus className="h-5 w-5" />
             New Employee
@@ -477,13 +477,13 @@ export function AdminEmployeesPage() {
               placeholder="Search employees..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
             />
           </div>
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
           >
             <option value="all">All statuses</option>
             <option value="active">Active</option>
@@ -512,7 +512,7 @@ export function AdminEmployeesPage() {
           </div>
           <div className="bg-white rounded-lg p-4 border">
             <p className="text-sm text-gray-500">Covered zones</p>
-            <p className="text-2xl font-bold text-[#2196f3]">
+            <p className="text-2xl font-bold text-brand">
               {employees.reduce((acc, e) => acc + e.serviceAreaCount, 0)}
             </p>
           </div>
@@ -536,8 +536,8 @@ export function AdminEmployeesPage() {
                   <tr key={employee.id} className="border-b last:border-0 hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#b8e07c]/20 rounded-full flex items-center justify-center">
-                          <User className="h-5 w-5 text-[#2196f3]" />
+                        <div className="w-10 h-10 bg-accent-light/20 rounded-full flex items-center justify-center">
+                          <User className="h-5 w-5 text-brand" />
                         </div>
                         <div>
                           <p className="font-medium text-gray-900">
@@ -573,7 +573,7 @@ export function AdminEmployeesPage() {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleEdit(employee)}
-                          className="p-2 text-gray-400 hover:text-[#2196f3] hover:bg-[#b8e07c]/10 rounded-lg transition-colors"
+                          className="p-2 text-gray-400 hover:text-brand hover:bg-accent-light/10 rounded-lg transition-colors"
                         >
                           <Edit2 className="h-4 w-4" />
                         </button>
@@ -643,7 +643,7 @@ export function AdminEmployeesPage() {
                   onClick={() => setActiveTab('info')}
                   className={`flex-1 min-w-[80px] px-3 py-3 text-sm font-medium flex items-center justify-center gap-1 transition-colors ${
                     activeTab === 'info' 
-                      ? 'text-[#2196f3] border-b-2 border-[#2196f3] bg-white' 
+                      ? 'text-brand border-b-2 border-brand bg-white' 
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
@@ -654,7 +654,7 @@ export function AdminEmployeesPage() {
                   onClick={() => setActiveTab('zones')}
                   className={`flex-1 min-w-[80px] px-3 py-3 text-sm font-medium flex items-center justify-center gap-1 transition-colors ${
                     activeTab === 'zones' 
-                      ? 'text-[#2196f3] border-b-2 border-[#2196f3] bg-white' 
+                      ? 'text-brand border-b-2 border-brand bg-white' 
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
@@ -665,7 +665,7 @@ export function AdminEmployeesPage() {
                   onClick={() => setActiveTab('equipment')}
                   className={`flex-1 min-w-[80px] px-3 py-3 text-sm font-medium flex items-center justify-center gap-1 transition-colors ${
                     activeTab === 'equipment' 
-                      ? 'text-[#2196f3] border-b-2 border-[#2196f3] bg-white' 
+                      ? 'text-brand border-b-2 border-brand bg-white' 
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
@@ -676,7 +676,7 @@ export function AdminEmployeesPage() {
                   onClick={() => setActiveTab('schedule')}
                   className={`flex-1 min-w-[80px] px-3 py-3 text-sm font-medium flex items-center justify-center gap-1 transition-colors ${
                     activeTab === 'schedule' 
-                      ? 'text-[#2196f3] border-b-2 border-[#2196f3] bg-white' 
+                      ? 'text-brand border-b-2 border-brand bg-white' 
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
@@ -687,7 +687,7 @@ export function AdminEmployeesPage() {
                   onClick={() => setActiveTab('timeoff')}
                   className={`flex-1 min-w-[80px] px-3 py-3 text-sm font-medium flex items-center justify-center gap-1 transition-colors ${
                     activeTab === 'timeoff' 
-                      ? 'text-[#2196f3] border-b-2 border-[#2196f3] bg-white' 
+                      ? 'text-brand border-b-2 border-brand bg-white' 
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
@@ -708,7 +708,7 @@ export function AdminEmployeesPage() {
                         type="text"
                         value={formData.firstName}
                         onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                         required
                       />
                     </div>
@@ -718,7 +718,7 @@ export function AdminEmployeesPage() {
                         type="text"
                         value={formData.lastName}
                         onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                         required
                       />
                     </div>
@@ -730,7 +730,7 @@ export function AdminEmployeesPage() {
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                     />
                   </div>
 
@@ -740,7 +740,7 @@ export function AdminEmployeesPage() {
                       type="tel"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                     />
                   </div>
 
@@ -750,7 +750,7 @@ export function AdminEmployeesPage() {
                       type="text"
                       value={formData.address}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                     />
                   </div>
 
@@ -759,7 +759,7 @@ export function AdminEmployeesPage() {
                     <select
                       value={formData.primaryServiceAreaId || ''}
                       onChange={(e) => setFormData({ ...formData, primaryServiceAreaId: e.target.value ? Number(e.target.value) : null })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                     >
                       <option value="">Unassigned</option>
                       {serviceAreas.map(area => (
@@ -777,7 +777,7 @@ export function AdminEmployeesPage() {
                         max="24"
                         value={formData.maxDailyHours}
                         onChange={(e) => setFormData({ ...formData, maxDailyHours: parseInt(e.target.value) || 8 })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                       />
                     </div>
                     <div>
@@ -788,7 +788,7 @@ export function AdminEmployeesPage() {
                         max="20"
                         value={formData.maxDailyServices}
                         onChange={(e) => setFormData({ ...formData, maxDailyServices: parseInt(e.target.value) || 4 })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                       />
                     </div>
                   </div>
@@ -799,7 +799,7 @@ export function AdminEmployeesPage() {
                         type="checkbox"
                         checked={formData.isActive}
                         onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                        className="w-4 h-4 text-[#2196f3] border-gray-300 rounded focus:ring-[#2196f3]"
+                        className="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand"
                       />
                       <span className="text-sm text-gray-700">Active employee</span>
                     </label>
@@ -818,7 +818,7 @@ export function AdminEmployeesPage() {
                     <button
                       type="submit"
                       disabled={saving}
-                      className="flex-1 px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] transition-colors disabled:opacity-50"
+                      className="flex-1 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors disabled:opacity-50"
                     >
                       {saving ? 'Saving...' : editingEmployee ? 'Save Changes' : 'Create Employee'}
                     </button>
@@ -838,17 +838,17 @@ export function AdminEmployeesPage() {
                         {assignedZones.map((zone) => (
                           <div key={zone.serviceAreaId} className="flex items-center justify-between p-3 bg-white border rounded-lg">
                             <div className="flex items-center gap-3">
-                              <MapPin className={`h-4 w-4 ${zone.isPrimary ? 'text-[#2196f3]' : 'text-gray-400'}`} />
+                              <MapPin className={`h-4 w-4 ${zone.isPrimary ? 'text-brand' : 'text-gray-400'}`} />
                               <span className="font-medium">{zone.serviceArea?.name || `Zone ${zone.serviceAreaId}`}</span>
                               {zone.isPrimary && (
-                                <span className="px-2 py-0.5 bg-[#b8e07c]/20 text-[#29338c] text-xs rounded-full">Primary</span>
+                                <span className="px-2 py-0.5 bg-accent-light/20 text-brand-dark text-xs rounded-full">Primary</span>
                               )}
                             </div>
                             <div className="flex items-center gap-2">
                               {!zone.isPrimary && (
                                 <button
                                   onClick={() => handleSetPrimaryZone(zone.serviceAreaId)}
-                                  className="p-1 text-gray-400 hover:text-[#2196f3] text-xs"
+                                  className="p-1 text-gray-400 hover:text-brand text-xs"
                                   title="Set as primary"
                                 >
                                   <Check className="h-4 w-4" />
@@ -877,7 +877,7 @@ export function AdminEmployeesPage() {
                             key={area.id}
                             onClick={() => handleAddZone(area.id, assignedZones.length === 0)}
                             disabled={saving}
-                            className="p-3 text-left border rounded-lg hover:border-[#b8e07c] hover:bg-[#b8e07c]/10 transition-colors disabled:opacity-50"
+                            className="p-3 text-left border rounded-lg hover:border-accent-light hover:bg-accent-light/10 transition-colors disabled:opacity-50"
                           >
                             <div className="flex items-center gap-2">
                               <Plus className="h-4 w-4 text-gray-400" />
@@ -945,7 +945,7 @@ export function AdminEmployeesPage() {
                             key={eq.id}
                             onClick={() => handleAddEquipment(eq.id)}
                             disabled={saving}
-                            className="p-3 text-left border rounded-lg hover:border-[#b8e07c] hover:bg-[#b8e07c]/10 transition-colors disabled:opacity-50"
+                            className="p-3 text-left border rounded-lg hover:border-accent-light hover:bg-accent-light/10 transition-colors disabled:opacity-50"
                           >
                             <div className="flex items-center gap-2">
                               <Plus className="h-4 w-4 text-gray-400" />
@@ -979,18 +979,18 @@ export function AdminEmployeesPage() {
                               <div className="min-h-[80px] p-2">
                                 {schedule ? (
                                   <div 
-                                    className="bg-[#b8e07c]/20 text-sky-800 rounded p-1.5 text-xs cursor-pointer hover:bg-[#b8e07c]/30"
+                                    className="bg-accent-light/20 text-sky-800 rounded p-1.5 text-xs cursor-pointer hover:bg-accent-light/30"
                                     onClick={() => handleDeleteSchedule(idx)}
                                     title="Click to delete"
                                   >
                                     <div className="font-medium">{schedule.startTime.substring(0, 5)}</div>
-                                    <div className="text-[#2196f3]">to</div>
+                                    <div className="text-brand">to</div>
                                     <div className="font-medium">{schedule.endTime.substring(0, 5)}</div>
                                   </div>
                                 ) : (
                                   <button
                                     onClick={() => setScheduleForm({ ...scheduleForm, dayOfWeek: idx })}
-                                    className="w-full h-full min-h-[60px] border-2 border-dashed border-gray-200 rounded text-gray-400 hover:border-[#b8e07c] hover:text-[#2196f3] flex items-center justify-center"
+                                    className="w-full h-full min-h-[60px] border-2 border-dashed border-gray-200 rounded text-gray-400 hover:border-accent-light hover:text-brand flex items-center justify-center"
                                   >
                                     <Plus className="h-4 w-4" />
                                   </button>
@@ -1061,7 +1061,7 @@ export function AdminEmployeesPage() {
                             type="checkbox"
                             checked={scheduleForm.isAvailable}
                             onChange={(e) => setScheduleForm({ ...scheduleForm, isAvailable: e.target.checked })}
-                            className="w-4 h-4 text-[#2196f3] border-gray-300 rounded focus:ring-[#2196f3]"
+                            className="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand"
                           />
                           <span className="text-sm text-gray-700">Available for services</span>
                         </label>
@@ -1070,7 +1070,7 @@ export function AdminEmployeesPage() {
                     <button
                       type="submit"
                       disabled={saving}
-                      className="px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] disabled:opacity-50"
+                      className="px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark disabled:opacity-50"
                     >
                       {saving ? 'Saving...' : 'Add'}
                     </button>
@@ -1080,7 +1080,7 @@ export function AdminEmployeesPage() {
                     <h3 className="font-medium text-gray-900 mb-3">Configured schedules</h3>
                     {loadingSchedules ? (
                       <div className="text-center py-4">
-                        <div className="w-6 h-6 border-2 border-[#2196f3] border-t-transparent rounded-full animate-spin mx-auto" />
+                        <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin mx-auto" />
                       </div>
                     ) : schedules.length === 0 ? (
                       <p className="text-gray-500 text-center py-4">No schedules configured</p>
@@ -1089,7 +1089,7 @@ export function AdminEmployeesPage() {
                         {schedules.map((schedule) => (
                           <div key={schedule.dayOfWeek} className={`flex items-center justify-between p-3 border rounded-lg ${schedule.isAvailable ? 'bg-white' : 'bg-gray-100'}`}>
                             <div className="flex items-center gap-3 flex-wrap">
-                              <Calendar className={`h-4 w-4 ${schedule.isAvailable ? 'text-[#2196f3]' : 'text-gray-400'}`} />
+                              <Calendar className={`h-4 w-4 ${schedule.isAvailable ? 'text-brand' : 'text-gray-400'}`} />
                               <span className="font-medium">{DAYS_OF_WEEK[schedule.dayOfWeek]}</span>
                               <span className="text-gray-500">
                                 {schedule.startTime.substring(0, 5)} - {schedule.endTime.substring(0, 5)}
@@ -1145,7 +1145,7 @@ export function AdminEmployeesPage() {
                         type="checkbox"
                         checked={timeOffForm.isAllDay}
                         onChange={(e) => setTimeOffForm({ ...timeOffForm, isAllDay: e.target.checked })}
-                        className="w-4 h-4 text-[#2196f3] border-gray-300 rounded focus:ring-[#2196f3]"
+                        className="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand"
                       />
                       <span className="text-sm text-gray-700">Full day</span>
                     </label>
@@ -1189,7 +1189,7 @@ export function AdminEmployeesPage() {
                     <button
                       type="submit"
                       disabled={saving}
-                      className="px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] disabled:opacity-50"
+                      className="px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark disabled:opacity-50"
                     >
                       {saving ? 'Saving...' : 'Add'}
                     </button>

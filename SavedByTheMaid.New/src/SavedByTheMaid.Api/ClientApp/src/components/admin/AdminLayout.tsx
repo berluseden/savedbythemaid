@@ -66,7 +66,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         {/* Logo */}
         <div className="flex items-center justify-between h-16 px-4 border-b">
           <Link to="/admin" className="flex items-center gap-2">
-            <Sparkles className="h-8 w-8 text-[#2196f3]" />
+            <Sparkles className="h-8 w-8 text-brand" />
             <span className="font-bold text-gray-900">Admin Panel</span>
           </Link>
           <button
@@ -87,7 +87,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 to={item.href}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                   isActive
-                    ? 'bg-[#b8e07c]/10 text-[#2196f3]'
+                    ? 'bg-accent-light/10 text-brand'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
@@ -128,7 +128,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               <input
                 type="search"
                 placeholder="Search..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
               />
             </div>
 
@@ -146,7 +146,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-2 p-2 text-gray-700 hover:bg-gray-50 rounded-lg"
                 >
-                  <div className="w-8 h-8 bg-[#2196f3] rounded-full flex items-center justify-center text-white font-medium">
+                  <div className="w-8 h-8 bg-brand rounded-full flex items-center justify-center text-white font-medium">
                     {user?.firstName?.[0]?.toUpperCase() || 'A'}
                   </div>
                   <span className="hidden sm:block font-medium">

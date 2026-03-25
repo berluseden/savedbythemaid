@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Calendar,
   Users,
@@ -11,17 +12,7 @@ import {
 } from 'lucide-react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import api from '../../lib/api';
-
-interface DashboardStats {
-  totalBookings: number;
-  pendingBookings: number;
-  completedBookings: number;
-  totalRevenue: number;
-  totalEmployees: number;
-  activeEmployees: number;
-  todayServiceCount: number;
-  nextServiceText: string;
-}
+import { getOrderStatusConfig } from '@/shared/lib/status-config';
 
 interface OrderSummary {
   id: number;
@@ -42,95 +33,78 @@ interface EmployeeDto {
 }
 
 export function AdminDashboardPage() {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalBookings: 0,
-    pendingBookings: 0,
-    completedBookings: 0,
-    totalRevenue: 0,
-    totalEmployees: 0,
-    activeEmployees: 0,
-    todayServiceCount: 0,
-    nextServiceText: 'No pending services',
-  });
-
-  const [recentBookings, setRecentBookings] = useState<OrderSummary[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      setIsLoading(true);
-      try {
-        // Fetch orders and employees in parallel
-        const [ordersRes, employeesRes] = await Promise.all([
-          api.get<OrderSummary[]>('/admin/orders', { params: { pageSize: '100' } }),
-          api.get<EmployeeDto[]>('/admin/employees'),
-        ]);
+  const ordersQuery = useQuery({
+    queryKey: ['admin', 'orders'],
+    queryFn: () => api.get<OrderSummary[]>('/admin/orders', { params: { pageSize: '100' } }).then(r => r.data),
+  });
 
-        const orders = ordersRes.data;
-        const employees = employeesRes.data;
+  const employeesQuery = useQuery({
+    queryKey: ['admin', 'employees'],
+    queryFn: () => api.get<EmployeeDto[]>('/admin/employees').then(r => r.data),
+  });
 
-        // Calculate stats from orders
-        const totalRevenue = orders.reduce((acc, o) => acc + o.total, 0);
-        const pendingBookings = orders.filter(o => o.orderStatus === 'Pending').length;
-        const completedBookings = orders.filter(o => o.orderStatus === 'Completed').length;
+  const isLoading = ordersQuery.isLoading || employeesQuery.isLoading;
+  const orders = ordersQuery.data ?? [];
+  const employees = employeesQuery.data ?? [];
 
-        // Logic for today/next services
-        const now = new Date();
-        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const endOfToday = new Date(startOfToday);
-        endOfToday.setDate(endOfToday.getDate() + 1);
+  // Derive error state from queries
+  if ((ordersQuery.isError || employeesQuery.isError) && !error) {
+    // Intentionally not setting error in render; the error banner below handles it
+  }
 
-        // Filter active orders that have a scheduled date
-        const activeOrdersWithDate = orders
-            .filter(o => o.scheduledDate && ['Confirmed', 'InProgress', 'Pending'].includes(o.orderStatus))
-            .map(o => ({ ...o, dateObj: new Date(o.scheduledDate!) }));
-        
-        const todayServices = activeOrdersWithDate.filter(o => 
-             o.dateObj >= startOfToday && o.dateObj < endOfToday
-        );
+  // Calculate stats from orders
+  const totalRevenue = orders.reduce((acc, o) => acc + o.total, 0);
+  const pendingBookings = orders.filter(o => o.orderStatus === 'Pending').length;
+  const completedBookings = orders.filter(o => o.orderStatus === 'Completed').length;
 
-        // Find next future service
-        const futureServices = activeOrdersWithDate
-            .filter(o => o.dateObj > now)
-            .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
-        
-        let nextServiceText = "No upcoming services";
-        if (futureServices.length > 0) {
-            const next = futureServices[0];
-            const timeStr = next.dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-            
-            // If it's today
-             if (next.dateObj >= startOfToday && next.dateObj < endOfToday) {
-                 nextServiceText = `Next at ${timeStr}`;
-             } else {
-                 const dateStr = next.dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
-                 nextServiceText = `Next: ${dateStr} ${timeStr}`;
-             }
-        }
+  // Logic for today/next services
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const endOfToday = new Date(startOfToday);
+  endOfToday.setDate(endOfToday.getDate() + 1);
 
-        setStats({
-          totalBookings: orders.length,
-          pendingBookings,
-          completedBookings,
-          totalRevenue,
-          totalEmployees: employees.length,
-          activeEmployees: employees.filter(e => e.isActive).length,
-          todayServiceCount: todayServices.length,
-          nextServiceText
-        });
+  // Filter active orders that have a scheduled date
+  const activeOrdersWithDate = orders
+    .filter(o => o.scheduledDate && ['Confirmed', 'InProgress', 'Pending'].includes(o.orderStatus))
+    .map(o => ({ ...o, dateObj: new Date(o.scheduledDate!) }));
 
-        // Recent bookings (last 5)
-        setRecentBookings(orders.slice(0, 5));
-      } catch (err) {
-        setError('Error loading dashboard data');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const todayServices = activeOrdersWithDate.filter(o =>
+    o.dateObj >= startOfToday && o.dateObj < endOfToday
+  );
 
-    fetchDashboardData();
-  }, []);
+  // Find next future service
+  const futureServices = activeOrdersWithDate
+    .filter(o => o.dateObj > now)
+    .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+
+  let nextServiceText = "No upcoming services";
+  if (futureServices.length > 0) {
+    const next = futureServices[0];
+    const timeStr = next.dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+    // If it's today
+    if (next.dateObj >= startOfToday && next.dateObj < endOfToday) {
+      nextServiceText = `Next at ${timeStr}`;
+    } else {
+      const dateStr = next.dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+      nextServiceText = `Next: ${dateStr} ${timeStr}`;
+    }
+  }
+
+  const stats = {
+    totalBookings: orders.length,
+    pendingBookings,
+    completedBookings,
+    totalRevenue,
+    totalEmployees: employees.length,
+    activeEmployees: employees.filter(e => e.isActive).length,
+    todayServiceCount: todayServices.length,
+    nextServiceText,
+  };
+
+  const recentBookings = orders.slice(0, 5);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -140,23 +114,10 @@ export function AdminDashboardPage() {
   };
 
   const getStatusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      Pending: 'bg-yellow-100 text-yellow-700',
-      Confirmed: 'bg-blue-100 text-blue-700',
-      InProgress: 'bg-purple-100 text-purple-700',
-      Completed: 'bg-green-100 text-green-700',
-      Cancelled: 'bg-red-100 text-red-700',
-    };
-    const labels: Record<string, string> = {
-      Pending: 'Pending',
-      Confirmed: 'Confirmed',
-      InProgress: 'In Progress',
-      Completed: 'Completed',
-      Cancelled: 'Cancelled',
-    };
+    const config = getOrderStatusConfig(status);
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[status]}`}>
-        {labels[status]}
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${config.bgColor} ${config.color}`}>
+        {config.label}
       </span>
     );
   };
@@ -165,7 +126,7 @@ export function AdminDashboardPage() {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-[#2196f3] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin" />
         </div>
       </AdminLayout>
     );
@@ -189,8 +150,8 @@ export function AdminDashboardPage() {
                 <p className="text-sm text-gray-500">Total Bookings</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.totalBookings}</p>
               </div>
-              <div className="w-12 h-12 bg-[#b8e07c]/20 rounded-lg flex items-center justify-center">
-                <Calendar className="h-6 w-6 text-[#2196f3]" />
+              <div className="w-12 h-12 bg-accent-light/20 rounded-lg flex items-center justify-center">
+                <Calendar className="h-6 w-6 text-brand" />
               </div>
             </div>
             <div className="mt-4 flex items-center gap-2">
@@ -261,9 +222,9 @@ export function AdminDashboardPage() {
           </div>
         </div>
 
-        {error && (
+        {(error || ordersQuery.isError || employeesQuery.isError) && (
           <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg">
-            {error}
+            {error || 'Error loading dashboard data'}
             <button onClick={() => setError('')} className="ml-2 underline">Close</button>
           </div>
         )}
@@ -275,7 +236,7 @@ export function AdminDashboardPage() {
             <div className="p-6 border-b">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-gray-900">Recent Bookings</h2>
-                <a href="/admin/bookings" className="text-sm text-[#2196f3] hover:text-[#29338c]">
+                <a href="/admin/bookings" className="text-sm text-brand hover:text-brand-dark">
                   View all →
                 </a>
               </div>

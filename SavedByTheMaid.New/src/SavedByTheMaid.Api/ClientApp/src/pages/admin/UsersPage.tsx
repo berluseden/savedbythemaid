@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Plus,
   Search,
@@ -15,6 +16,8 @@ import {
 } from 'lucide-react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import api from '../../lib/api';
+import { useFormModal } from '@/shared/hooks/use-form-modal';
+import { getErrorMessage } from '@/shared/lib/error-utils';
 
 interface UserDto {
   id: string;
@@ -34,16 +37,30 @@ interface RoleDto {
 }
 
 export function AdminUsersPage() {
-  const [users, setUsers] = useState<UserDto[]>([]);
-  const [roles, setRoles] = useState<RoleDto[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  const { data: users = [], isLoading: usersLoading } = useQuery({
+    queryKey: ['admin', 'users'],
+    queryFn: () => api.get<UserDto[]>('/admin/users').then(r => r.data),
+  });
+
+  const { data: roles = [] } = useQuery({
+    queryKey: ['admin', 'users', 'roles'],
+    queryFn: () => api.get<RoleDto[]>('/admin/users/roles').then(r => r.data),
+  });
+
+  const isLoading = usersLoading;
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+  };
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
   // User modal
-  const [showUserModal, setShowUserModal] = useState(false);
-  const [editingUser, setEditingUser] = useState<UserDto | null>(null);
+  const userModal = useFormModal<UserDto>();
   const [userFormData, setUserFormData] = useState({
     email: '',
     password: '',
@@ -56,39 +73,18 @@ export function AdminUsersPage() {
   const [userFormError, setUserFormError] = useState('');
 
   // Password reset modal
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [passwordUserId, setPasswordUserId] = useState<string | null>(null);
+  const passwordModal = useFormModal<UserDto>();
   const [newPassword, setNewPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
   // Role modal
-  const [showRoleModal, setShowRoleModal] = useState(false);
+  const roleModal = useFormModal();
   const [newRoleName, setNewRoleName] = useState('');
   const [roleError, setRoleError] = useState('');
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const [usersRes, rolesRes] = await Promise.all([
-        api.get<UserDto[]>('/admin/users'),
-        api.get<RoleDto[]>('/admin/users/roles'),
-      ]);
-      setUsers(usersRes.data);
-      setRoles(rolesRes.data);
-    } catch {
-      // Error handled by API interceptor
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleOpenUserModal = (user?: UserDto) => {
     if (user) {
-      setEditingUser(user);
+      userModal.open(user);
       setUserFormData({
         email: user.email,
         password: '',
@@ -99,7 +95,7 @@ export function AdminUsersPage() {
         roles: user.roles,
       });
     } else {
-      setEditingUser(null);
+      userModal.open();
       setUserFormData({
         email: '',
         password: '',
@@ -111,12 +107,10 @@ export function AdminUsersPage() {
       });
     }
     setUserFormError('');
-    setShowUserModal(true);
   };
 
   const handleCloseUserModal = () => {
-    setShowUserModal(false);
-    setEditingUser(null);
+    userModal.close();
   };
 
   const handleSubmitUser = async (e: React.FormEvent) => {
@@ -124,8 +118,8 @@ export function AdminUsersPage() {
     setUserFormError('');
 
     try {
-      if (editingUser) {
-        await api.put(`/admin/users/${editingUser.id}`, {
+      if (userModal.editingItem) {
+        await api.put(`/admin/users/${userModal.editingItem.id}`, {
           firstName: userFormData.firstName,
           lastName: userFormData.lastName,
           phoneNumber: userFormData.phoneNumber,
@@ -140,10 +134,9 @@ export function AdminUsersPage() {
         await api.post('/admin/users', userFormData);
       }
       handleCloseUserModal();
-      fetchData();
-    } catch (error: unknown) {
-      const maybe = error as { response?: { data?: { message?: string } } };
-      setUserFormError(maybe.response?.data?.message || 'Error saving user');
+      invalidate();
+    } catch (err: unknown) {
+      setUserFormError(getErrorMessage(err, 'Error saving user'));
     }
   };
 
@@ -153,33 +146,30 @@ export function AdminUsersPage() {
     }
     try {
       await api.delete(`/admin/users/${user.id}`);
-      fetchData();
-    } catch (error: unknown) {
-      const maybe = error as { response?: { data?: { message?: string } } };
-      alert(maybe.response?.data?.message || 'Error deleting user');
+      invalidate();
+    } catch (err: unknown) {
+      alert(getErrorMessage(err, 'Error deleting user'));
     }
   };
 
-  const handleOpenPasswordModal = (userId: string) => {
-    setPasswordUserId(userId);
+  const handleOpenPasswordModal = (user: UserDto) => {
+    passwordModal.open(user);
     setNewPassword('');
     setPasswordError('');
-    setShowPasswordModal(true);
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!passwordUserId) return;
+    if (!passwordModal.editingItem) return;
 
     try {
-      await api.put(`/admin/users/${passwordUserId}/password`, {
+      await api.put(`/admin/users/${passwordModal.editingItem.id}/password`, {
         newPassword,
       });
-      setShowPasswordModal(false);
+      passwordModal.close();
       alert('Password updated successfully');
-    } catch (error: unknown) {
-      const maybe = error as { response?: { data?: { message?: string } } };
-      setPasswordError(maybe.response?.data?.message || 'Error changing password');
+    } catch (err: unknown) {
+      setPasswordError(getErrorMessage(err, 'Error changing password'));
     }
   };
 
@@ -198,12 +188,11 @@ export function AdminUsersPage() {
 
     try {
       await api.post('/admin/users/roles', { name: newRoleName.trim() });
-      setShowRoleModal(false);
+      roleModal.close();
       setNewRoleName('');
-      fetchData();
-    } catch (error: unknown) {
-      const maybe = error as { response?: { data?: { message?: string } } };
-      setRoleError(maybe.response?.data?.message || 'Error creating role');
+      invalidate();
+    } catch (err: unknown) {
+      setRoleError(getErrorMessage(err, 'Error creating role'));
     }
   };
 
@@ -212,10 +201,9 @@ export function AdminUsersPage() {
 
     try {
       await api.delete(`/admin/users/roles/${role.id}`);
-      fetchData();
-    } catch (error: unknown) {
-      const maybe = error as { response?: { data?: { message?: string } } };
-      alert(maybe.response?.data?.message || 'Error deleting role');
+      invalidate();
+    } catch (err: unknown) {
+      alert(getErrorMessage(err, 'Error deleting role'));
     }
   };
 
@@ -264,7 +252,7 @@ export function AdminUsersPage() {
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => setShowRoleModal(true)}
+              onClick={() => roleModal.open()}
               className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               <Shield className="h-4 w-4" />
@@ -272,7 +260,7 @@ export function AdminUsersPage() {
             </button>
             <button
               onClick={() => handleOpenUserModal()}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#2196f3] px-4 py-2 text-sm font-medium text-white hover:bg-[#29338c]"
+              className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
             >
               <Plus className="h-4 w-4" />
               New User
@@ -284,8 +272,8 @@ export function AdminUsersPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
           <div className="rounded-lg border border-gray-200 bg-white p-4">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-[#b8e07c]/20 p-2">
-                <User className="h-5 w-5 text-[#2196f3]" />
+              <div className="rounded-lg bg-accent-light/20 p-2">
+                <User className="h-5 w-5 text-brand" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-gray-900">{users.length}</p>
@@ -341,13 +329,13 @@ export function AdminUsersPage() {
               placeholder="Search by name or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
+              className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             />
           </div>
           <select
             value={filterRole}
             onChange={(e) => setFilterRole(e.target.value)}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
           >
             <option value="all">All roles</option>
             {roles.map((role) => (
@@ -359,7 +347,7 @@ export function AdminUsersPage() {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
           >
             <option value="all">All statuses</option>
             <option value="active">Active</option>
@@ -370,7 +358,7 @@ export function AdminUsersPage() {
         {/* Users Table */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#2196f3] border-t-transparent" />
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand border-t-transparent" />
           </div>
         ) : filteredUsers.length === 0 ? (
           <div className="rounded-lg border border-gray-200 bg-white p-12 text-center">
@@ -411,7 +399,7 @@ export function AdminUsersPage() {
                   <tr key={user.id} className="hover:bg-gray-50">
                     <td className="whitespace-nowrap px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#b8e07c]/20 text-[#2196f3] font-semibold">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-light/20 text-brand font-semibold">
                           {(user.firstName?.[0] || user.email[0]).toUpperCase()}
                         </div>
                         <div>
@@ -485,7 +473,7 @@ export function AdminUsersPage() {
                     <td className="whitespace-nowrap px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => handleOpenPasswordModal(user.id)}
+                          onClick={() => handleOpenPasswordModal(user)}
                           className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
                           title="Change password"
                         >
@@ -515,12 +503,12 @@ export function AdminUsersPage() {
         )}
 
         {/* User Modal */}
-        {showUserModal && (
+        {userModal.isOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900">
-                  {editingUser ? 'Edit User' : 'New User'}
+                  {userModal.isEditing ? 'Edit User' : 'New User'}
                 </h2>
                 <button
                   onClick={handleCloseUserModal}
@@ -551,7 +539,7 @@ export function AdminUsersPage() {
                           firstName: e.target.value,
                         })
                       }
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                     />
                   </div>
                   <div>
@@ -567,7 +555,7 @@ export function AdminUsersPage() {
                           lastName: e.target.value,
                         })
                       }
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                     />
                   </div>
                 </div>
@@ -586,12 +574,12 @@ export function AdminUsersPage() {
                         email: e.target.value,
                       })
                     }
-                    disabled={!!editingUser}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3] disabled:bg-gray-100"
+                    disabled={userModal.isEditing}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:bg-gray-100"
                   />
                 </div>
 
-                {!editingUser && (
+                {!userModal.isEditing && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Password *
@@ -606,7 +594,7 @@ export function AdminUsersPage() {
                         })
                       }
                       placeholder="Minimum 8 characters"
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                     />
                     <p className="mt-1 text-xs text-gray-500">
                       Must contain uppercase, lowercase, number and symbol
@@ -627,7 +615,7 @@ export function AdminUsersPage() {
                         phoneNumber: e.target.value,
                       })
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                   />
                 </div>
 
@@ -653,7 +641,7 @@ export function AdminUsersPage() {
                   </div>
                 </div>
 
-                {editingUser && (
+                {userModal.isEditing && (
                   <div className="flex items-center gap-2">
                     <input
                       type="checkbox"
@@ -665,7 +653,7 @@ export function AdminUsersPage() {
                           isActive: e.target.checked,
                         })
                       }
-                      className="h-4 w-4 rounded border-gray-300 text-[#2196f3] focus:ring-[#2196f3]"
+                      className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
                     />
                     <label htmlFor="isActive" className="text-sm text-gray-700">
                       User active
@@ -683,9 +671,9 @@ export function AdminUsersPage() {
                   </button>
                   <button
                     type="submit"
-                    className="rounded-lg bg-[#2196f3] px-4 py-2 text-sm font-medium text-white hover:bg-[#29338c]"
+                    className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
                   >
-                    {editingUser ? 'Save Changes' : 'Create User'}
+                    {userModal.isEditing ? 'Save Changes' : 'Create User'}
                   </button>
                 </div>
               </form>
@@ -694,7 +682,7 @@ export function AdminUsersPage() {
         )}
 
         {/* Password Reset Modal */}
-        {showPasswordModal && (
+        {passwordModal.isOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
               <div className="flex items-center justify-between mb-4">
@@ -702,7 +690,7 @@ export function AdminUsersPage() {
                   Change Password
                 </h2>
                 <button
-                  onClick={() => setShowPasswordModal(false)}
+                  onClick={() => passwordModal.close()}
                   className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                 >
                   <X className="h-5 w-5" />
@@ -726,7 +714,7 @@ export function AdminUsersPage() {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Minimum 8 characters"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                   />
                   <p className="mt-1 text-xs text-gray-500">
                     Must contain uppercase, lowercase, number and symbol
@@ -736,14 +724,14 @@ export function AdminUsersPage() {
                 <div className="flex justify-end gap-3 pt-2">
                   <button
                     type="button"
-                    onClick={() => setShowPasswordModal(false)}
+                    onClick={() => passwordModal.close()}
                     className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="rounded-lg bg-[#2196f3] px-4 py-2 text-sm font-medium text-white hover:bg-[#29338c]"
+                    className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
                   >
                     Change
                   </button>
@@ -754,7 +742,7 @@ export function AdminUsersPage() {
         )}
 
         {/* Role Management Modal */}
-        {showRoleModal && (
+        {roleModal.isOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
             <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
               <div className="flex items-center justify-between mb-4">
@@ -762,7 +750,7 @@ export function AdminUsersPage() {
                   Manage Roles
                 </h2>
                 <button
-                  onClick={() => setShowRoleModal(false)}
+                  onClick={() => roleModal.close()}
                   className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                 >
                   <X className="h-5 w-5" />
@@ -817,11 +805,11 @@ export function AdminUsersPage() {
                       setRoleError('');
                     }}
                     placeholder="Role name"
-                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
+                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                   />
                   <button
                     type="submit"
-                    className="rounded-lg bg-[#2196f3] px-4 py-2 text-sm font-medium text-white hover:bg-[#29338c]"
+                    className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
                   >
                     Create
                   </button>
@@ -831,7 +819,7 @@ export function AdminUsersPage() {
               <div className="flex justify-end pt-4">
                 <button
                   type="button"
-                  onClick={() => setShowRoleModal(false)}
+                  onClick={() => roleModal.close()}
                   className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                 >
                   Close

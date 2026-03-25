@@ -3,6 +3,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { User, Mail, Phone, MapPin, Save, X, AlertCircle, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '@/lib/api';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { changePasswordSchema, type ChangePasswordFormData } from '@/shared/schemas/auth.schema';
+import { getErrorMessage } from '@/shared/lib/error-utils';
 
 interface ProfileData {
   firstName: string;
@@ -23,12 +27,10 @@ export function ProfilePage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showChangePassword, setShowChangePassword] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
-  
+
   const [profile, setProfile] = useState<ProfileData>({
     firstName: '',
     lastName: '',
@@ -39,8 +41,12 @@ export function ProfilePage() {
     state: '',
     zipCode: '',
   });
-  
+
   const [editForm, setEditForm] = useState<ProfileData>(profile);
+
+  const passwordForm = useForm<ChangePasswordFormData>({
+    resolver: zodResolver(changePasswordSchema),
+  });
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -75,7 +81,7 @@ export function ProfilePage() {
     try {
       setIsSaving(true);
       setError('');
-      
+
       await api.put('/customer/profile', {
         firstName: editForm.firstName,
         lastName: editForm.lastName,
@@ -85,19 +91,19 @@ export function ProfilePage() {
         state: editForm.state,
         zipCode: editForm.zipCode,
       });
-      
+
       setProfile(editForm);
       setIsEditing(false);
       setSuccess('Profile updated successfully!');
-      
+
       // Refresh auth context user
       if (refreshUser) {
         refreshUser();
       }
-      
+
       setTimeout(() => setSuccess(''), 3000);
-    } catch {
-      setError('Failed to update profile. Please try again.');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to update profile. Please try again.'));
     } finally {
       setIsSaving(false);
     }
@@ -109,22 +115,20 @@ export function ProfilePage() {
     setError('');
   };
 
-  const handleChangePassword = async () => {
+  const handleChangePassword = async (data: ChangePasswordFormData) => {
     setPasswordError('');
     setPasswordSuccess('');
     setIsChangingPassword(true);
     try {
       await api.post('/auth/change-password', {
-        currentPassword,
-        newPassword,
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword,
       });
       setPasswordSuccess('Password updated successfully');
-      setCurrentPassword('');
-      setNewPassword('');
+      passwordForm.reset();
       setTimeout(() => setShowChangePassword(false), 2000);
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setPasswordError(msg || 'Failed to update password');
+    } catch (err) {
+      setPasswordError(getErrorMessage(err, 'Failed to update password'));
     } finally {
       setIsChangingPassword(false);
     }
@@ -134,7 +138,7 @@ export function ProfilePage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-[#2196f3] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gray-600">Loading profile...</p>
         </div>
       </div>
@@ -146,7 +150,7 @@ export function ProfilePage() {
       <div className="max-w-3xl mx-auto px-4">
         {/* Back to Dashboard */}
         <div className="mb-6">
-          <Link to="/dashboard" className="text-[#2196f3] hover:text-[#29338c] flex items-center gap-1">
+          <Link to="/dashboard" className="text-brand hover:text-brand-dark flex items-center gap-1">
             ← Back to Dashboard
           </Link>
         </div>
@@ -172,7 +176,7 @@ export function ProfilePage() {
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           {/* Header */}
-          <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-[#b8e07c]/50 to-sky-600">
+          <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-accent-light/50 to-sky-600">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
                 <User className="w-8 h-8 text-white" />
@@ -186,7 +190,7 @@ export function ProfilePage() {
               {!isEditing && (
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="ml-auto px-4 py-2 bg-white text-[#2196f3] rounded-lg hover:bg-[#b8e07c]/10 transition-colors font-medium"
+                  className="ml-auto px-4 py-2 bg-white text-brand rounded-lg hover:bg-accent-light/10 transition-colors font-medium"
                 >
                   Edit Profile
                 </button>
@@ -198,7 +202,7 @@ export function ProfilePage() {
             {/* Personal Information */}
             <section>
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <User className="w-5 h-5 text-[#2196f3]" />
+                <User className="w-5 h-5 text-brand" />
                 Personal Information
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -211,7 +215,7 @@ export function ProfilePage() {
                       type="text"
                       value={editForm.firstName}
                       onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                     />
                   ) : (
                     <p className="text-gray-900 py-2">{profile.firstName || '-'}</p>
@@ -227,7 +231,7 @@ export function ProfilePage() {
                       type="text"
                       value={editForm.lastName}
                       onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                     />
                   ) : (
                     <p className="text-gray-900 py-2">{profile.lastName || '-'}</p>
@@ -254,7 +258,7 @@ export function ProfilePage() {
                       value={editForm.phone}
                       onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
                       placeholder="(555) 123-4567"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                     />
                   ) : (
                     <p className="text-gray-900 py-2">{profile.phone || 'Not specified'}</p>
@@ -266,7 +270,7 @@ export function ProfilePage() {
             {/* Address */}
             <section>
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-[#2196f3]" />
+                <MapPin className="w-5 h-5 text-brand" />
                 Address
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -280,7 +284,7 @@ export function ProfilePage() {
                       value={editForm.address}
                       onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
                       placeholder="123 Main St, Apt 4B"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                     />
                   ) : (
                     <p className="text-gray-900 py-2">{profile.address || 'Not specified'}</p>
@@ -296,7 +300,7 @@ export function ProfilePage() {
                       type="text"
                       value={editForm.city}
                       onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                     />
                   ) : (
                     <p className="text-gray-900 py-2">{profile.city || 'Not specified'}</p>
@@ -312,7 +316,7 @@ export function ProfilePage() {
                       type="text"
                       value={editForm.state}
                       onChange={(e) => setEditForm({ ...editForm, state: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                     />
                   ) : (
                     <p className="text-gray-900 py-2">{profile.state || 'Not specified'}</p>
@@ -328,7 +332,7 @@ export function ProfilePage() {
                       type="text"
                       value={editForm.zipCode}
                       onChange={(e) => setEditForm({ ...editForm, zipCode: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                     />
                   ) : (
                     <p className="text-gray-900 py-2">{profile.zipCode || 'Not specified'}</p>
@@ -351,7 +355,7 @@ export function ProfilePage() {
                 <button
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="px-6 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] transition-colors flex items-center gap-2 disabled:opacity-50"
+                  className="px-6 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors flex items-center gap-2 disabled:opacity-50"
                 >
                   <Save className="w-4 h-4" />
                   {isSaving ? 'Saving...' : 'Save Changes'}
@@ -364,44 +368,49 @@ export function ProfilePage() {
               <section className="pt-4 border-t border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Security</h2>
                 {showChangePassword ? (
-                  <div className="space-y-4 max-w-md">
+                  <form onSubmit={passwordForm.handleSubmit(handleChangePassword)} className="space-y-4 max-w-md">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
                       <input
                         type="password"
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                        {...passwordForm.register('currentPassword')}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                       />
+                      {passwordForm.formState.errors.currentPassword?.message && (
+                        <p className="mt-1 text-sm text-red-500">{passwordForm.formState.errors.currentPassword.message}</p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
                       <input
                         type="password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                        {...passwordForm.register('newPassword')}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                         placeholder="Minimum 8 characters"
                       />
+                      {passwordForm.formState.errors.newPassword?.message && (
+                        <p className="mt-1 text-sm text-red-500">{passwordForm.formState.errors.newPassword.message}</p>
+                      )}
                     </div>
                     {passwordError && <p className="text-sm text-red-500">{passwordError}</p>}
                     {passwordSuccess && <p className="text-sm text-green-600">{passwordSuccess}</p>}
                     <div className="flex gap-3">
                       <button
-                        onClick={handleChangePassword}
-                        disabled={isChangingPassword || !currentPassword || newPassword.length < 8}
-                        className="px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] transition-colors disabled:opacity-50"
+                        type="submit"
+                        disabled={isChangingPassword}
+                        className="px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors disabled:opacity-50"
                       >
                         {isChangingPassword ? 'Updating...' : 'Update Password'}
                       </button>
                       <button
-                        onClick={() => { setShowChangePassword(false); setCurrentPassword(''); setNewPassword(''); setPasswordError(''); setPasswordSuccess(''); }}
+                        type="button"
+                        onClick={() => { setShowChangePassword(false); passwordForm.reset(); setPasswordError(''); setPasswordSuccess(''); }}
                         className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                       >
                         Cancel
                       </button>
                     </div>
-                  </div>
+                  </form>
                 ) : (
                   <button
                     onClick={() => setShowChangePassword(true)}

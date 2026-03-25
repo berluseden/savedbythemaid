@@ -1,54 +1,54 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { loginSchema, type LoginFormData } from '@/shared/schemas/auth.schema';
+import { Logo } from '@/shared/components/ui/logo';
+import { getErrorMessage } from '@/shared/lib/error-utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button, Input, Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
-import { Sparkles, Mail, Lock, AlertCircle } from 'lucide-react';
+import { Mail, Lock, AlertCircle } from 'lucide-react';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
-  
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+      rememberMe: false,
+    },
+  });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const from = (location.state as { from?: { pathname?: string } } | undefined)?.from?.pathname;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: LoginFormData) => {
     setError('');
     setIsLoading(true);
 
     try {
-      const redirectPath = await login(email, password);
+      const redirectPath = await login(data.email, data.password);
       // Use the path returned by login (based on user role) or the 'from' path
       navigate(from || redirectPath, { replace: true });
     } catch (err: unknown) {
-      const fallback = 'Invalid email or password';
-      if (!err) {
-        setError(fallback);
-      } else if (err instanceof Error) {
-        setError(err.message || fallback);
-      } else {
-        const maybe = err as { response?: { data?: { message?: string } } };
-        setError(maybe.response?.data?.message || fallback);
-      }
+      setError(getErrorMessage(err, 'Invalid email or password'));
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#b8e07c]/5 to-blue-100 px-4 py-12">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-accent-light/5 to-blue-100 px-4 py-12">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2">
-            <div className="w-12 h-12 bg-[#2196f3] rounded-xl flex items-center justify-center">
-              <Sparkles className="w-7 h-7 text-white" />
-            </div>
+            <Logo size="lg" className="h-10 w-10" />
             <span className="text-2xl font-bold text-gray-900">ecoMaid</span>
           </Link>
         </div>
@@ -59,7 +59,7 @@ export default function LoginPage() {
             <p className="text-gray-500 mt-1">Sign in to your account</p>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               {error && (
                 <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
                   <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -74,18 +74,19 @@ export default function LoginPage() {
                   <Input
                     type="email"
                     placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    {...register('email')}
                     className="pl-10"
-                    required
                   />
                 </div>
+                {errors.email && (
+                  <p className="text-sm text-red-600">{errors.email.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium text-gray-700">Password</label>
-                  <Link to="/forgot-password" className="text-sm text-[#2196f3] hover:text-[#29338c]">
+                  <Link to="/forgot-password" className="text-sm text-brand hover:text-brand-dark">
                     Forgot password?
                   </Link>
                 </div>
@@ -94,12 +95,13 @@ export default function LoginPage() {
                   <Input
                     type="password"
                     placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    {...register('password')}
                     className="pl-10"
-                    required
                   />
                 </div>
+                {errors.password && (
+                  <p className="text-sm text-red-600">{errors.password.message}</p>
+                )}
               </div>
 
               <Button type="submit" className="w-full" disabled={isLoading}>
@@ -109,7 +111,7 @@ export default function LoginPage() {
 
             <div className="mt-6 text-center text-sm text-gray-500">
               Don't have an account?{' '}
-              <Link to="/register" className="text-[#2196f3] hover:text-[#29338c] font-medium">
+              <Link to="/register" className="text-brand hover:text-brand-dark font-medium">
                 Sign up
               </Link>
             </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Plus,
   Search,
@@ -10,7 +10,9 @@ import {
   X,
 } from 'lucide-react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
-import api from '../../lib/api';
+import { useCRUD } from '@/shared/hooks/use-crud';
+import { useFormModal } from '@/shared/hooks/use-form-modal';
+import { getErrorMessage } from '@/shared/lib/error-utils';
 
 interface ServiceType {
   id: number;
@@ -27,14 +29,15 @@ interface ServiceType {
 }
 
 export function AdminServicesPage() {
-  const [services, setServices] = useState<ServiceType[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: services, isLoading, create, update, remove } = useCRUD<ServiceType>({
+    endpoint: '/admin/service-types',
+    queryKey: ['admin', 'service-types'],
+  });
+
+  const modal = useFormModal<ServiceType>();
   const [searchTerm, setSearchTerm] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [editingService, setEditingService] = useState<ServiceType | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [error, setError] = useState('');
-  const [saving, setSaving] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -49,44 +52,23 @@ export function AdminServicesPage() {
     isActive: true,
   });
 
-  useEffect(() => {
-    fetchServices();
-  }, []);
-
-  const fetchServices = async () => {
-    setIsLoading(true);
-    try {
-      const response = await api.get<ServiceType[]>('/admin/service-types');
-      setServices(response.data);
-    } catch (err) {
-      setError('Error loading services');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
     setError('');
 
     try {
-      if (editingService) {
-        await api.put(`/admin/service-types/${editingService.id}`, formData);
+      if (modal.isEditing && modal.editingItem) {
+        await update.mutateAsync({ ...formData, id: modal.editingItem.id } as ServiceType);
       } else {
-        await api.post('/admin/service-types', formData);
+        await create.mutateAsync(formData);
       }
-      await fetchServices();
       closeModal();
     } catch (err) {
-      setError('Error saving service');
-    } finally {
-      setSaving(false);
+      setError(getErrorMessage(err, 'Error saving service'));
     }
   };
 
   const handleEdit = (service: ServiceType) => {
-    setEditingService(service);
     setFormData({
       name: service.name,
       description: service.description || '',
@@ -99,34 +81,47 @@ export function AdminServicesPage() {
       displayOrder: service.displayOrder,
       isActive: service.isActive,
     });
-    setShowModal(true);
+    modal.open(service);
   };
 
   const handleDelete = async (id: number) => {
     try {
-      await api.delete(`/admin/service-types/${id}`);
-      await fetchServices();
+      await remove.mutateAsync(id);
       setDeleteConfirm(null);
     } catch (err) {
-      setError('Error deleting service');
+      setError(getErrorMessage(err, 'Error deleting service'));
     }
   };
 
   const toggleActive = async (service: ServiceType) => {
     try {
-      await api.put(`/admin/service-types/${service.id}`, {
+      await update.mutateAsync({
         ...service,
         isActive: !service.isActive,
       });
-      await fetchServices();
     } catch (err) {
-      setError('Error updating service');
+      setError(getErrorMessage(err, 'Error updating service'));
     }
   };
 
+  const openCreateModal = () => {
+    setFormData({
+      name: '',
+      description: '',
+      price: 0,
+      pricePerBedroom: 15,
+      pricePerBathroom: 20,
+      estimatedMinutes: 60,
+      minutesPerBedroom: 20,
+      minutesPerBathroom: 15,
+      displayOrder: 0,
+      isActive: true,
+    });
+    modal.open();
+  };
+
   const closeModal = () => {
-    setShowModal(false);
-    setEditingService(null);
+    modal.close();
     setFormData({
       name: '',
       description: '',
@@ -156,11 +151,13 @@ export function AdminServicesPage() {
     return hours > 0 ? `${hours}h ${mins > 0 ? `${mins}m` : ''}` : `${mins}m`;
   };
 
+  const saving = create.isPending || update.isPending;
+
   if (isLoading) {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-[#2196f3] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin" />
         </div>
       </AdminLayout>
     );
@@ -176,8 +173,8 @@ export function AdminServicesPage() {
             <p className="text-gray-600">Manage cleaning service types</p>
           </div>
           <button
-            onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] transition-colors"
+            onClick={openCreateModal}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors"
           >
             <Plus className="h-5 w-5" />
             New Service
@@ -199,7 +196,7 @@ export function AdminServicesPage() {
             placeholder="Search services..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
           />
         </div>
 
@@ -217,8 +214,8 @@ export function AdminServicesPage() {
           </div>
           <div className="bg-white rounded-lg p-4 border">
             <p className="text-sm text-gray-500">Average price</p>
-            <p className="text-2xl font-bold text-[#2196f3]">
-              {services.length > 0 
+            <p className="text-2xl font-bold text-brand">
+              {services.length > 0
                 ? formatCurrency(services.reduce((acc, s) => acc + s.price, 0) / services.length)
                 : '$0'}
             </p>
@@ -328,12 +325,12 @@ export function AdminServicesPage() {
       </div>
 
       {/* Modal */}
-      {showModal && (
+      {modal.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b">
               <h2 className="text-xl font-semibold text-gray-900">
-                {editingService ? 'Edit Service' : 'New Service'}
+                {modal.isEditing ? 'Edit Service' : 'New Service'}
               </h2>
               <button onClick={closeModal} className="p-2 text-gray-400 hover:text-gray-600">
                 <X className="h-5 w-5" />
@@ -349,7 +346,7 @@ export function AdminServicesPage() {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                   required
                 />
               </div>
@@ -361,7 +358,7 @@ export function AdminServicesPage() {
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                   rows={3}
                 />
               </div>
@@ -379,7 +376,7 @@ export function AdminServicesPage() {
                       min="0"
                       value={formData.price}
                       onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                       required
                     />
                     <p className="text-xs text-gray-500 mt-1">Includes 1 bedroom + 1 bathroom</p>
@@ -395,7 +392,7 @@ export function AdminServicesPage() {
                       min="0"
                       value={formData.pricePerBedroom}
                       onChange={(e) => setFormData({ ...formData, pricePerBedroom: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                     />
                   </div>
 
@@ -409,7 +406,7 @@ export function AdminServicesPage() {
                       min="0"
                       value={formData.pricePerBathroom}
                       onChange={(e) => setFormData({ ...formData, pricePerBathroom: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -428,7 +425,7 @@ export function AdminServicesPage() {
                       step="15"
                       value={formData.estimatedMinutes}
                       onChange={(e) => setFormData({ ...formData, estimatedMinutes: parseInt(e.target.value) || 60 })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                     />
                   </div>
 
@@ -442,7 +439,7 @@ export function AdminServicesPage() {
                       step="5"
                       value={formData.minutesPerBedroom}
                       onChange={(e) => setFormData({ ...formData, minutesPerBedroom: parseInt(e.target.value) || 0 })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                     />
                   </div>
 
@@ -456,7 +453,7 @@ export function AdminServicesPage() {
                       step="5"
                       value={formData.minutesPerBathroom}
                       onChange={(e) => setFormData({ ...formData, minutesPerBathroom: parseInt(e.target.value) || 0 })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -472,7 +469,7 @@ export function AdminServicesPage() {
                     min="0"
                     value={formData.displayOrder}
                     onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 0 })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                   />
                 </div>
                 <div className="flex items-end">
@@ -481,7 +478,7 @@ export function AdminServicesPage() {
                       type="checkbox"
                       checked={formData.isActive}
                       onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                      className="w-4 h-4 text-[#2196f3] border-gray-300 rounded focus:ring-[#2196f3]"
+                      className="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand"
                     />
                     <span className="text-sm text-gray-700">Service active</span>
                   </label>
@@ -499,9 +496,9 @@ export function AdminServicesPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] transition-colors disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors disabled:opacity-50"
                 >
-                  {saving ? 'Saving...' : editingService ? 'Save Changes' : 'Create Service'}
+                  {saving ? 'Saving...' : modal.isEditing ? 'Save Changes' : 'Create Service'}
                 </button>
               </div>
             </form>

@@ -1,53 +1,50 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { loginSchema, type LoginFormData } from '@/shared/schemas/auth.schema';
+import { Logo } from '@/shared/components/ui/logo';
+import { getErrorMessage } from '@/shared/lib/error-utils';
 import { useAuth } from '../contexts/AuthContext';
 
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, isLoading } = useAuth();
-  
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    rememberMe: false,
+
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+      rememberMe: false,
+    },
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: LoginFormData) => {
     setError('');
 
     try {
-      const redirectPath = await login(formData.email, formData.password, formData.rememberMe);
+      const redirectPath = await login(data.email, data.password, data.rememberMe);
       const destination = from !== '/' ? from : redirectPath;
       navigate(destination, { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid email or password');
+      setError(getErrorMessage(err, 'Invalid email or password'));
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#b8e07c]/5 to-blue-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-accent-light/5 to-blue-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2">
-            <svg viewBox="0 0 100 100" fill="none" className="h-10 w-10">
-              <circle cx="58" cy="65" r="24" fill="#2196f3"/>
-              <ellipse cx="50" cy="55" rx="7" ry="10" fill="white" opacity="0.35"/>
-              <circle cx="72" cy="32" r="16" fill="#2196f3"/>
-              <ellipse cx="66" cy="26" rx="5" ry="7" fill="white" opacity="0.35"/>
-              <circle cx="38" cy="28" r="12" fill="#2196f3"/>
-              <ellipse cx="34" cy="24" rx="4" ry="5" fill="white" opacity="0.35"/>
-              <g transform="translate(18, 50)">
-                <path d="M0 -6 L0 6 M-6 0 L6 0" stroke="#F7C52D" strokeWidth="2.5" strokeLinecap="round"/>
-              </g>
-            </svg>
+            <Logo size="lg" className="h-10 w-10" />
             <span className="text-2xl font-bold text-gray-900">ecoMaid</span>
           </Link>
           <p className="mt-2 text-gray-600">Sign in to your account</p>
@@ -55,7 +52,7 @@ export function LoginPage() {
 
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {error && (
               <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm">
                 {error}
@@ -72,13 +69,14 @@ export function LoginPage() {
                 <input
                   type="email"
                   id="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent transition-all"
+                  {...register('email')}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
                   placeholder="you@example.com"
-                  required
                 />
               </div>
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+              )}
             </div>
 
             {/* Password */}
@@ -91,11 +89,9 @@ export function LoginPage() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   id="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent transition-all"
+                  {...register('password')}
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
                   placeholder="••••••••"
-                  required
                 />
                 <button
                   type="button"
@@ -105,6 +101,9 @@ export function LoginPage() {
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+              )}
             </div>
 
             {/* Remember & Forgot */}
@@ -112,13 +111,12 @@ export function LoginPage() {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={formData.rememberMe}
-                  onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
-                  className="w-4 h-4 text-[#2196f3] border-gray-300 rounded focus:ring-[#2196f3]"
+                  {...register('rememberMe')}
+                  className="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand"
                 />
                 <span className="text-sm text-gray-600">Remember me</span>
               </label>
-              <Link to="/forgot-password" className="text-sm text-[#2196f3] hover:text-[#29338c]">
+              <Link to="/forgot-password" className="text-sm text-brand hover:text-brand-dark">
                 Forgot password?
               </Link>
             </div>
@@ -127,7 +125,7 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 px-4 bg-[#2196f3] hover:bg-[#29338c] text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 bg-brand hover:bg-brand-dark text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>
@@ -143,7 +141,7 @@ export function LoginPage() {
           {/* Register Link */}
           <p className="mt-6 text-center text-sm text-gray-600">
             Don't have an account?{' '}
-            <Link to="/register" className="text-[#2196f3] hover:text-[#29338c] font-medium">
+            <Link to="/register" className="text-brand hover:text-brand-dark font-medium">
               Sign up for free
             </Link>
           </p>

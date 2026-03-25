@@ -3,6 +3,7 @@ import { CheckCircle, Calendar, MapPin, ArrowRight, Clock, DollarSign, Copy, Che
 import { Button, Card } from '@/components/ui';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { formatDate, formatTime, formatCurrency } from '@/shared/lib/format-utils';
 
 interface BookingConfirmation {
   orderId: number;
@@ -80,30 +81,19 @@ export default function BookingSuccessPage() {
     }
   };
 
-  const formatDate = (dateStr?: string) => {
+  const safeFormatDate = (dateStr?: string) => {
     if (!dateStr) return 'Your scheduled date';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-    });
+    return formatDate(dateStr);
   };
 
-  const formatTime = (dateStr?: string) => {
+  const safeFormatTime = (dateStr?: string) => {
     if (!dateStr) return '';
-    const date = new Date(dateStr);
-    return date.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
+    return formatTime(dateStr);
   };
 
-  const formatCurrency = (amount?: number) => {
+  const safeFormatCurrency = (amount?: number) => {
     if (amount === undefined) return '';
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+    return formatCurrency(amount);
   };
 
   return (
@@ -122,15 +112,15 @@ export default function BookingSuccessPage() {
 
           {/* Confirmation Number */}
           {confirmation?.confirmationNumber && (
-            <div className="bg-[#b8e07c]/10 rounded-xl p-4 mb-6">
-              <p className="text-sm text-[#2196f3] mb-1">Confirmation Number</p>
+            <div className="bg-accent-light/10 rounded-xl p-4 mb-6">
+              <p className="text-sm text-brand mb-1">Confirmation Number</p>
               <div className="flex items-center justify-center gap-2">
-                <span className="text-xl font-bold text-[#29338c] font-mono">
+                <span className="text-xl font-bold text-brand-dark font-mono">
                   {confirmation.confirmationNumber}
                 </span>
                 <button
                   onClick={copyConfirmation}
-                  className="p-1.5 text-[#2196f3] hover:bg-[#b8e07c]/20 rounded transition-colors"
+                  className="p-1.5 text-brand hover:bg-accent-light/20 rounded transition-colors"
                   title="Copy to clipboard"
                 >
                   {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -158,7 +148,7 @@ export default function BookingSuccessPage() {
                         hour12: true,
                       })
                     ) : (
-                      <>{formatDate(bookingData?.date)} at {formatTime(bookingData?.timeSlot)}</>
+                      <>{safeFormatDate(bookingData?.date)} at {safeFormatTime(bookingData?.timeSlot)}</>
                     )}
                   </p>
                 </div>
@@ -194,7 +184,7 @@ export default function BookingSuccessPage() {
                   <div>
                     <p className="text-sm text-gray-500">Total</p>
                     <p className="font-medium text-gray-900">
-                      {formatCurrency(confirmation?.total || estimate?.total)}
+                      {safeFormatCurrency(confirmation?.total || estimate?.total)}
                     </p>
                   </div>
                 </div>

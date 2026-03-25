@@ -198,6 +198,19 @@ public class DataSeeder
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         ");
 
+        // Ensure new columns exist on SoftReserves (added after initial schema)
+        try
+        {
+            await _context.Database.ExecuteSqlRawAsync(@"
+                ALTER TABLE SoftReserves ADD COLUMN ExtensionCount INT NOT NULL DEFAULT 0;
+            ");
+            _logger.LogInformation("Added ExtensionCount column to SoftReserves");
+        }
+        catch (MySql.Data.MySqlClient.MySqlException ex) when (ex.Message.Contains("Duplicate column"))
+        {
+            // Column already exists — nothing to do
+        }
+
         _logger.LogInformation("Additional tables verified/created");
     }
 

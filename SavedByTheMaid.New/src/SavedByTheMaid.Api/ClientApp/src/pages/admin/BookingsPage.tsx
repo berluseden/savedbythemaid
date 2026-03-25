@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Search,
   Calendar,
@@ -18,10 +19,12 @@ import {
 } from 'lucide-react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import api from '../../lib/api';
+import { usePagination } from '@/shared/hooks/use-pagination';
+import { orderStatusConfig, meetStatusConfig } from '@/shared/lib/status-config';
+import type { OrderStatus, MeetStatus } from '@/shared/lib/status-config';
+import { getErrorMessage } from '@/shared/lib/error-utils';
 
-type OrderStatus = 'PendingReview' | 'Draft' | 'Confirmed' | 'InProgress' | 'Completed' | 'Cancelled' | 'NoShow';
 type PaymentStatus = 'Pending' | 'Authorized' | 'Paid' | 'Refunded' | 'Failed';
-type MeetStatus = 'Scheduled' | 'Assigned' | 'OnTheWay' | 'InProgress' | 'Completed' | 'Cancelled' | 'Rescheduled' | 'NoShow';
 
 interface OrderSummary {
   id: number;
@@ -60,60 +63,31 @@ interface Employee {
   isActive: boolean;
 }
 
-const statusConfig: Record<OrderStatus, { label: string; color: string; bgColor: string }> = {
-  PendingReview: { label: 'Pending Review', color: 'text-orange-700', bgColor: 'bg-orange-100' },
-  Draft: { label: 'Draft', color: 'text-gray-700', bgColor: 'bg-gray-100' },
-  Confirmed: { label: 'Confirmed', color: 'text-blue-700', bgColor: 'bg-blue-100' },
-  InProgress: { label: 'In Progress', color: 'text-purple-700', bgColor: 'bg-purple-100' },
-  Completed: { label: 'Completed', color: 'text-green-700', bgColor: 'bg-green-100' },
-  Cancelled: { label: 'Cancelled', color: 'text-red-700', bgColor: 'bg-red-100' },
-  NoShow: { label: 'No Show', color: 'text-red-700', bgColor: 'bg-red-200' },
-};
-
-const meetStatusConfig: Record<MeetStatus, { label: string; color: string; bgColor: string }> = {
-  Scheduled: { label: 'Scheduled', color: 'text-gray-700', bgColor: 'bg-gray-100' },
-  Assigned: { label: 'Assigned', color: 'text-blue-700', bgColor: 'bg-blue-100' },
-  OnTheWay: { label: 'On The Way', color: 'text-cyan-700', bgColor: 'bg-cyan-100' },
-  InProgress: { label: 'In Progress', color: 'text-purple-700', bgColor: 'bg-purple-100' },
-  Completed: { label: 'Completed', color: 'text-green-700', bgColor: 'bg-green-100' },
-  Cancelled: { label: 'Cancelled', color: 'text-red-700', bgColor: 'bg-red-100' },
-  Rescheduled: { label: 'Rescheduled', color: 'text-orange-700', bgColor: 'bg-orange-100' },
-  NoShow: { label: 'No Show', color: 'text-red-700', bgColor: 'bg-red-100' },
-};
-
 export function AdminBookingsPage() {
-  const [bookings, setBookings] = useState<OrderSummary[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterDate, setFilterDate] = useState<string>('');
   const [selectedBooking, setSelectedBooking] = useState<OrderSummary | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState('');
   const [meetings, setMeetings] = useState<MeetingSummary[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
   const [assigningMeetingId, setAssigningMeetingId] = useState<number | null>(null);
-  const itemsPerPage = 10;
 
-  useEffect(() => {
-    fetchBookings();
-    fetchEmployees();
-  }, []);
+  const { data: bookings = [], isLoading } = useQuery({
+    queryKey: ['admin', 'orders'],
+    queryFn: () => api.get<OrderSummary[]>('/admin/orders', { params: { pageSize: '100' } }).then(r => r.data),
+  });
+
+  const { data: employees = [] } = useQuery({
+    queryKey: ['admin', 'employees'],
+    queryFn: () => api.get<Employee[]>('/admin/employees').then(r => r.data),
+    select: (data) => data.filter(e => e.isActive),
+  });
 
   useEffect(() => {
     if (selectedBooking) {
       fetchMeetings(selectedBooking.id);
     }
   }, [selectedBooking]);
-
-  const fetchEmployees = async () => {
-    try {
-      const response = await api.get<Employee[]>('/admin/employees');
-      setEmployees(response.data.filter(e => e.isActive));
-    } catch {
-      // Error handled by API interceptor
-    }
-  };
 
   const fetchMeetings = async (orderId: number) => {
     try {
@@ -125,38 +99,23 @@ export function AdminBookingsPage() {
     }
   };
 
-  const fetchBookings = async () => {
-    setIsLoading(true);
-    try {
-      const params: Record<string, string> = { pageSize: '100' };
-      const response = await api.get<OrderSummary[]>('/admin/orders', { params });
-      setBookings(response.data);
-    } catch (err) {
-      setError('Error loading bookings');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const updateBookingStatus = async (bookingId: number, newStatus: OrderStatus) => {
     try {
       await api.put(`/admin/orders/${bookingId}/status`, { orderStatus: newStatus });
-      await fetchBookings();
       if (selectedBooking?.id === bookingId) {
         setSelectedBooking(prev => prev ? { ...prev, orderStatus: newStatus } : null);
       }
-    } catch (err) {
-      setError('Error updating status');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Error updating status'));
     }
   };
 
   const cancelOrder = async (bookingId: number) => {
     try {
       await api.post(`/admin/orders/${bookingId}/cancel`, { reason: 'Cancelled by administrator' });
-      await fetchBookings();
       setSelectedBooking(null);
-    } catch (err) {
-      setError('Error canceling order');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Error canceling order'));
     }
   };
 
@@ -167,8 +126,8 @@ export function AdminBookingsPage() {
         await fetchMeetings(selectedBooking.id);
       }
       setAssigningMeetingId(null);
-    } catch (err) {
-      setError('Error assigning employee');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Error assigning employee'));
     }
   };
 
@@ -178,8 +137,8 @@ export function AdminBookingsPage() {
       if (selectedBooking) {
         await fetchMeetings(selectedBooking.id);
       }
-    } catch (err) {
-      setError('Error updating appointment status');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Error updating appointment status'));
     }
   };
 
@@ -193,11 +152,16 @@ export function AdminBookingsPage() {
     return matchesSearch && matchesStatus && matchesDate;
   });
 
-  const totalPages = Math.ceil(filteredBookings.length / itemsPerPage);
-  const paginatedBookings = filteredBookings.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const {
+    items: paginatedBookings,
+    currentPage,
+    totalPages,
+    hasNextPage,
+    hasPrevPage,
+    nextPage,
+    prevPage,
+    pageSize,
+  } = usePagination(filteredBookings, { pageSize: 10 });
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
@@ -224,7 +188,7 @@ export function AdminBookingsPage() {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-[#2196f3] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin" />
         </div>
       </AdminLayout>
     );
@@ -241,13 +205,13 @@ export function AdminBookingsPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {Object.entries(statusConfig).map(([status, config]) => (
+          {Object.entries(orderStatusConfig).map(([status, config]) => (
             <button
               key={status}
               onClick={() => setFilterStatus(filterStatus === status ? 'all' : status)}
               className={`p-4 rounded-lg border transition-all ${
                 filterStatus === status
-                  ? 'ring-2 ring-[#2196f3] border-[#2196f3]'
+                  ? 'ring-2 ring-brand border-brand'
                   : 'hover:border-gray-300'
               } bg-white`}
             >
@@ -275,22 +239,22 @@ export function AdminBookingsPage() {
               placeholder="Search by name, ID or address..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
             />
           </div>
           <input
             type="date"
             value={filterDate}
             onChange={(e) => setFilterDate(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
           />
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
           >
             <option value="all">All statuses</option>
-            {Object.entries(statusConfig).map(([status, config]) => (
+            {Object.entries(orderStatusConfig).map(([status, config]) => (
               <option key={status} value={status}>
                 {config.label}
               </option>
@@ -333,10 +297,10 @@ export function AdminBookingsPage() {
                     <td className="px-6 py-4">
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          statusConfig[booking.orderStatus]?.bgColor || 'bg-gray-100'
-                        } ${statusConfig[booking.orderStatus]?.color || 'text-gray-700'}`}
+                          orderStatusConfig[booking.orderStatus]?.bgColor || 'bg-gray-100'
+                        } ${orderStatusConfig[booking.orderStatus]?.color || 'text-gray-700'}`}
                       >
-                        {statusConfig[booking.orderStatus]?.label || booking.orderStatus}
+                        {orderStatusConfig[booking.orderStatus]?.label || booking.orderStatus}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
@@ -349,7 +313,7 @@ export function AdminBookingsPage() {
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => setSelectedBooking(booking)}
-                          className="p-2 text-gray-400 hover:text-[#2196f3] hover:bg-[#b8e07c]/10 rounded-lg"
+                          className="p-2 text-gray-400 hover:text-brand hover:bg-accent-light/10 rounded-lg"
                           title="View details"
                         >
                           <Eye className="h-4 w-4" />
@@ -402,21 +366,21 @@ export function AdminBookingsPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-6 py-4 border-t">
               <p className="text-sm text-gray-500">
-                Showing {(currentPage - 1) * itemsPerPage + 1} -{' '}
-                {Math.min(currentPage * itemsPerPage, filteredBookings.length)} of{' '}
+                Showing {(currentPage - 1) * pageSize + 1} -{' '}
+                {Math.min(currentPage * pageSize, filteredBookings.length)} of{' '}
                 {filteredBookings.length}
               </p>
               <div className="flex gap-2">
                 <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
+                  onClick={prevPage}
+                  disabled={!hasPrevPage}
                   className="p-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </button>
                 <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
+                  onClick={nextPage}
+                  disabled={!hasNextPage}
                   className="p-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                 >
                   <ChevronRight className="h-5 w-5" />
@@ -444,10 +408,10 @@ export function AdminBookingsPage() {
                 </h2>
                 <span
                   className={`inline-block mt-1 px-2 py-1 rounded-full text-xs font-medium ${
-                    statusConfig[selectedBooking.orderStatus]?.bgColor || 'bg-gray-100'
-                  } ${statusConfig[selectedBooking.orderStatus]?.color || 'text-gray-700'}`}
+                    orderStatusConfig[selectedBooking.orderStatus]?.bgColor || 'bg-gray-100'
+                  } ${orderStatusConfig[selectedBooking.orderStatus]?.color || 'text-gray-700'}`}
                 >
-                  {statusConfig[selectedBooking.orderStatus]?.label || selectedBooking.orderStatus}
+                  {orderStatusConfig[selectedBooking.orderStatus]?.label || selectedBooking.orderStatus}
                 </span>
               </div>
               <button
@@ -582,7 +546,7 @@ export function AdminBookingsPage() {
                             <div className="flex gap-2">
                               <select
                                 onChange={(e) => assignEmployee(meeting.id, parseInt(e.target.value))}
-                                className="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#2196f3]"
+                                className="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-brand"
                                 defaultValue=""
                               >
                                 <option value="" disabled>Select employee...</option>
@@ -609,7 +573,7 @@ export function AdminBookingsPage() {
                               </div>
                               <button
                                 onClick={() => setAssigningMeetingId(meeting.id)}
-                                className="text-sm text-[#2196f3] hover:text-[#29338c] font-medium"
+                                className="text-sm text-brand hover:text-brand-dark font-medium"
                               >
                                 {meeting.employeeId ? 'Change' : 'Assign'}
                               </button>

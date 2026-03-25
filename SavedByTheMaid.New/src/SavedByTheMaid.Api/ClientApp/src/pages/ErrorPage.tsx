@@ -55,7 +55,7 @@ export function ErrorPage({
           {onRetry && (
             <button
               onClick={onRetry}
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#2196f3] text-white font-medium rounded-lg hover:bg-[#29338c] transition-colors"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-brand text-white font-medium rounded-lg hover:bg-brand-dark transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
               Try Again
@@ -73,7 +73,7 @@ export function ErrorPage({
         {/* Support Info */}
         <p className="mt-8 text-sm text-gray-500">
           Need help?{' '}
-          <Link to="/contact" className="text-[#2196f3] hover:text-[#2196f3]">
+          <Link to="/contact" className="text-brand hover:text-brand">
             Contact Support
           </Link>
         </p>

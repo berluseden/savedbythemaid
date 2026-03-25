@@ -1,68 +1,62 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { registerSchema, type RegisterFormData } from '@/shared/schemas/auth.schema';
+import { Logo } from '@/shared/components/ui/logo';
+import { getErrorMessage } from '@/shared/lib/error-utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button, Input, Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
-import { Sparkles, Mail, Lock, User, Phone, AlertCircle, Check } from 'lucide-react';
+import { Mail, Lock, User, Phone, AlertCircle, Check } from 'lucide-react';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const { register } = useAuth();
-  
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phoneNumber: '',
-    password: '',
-    confirmPassword: '',
+  const { register: authRegister } = useAuth();
+
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      password: '',
+      confirmPassword: '',
+      acceptTerms: false as unknown as true,
+    },
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const password = watch('password', '');
 
-  const validatePassword = (password: string) => {
+  const validatePassword = (pw: string) => {
     return {
-      length: password.length >= 8,
-      uppercase: /[A-Z]/.test(password),
-      lowercase: /[a-z]/.test(password),
-      number: /[0-9]/.test(password),
+      length: pw.length >= 8,
+      uppercase: /[A-Z]/.test(pw),
+      lowercase: /[a-z]/.test(pw),
+      number: /[0-9]/.test(pw),
     };
   };
 
-  const passwordChecks = validatePassword(formData.password);
+  const passwordChecks = validatePassword(password);
   const isPasswordValid = Object.values(passwordChecks).every(Boolean);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: RegisterFormData) => {
     setError('');
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    if (!isPasswordValid) {
-      setError('Password does not meet requirements');
-      return;
-    }
-
     setIsLoading(true);
 
     try {
-      const redirectPath = await register({
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phone: formData.phoneNumber,
-        password: formData.password,
+      const redirectPath = await authRegister({
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: data.phone,
+        password: data.password,
       });
       navigate(redirectPath);
     } catch (err: unknown) {
-      const maybe = err as { response?: { data?: { message?: string } } };
-      setError(maybe.response?.data?.message || 'Registration failed. Please try again.');
+      setError(getErrorMessage(err, 'Registration failed. Please try again.'));
     } finally {
       setIsLoading(false);
     }
@@ -76,14 +70,12 @@ export default function RegisterPage() {
   );
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#b8e07c]/5 to-blue-100 px-4 py-12">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-accent-light/5 to-blue-100 px-4 py-12">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2">
-            <div className="w-12 h-12 bg-[#2196f3] rounded-xl flex items-center justify-center">
-              <Sparkles className="w-7 h-7 text-white" />
-            </div>
+            <Logo size="lg" className="h-10 w-10" />
             <span className="text-2xl font-bold text-gray-900">ecoMaid</span>
           </Link>
         </div>
@@ -94,7 +86,7 @@ export default function RegisterPage() {
             <p className="text-gray-500 mt-1">Start booking cleaning services</p>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               {error && (
                 <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
                   <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -109,25 +101,25 @@ export default function RegisterPage() {
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <Input
                       type="text"
-                      name="firstName"
                       placeholder="John"
-                      value={formData.firstName}
-                      onChange={handleChange}
+                      {...register('firstName')}
                       className="pl-10"
-                      required
                     />
                   </div>
+                  {errors.firstName && (
+                    <p className="text-sm text-red-600">{errors.firstName.message}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700">Last Name</label>
                   <Input
                     type="text"
-                    name="lastName"
                     placeholder="Doe"
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    required
+                    {...register('lastName')}
                   />
+                  {errors.lastName && (
+                    <p className="text-sm text-red-600">{errors.lastName.message}</p>
+                  )}
                 </div>
               </div>
 
@@ -137,14 +129,14 @@ export default function RegisterPage() {
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <Input
                     type="email"
-                    name="email"
                     placeholder="you@example.com"
-                    value={formData.email}
-                    onChange={handleChange}
+                    {...register('email')}
                     className="pl-10"
-                    required
                   />
                 </div>
+                {errors.email && (
+                  <p className="text-sm text-red-600">{errors.email.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -153,14 +145,14 @@ export default function RegisterPage() {
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <Input
                     type="tel"
-                    name="phoneNumber"
                     placeholder="(555) 123-4567"
-                    value={formData.phoneNumber}
-                    onChange={handleChange}
+                    {...register('phone')}
                     className="pl-10"
-                    required
                   />
                 </div>
+                {errors.phone && (
+                  <p className="text-sm text-red-600">{errors.phone.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -169,15 +161,15 @@ export default function RegisterPage() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <Input
                     type="password"
-                    name="password"
                     placeholder="••••••••"
-                    value={formData.password}
-                    onChange={handleChange}
+                    {...register('password')}
                     className="pl-10"
-                    required
                   />
                 </div>
-                {formData.password && (
+                {errors.password && (
+                  <p className="text-sm text-red-600">{errors.password.message}</p>
+                )}
+                {password && (
                   <div className="grid grid-cols-2 gap-1 mt-2">
                     <PasswordCheck valid={passwordChecks.length} text="8+ characters" />
                     <PasswordCheck valid={passwordChecks.uppercase} text="Uppercase" />
@@ -193,14 +185,14 @@ export default function RegisterPage() {
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <Input
                     type="password"
-                    name="confirmPassword"
                     placeholder="••••••••"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
+                    {...register('confirmPassword')}
                     className="pl-10"
-                    required
                   />
                 </div>
+                {errors.confirmPassword && (
+                  <p className="text-sm text-red-600">{errors.confirmPassword.message}</p>
+                )}
               </div>
 
               <Button type="submit" className="w-full" disabled={isLoading}>
@@ -209,15 +201,15 @@ export default function RegisterPage() {
 
               <p className="text-xs text-gray-500 text-center">
                 By creating an account, you agree to our{' '}
-                <Link to="/terms" className="text-[#2196f3] hover:underline">Terms of Service</Link>
+                <Link to="/terms" className="text-brand hover:underline">Terms of Service</Link>
                 {' '}and{' '}
-                <Link to="/privacy" className="text-[#2196f3] hover:underline">Privacy Policy</Link>
+                <Link to="/privacy" className="text-brand hover:underline">Privacy Policy</Link>
               </p>
             </form>
 
             <div className="mt-6 text-center text-sm text-gray-500">
               Already have an account?{' '}
-              <Link to="/login" className="text-[#2196f3] hover:text-[#29338c] font-medium">
+              <Link to="/login" className="text-brand hover:text-brand-dark font-medium">
                 Sign in
               </Link>
             </div>

@@ -1,39 +1,35 @@
 import { useState } from 'react';
 import { MapPin, Phone, Mail, Clock, Send, CheckCircle } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { contactSchema, type ContactFormData } from '@/shared/schemas/contact.schema';
+import { getErrorMessage } from '@/shared/lib/error-utils';
 
 export default function ContactPage() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    subject: '',
-    message: '',
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<ContactFormData>({
+    resolver: zodResolver(contactSchema),
+  });
 
-    // Simulate form submission
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    setIsSubmitting(false);
-    setIsSubmitted(true);
-    setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
-  };
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  const onSubmit = async (data: ContactFormData) => {
+    try {
+      setError('');
+      // TODO: Replace with real API call when backend is ready
+      // await api.post('/contact', data);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setIsSubmitted(true);
+      reset();
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to send message'));
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-[#b8e07c]/50 to-sky-600 text-white py-16">
+      <section className="bg-gradient-to-br from-accent-light/50 to-sky-600 text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">Contact Us</h1>
           <p className="text-xl text-sky-100 max-w-2xl mx-auto">
@@ -57,8 +53,8 @@ export default function ContactPage() {
 
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-[#b8e07c]/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Phone className="w-5 h-5 text-[#2196f3]" />
+                  <div className="w-12 h-12 bg-accent-light/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Phone className="w-5 h-5 text-brand" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">Phone</h3>
@@ -68,8 +64,8 @@ export default function ContactPage() {
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-[#b8e07c]/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Mail className="w-5 h-5 text-[#2196f3]" />
+                  <div className="w-12 h-12 bg-accent-light/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Mail className="w-5 h-5 text-brand" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">Email</h3>
@@ -79,8 +75,8 @@ export default function ContactPage() {
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-[#b8e07c]/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <MapPin className="w-5 h-5 text-[#2196f3]" />
+                  <div className="w-12 h-12 bg-accent-light/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <MapPin className="w-5 h-5 text-brand" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">Office</h3>
@@ -90,8 +86,8 @@ export default function ContactPage() {
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-[#b8e07c]/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Clock className="w-5 h-5 text-[#2196f3]" />
+                  <div className="w-12 h-12 bg-accent-light/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Clock className="w-5 h-5 text-brand" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">Business Hours</h3>
@@ -116,14 +112,20 @@ export default function ContactPage() {
                     </p>
                     <button
                       onClick={() => setIsSubmitted(false)}
-                      className="text-[#2196f3] font-medium hover:text-[#29338c]"
+                      className="text-brand font-medium hover:text-brand-dark"
                     >
                       Send another message
                     </button>
                   </div>
                 ) : (
-                  <form onSubmit={handleSubmit} className="space-y-6">
+                  <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                     <h3 className="text-xl font-semibold text-gray-900 mb-4">Send us a message</h3>
+
+                    {error && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                        {error}
+                      </div>
+                    )}
 
                     <div className="grid sm:grid-cols-2 gap-6">
                       <div>
@@ -132,13 +134,13 @@ export default function ContactPage() {
                         </label>
                         <input
                           type="text"
-                          name="name"
-                          required
-                          value={formData.name}
-                          onChange={handleChange}
-                          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#2196f3] focus:border-[#2196f3]"
+                          {...register('name')}
+                          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand focus:border-brand"
                           placeholder="John Doe"
                         />
+                        {errors.name?.message && (
+                          <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+                        )}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -146,13 +148,13 @@ export default function ContactPage() {
                         </label>
                         <input
                           type="email"
-                          name="email"
-                          required
-                          value={formData.email}
-                          onChange={handleChange}
-                          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#2196f3] focus:border-[#2196f3]"
+                          {...register('email')}
+                          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand focus:border-brand"
                           placeholder="john@example.com"
                         />
+                        {errors.email?.message && (
+                          <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                        )}
                       </div>
                     </div>
 
@@ -163,23 +165,21 @@ export default function ContactPage() {
                         </label>
                         <input
                           type="tel"
-                          name="phone"
-                          value={formData.phone}
-                          onChange={handleChange}
-                          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#2196f3] focus:border-[#2196f3]"
+                          {...register('phone')}
+                          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand focus:border-brand"
                           placeholder="(555) 123-4567"
                         />
+                        {errors.phone?.message && (
+                          <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
+                        )}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Subject *
                         </label>
                         <select
-                          name="subject"
-                          required
-                          value={formData.subject}
-                          onChange={handleChange}
-                          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#2196f3] focus:border-[#2196f3]"
+                          {...register('subject')}
+                          className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand focus:border-brand"
                         >
                           <option value="">Select a subject</option>
                           <option value="general">General Inquiry</option>
@@ -189,6 +189,9 @@ export default function ContactPage() {
                           <option value="complaint">Complaint</option>
                           <option value="other">Other</option>
                         </select>
+                        {errors.subject?.message && (
+                          <p className="mt-1 text-sm text-red-600">{errors.subject.message}</p>
+                        )}
                       </div>
                     </div>
 
@@ -197,20 +200,20 @@ export default function ContactPage() {
                         Your Message *
                       </label>
                       <textarea
-                        name="message"
-                        required
+                        {...register('message')}
                         rows={5}
-                        value={formData.message}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#2196f3] focus:border-[#2196f3] resize-none"
+                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand focus:border-brand resize-none"
                         placeholder="How can we help you?"
                       />
+                      {errors.message?.message && (
+                        <p className="mt-1 text-sm text-red-600">{errors.message.message}</p>
+                      )}
                     </div>
 
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full flex items-center justify-center gap-2 bg-[#2196f3] text-white py-3 px-6 rounded-lg font-medium hover:bg-[#29338c] disabled:bg-[#2196f3]/50 transition-colors"
+                      className="w-full flex items-center justify-center gap-2 bg-brand text-white py-3 px-6 rounded-lg font-medium hover:bg-brand-dark disabled:bg-brand/50 transition-colors"
                     >
                       {isSubmitting ? (
                         <>
