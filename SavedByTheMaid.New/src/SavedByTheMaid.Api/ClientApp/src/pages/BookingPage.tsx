@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui';
 import { ReservationTimer } from '@/components/ui/ReservationTimer';
+import { PriceSummaryBar } from '@/components/booking/PriceSummaryBar';
 import {
   useBookingWizard,
   useReservationTimer,
@@ -13,7 +14,6 @@ import {
   ContactStep,
   ConfirmStep,
   StepProgress,
-  PriceSummary,
   ExpiryModal,
 } from './booking';
 
@@ -97,13 +97,6 @@ export default function BookingPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      {data.expiresAt && data.softReserveId && !showExpireModal && (
-        <ReservationTimer
-          expiresAt={data.expiresAt}
-          onExpire={handleExpire}
-        />
-      )}
-
       <ExpiryModal
         isOpen={showExpireModal}
         isRenewing={isRenewing}
@@ -115,13 +108,21 @@ export default function BookingPage() {
       <div className="mx-auto max-w-4xl px-4">
         <StepProgress currentStep={currentStep} />
 
+        {data.expiresAt && data.softReserveId && !showExpireModal && (
+          <ReservationTimer
+            expiresAt={data.expiresAt}
+            onExpire={handleExpire}
+            onSelectNewTime={handleResetAfterExpiry}
+          />
+        )}
+
         <Card className="overflow-hidden">
           <CardContent className="p-6 sm:p-8">
             {renderStep()}
           </CardContent>
         </Card>
 
-        <PriceSummary estimate={estimate} currentStep={currentStep} />
+        <PriceSummaryBar data={data} estimate={estimate} currentStep={currentStep} />
       </div>
     </div>
   );

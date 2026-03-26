@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { steps } from './useBookingWizard';
 import type { BookingStep } from './types';
@@ -9,54 +9,71 @@ interface StepProgressProps {
 }
 
 export const StepProgress = React.memo(function StepProgress({ currentStep }: StepProgressProps) {
-  const currentStepIndex = steps.findIndex((s) => s.id === currentStep);
+  const currentIndex = steps.findIndex((s) => s.id === currentStep);
 
   return (
-    <div className="mb-8">
-      <div className="flex items-center justify-between">
-        {steps.map((step, index) => (
-          <div key={step.id} className="flex items-center">
-            <div
-              className={cn(
-                'flex h-10 w-10 items-center justify-center rounded-full border-2 transition-colors',
-                index < currentStepIndex
-                  ? 'border-[#2196f3] bg-[#2196f3] text-white'
-                  : index === currentStepIndex
-                  ? 'border-[#2196f3] bg-white text-[#2196f3]'
-                  : 'border-gray-300 bg-white text-gray-400'
-              )}
-              aria-label={`Step ${index + 1}: ${step.title}${index < currentStepIndex ? ' (completed)' : index === currentStepIndex ? ' (current)' : ''}`}
+    <nav aria-label="Booking progress" className="mb-8">
+      <p className="mb-3 text-center text-sm font-medium text-text-secondary sm:hidden">
+        Step {currentIndex + 1} of {steps.length} &mdash; {steps[currentIndex].title}
+      </p>
+
+      <ol className="flex items-center justify-between">
+        {steps.map((step, index) => {
+          const isCompleted = index < currentIndex;
+          const isCurrent = index === currentIndex;
+          const Icon = step.icon;
+
+          return (
+            <li
+              key={step.id}
+              className="flex items-center last:flex-none flex-1"
+              aria-current={isCurrent ? 'step' : undefined}
             >
-              {index < currentStepIndex ? (
-                <CheckCircle className="h-5 w-5" />
-              ) : (
-                <step.icon className="h-5 w-5" />
+              <div className="flex flex-col items-center">
+                <div
+                  className={cn(
+                    'flex items-center justify-center rounded-full border-2 transition-all duration-200',
+                    isCompleted &&
+                      'h-10 w-10 border-success bg-success text-white',
+                    isCurrent &&
+                      'h-12 w-12 border-primary bg-primary-light text-primary shadow-md shadow-primary/20',
+                    !isCompleted && !isCurrent &&
+                      'h-10 w-10 border-border bg-surface text-muted'
+                  )}
+                >
+                  {isCompleted ? (
+                    <Check className="h-5 w-5" strokeWidth={3} />
+                  ) : (
+                    <Icon className={cn('h-5 w-5', isCurrent && 'h-6 w-6')} />
+                  )}
+                </div>
+
+                <span
+                  className={cn(
+                    'mt-2 hidden text-xs font-medium sm:block',
+                    isCompleted && 'text-success',
+                    isCurrent && 'text-primary',
+                    !isCompleted && !isCurrent && 'text-muted'
+                  )}
+                >
+                  {step.title}
+                </span>
+              </div>
+
+              {index < steps.length - 1 && (
+                <div className="mx-1 h-0.5 flex-1 sm:mx-2">
+                  <div
+                    className={cn(
+                      'h-full rounded-full transition-colors duration-200',
+                      index < currentIndex ? 'bg-success' : 'bg-border'
+                    )}
+                  />
+                </div>
               )}
-            </div>
-            {index < steps.length - 1 && (
-              <div
-                className={cn(
-                  'hidden sm:block h-0.5 w-12 lg:w-24',
-                  index < currentStepIndex ? 'bg-[#2196f3]' : 'bg-gray-300'
-                )}
-              />
-            )}
-          </div>
-        ))}
-      </div>
-      <div className="mt-4 flex justify-between">
-        {steps.map((step, index) => (
-          <span
-            key={step.id}
-            className={cn(
-              'text-xs font-medium',
-              index <= currentStepIndex ? 'text-[#2196f3]' : 'text-gray-400'
-            )}
-          >
-            {step.title}
-          </span>
-        ))}
-      </div>
-    </div>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
   );
 });

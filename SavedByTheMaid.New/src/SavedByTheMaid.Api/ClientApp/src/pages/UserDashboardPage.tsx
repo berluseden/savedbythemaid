@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { Calendar, Clock, MapPin, CreditCard, X, AlertCircle, Sparkles, ChevronRight, History, CalendarDays, Home, FileText } from 'lucide-react';
+import { Calendar, Clock, MapPin, CreditCard, X, AlertCircle, Sparkles, ChevronRight, History, CalendarDays, Home, FileText, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '@/lib/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/shared/components/ui/dialog';
@@ -36,6 +36,13 @@ interface AvailableSlot {
   formattedTime: string;
 }
 
+interface SuggestedSlot {
+  date: string;
+  time: string;
+  label: string;
+  dateLabel: string;
+}
+
 const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
   Confirmed: { label: 'Confirmed', color: 'text-blue-700', bgColor: 'bg-blue-100' },
   InProgress: { label: 'In Progress', color: 'text-purple-700', bgColor: 'bg-purple-100' },
@@ -66,6 +73,10 @@ export function UserDashboardPage() {
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [isRescheduling, setIsRescheduling] = useState(false);
   const [dismissedError, setDismissedError] = useState(false);
+  const [suggestedSlots, setSuggestedSlots] = useState<SuggestedSlot[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [showFullDatePicker, setShowFullDatePicker] = useState(false);
+  const [confirmingSuggestion, setConfirmingSuggestion] = useState<SuggestedSlot | null>(null);
 
   const { data: allBookings = [], isLoading: loadingBookings, error: bookingsError } = useQuery({
     queryKey: ['customer', 'orders'],
@@ -107,12 +118,139 @@ export function UserDashboardPage() {
     cancelMutation.mutate({ id: cancellingId, reason: cancelReason });
   };
 
+  const getNextDays = (count: number): string[] => {
+    const days: string[] = [];
+    for (let i = 1; i <= count; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() + i);
+      days.push(d.toISOString().split('T')[0]);
+    }
+    return days;
+  };
+
+  const formatSuggestionDateLabel = (dateStr: string): string => {
+    const date = new Date(dateStr + 'T12:00:00');
+    const today = new Date();
+    const tomorrow = new Date();
+    tomorrow.setDate(today.getDate() + 1);
+    if (date.toDateString() === tomorrow.toDateString()) return 'Tomorrow';
+    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  };
+
+  const formatSlotTimeShort = (time: string): string => {
+    const [hours, minutes] = time.split(':');
+    const hour = parseInt(hours);
+    const suffix = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    return minutes === '00' ? `${displayHour} ${suffix}` : `${displayHour}:${minutes} ${suffix}`;
+  };
+
+  const fetchSuggestedSlots = useCallback(async (booking: CustomerOrder) => {
+    if (!booking.zipCode) return;
+    setIsLoadingSuggestions(true);
+    setSuggestedSlots([]);
+
+    const originalHour = booking.scheduledTime ? parseInt(booking.scheduledTime.split(':')[0]) : 10;
+    const nextDays = getNextDays(3);
+
+    try {
+      const results = await Promise.all(
+        nextDays.map(date =>
+          api.post<{ slots: AvailableSlot[] }>('/booking/availability', {
+            zipCode: booking.zipCode,
+            date,
+            estimatedMinutes: booking.estimatedDuration || 120,
+          }).then(res => ({ date, slots: res.data.slots || [] }))
+           .catch(() => ({ date, slots: [] as AvailableSlot[] }))
+        )
+      );
+
+      const suggestions: SuggestedSlot[] = [];
+      for (const { date, slots } of results) {
+        const available = slots.filter(s => s.available);
+        if (available.length === 0) continue;
+
+        // Sort by closeness to original booking time
+        const sorted = [...available].sort((a, b) => {
+          const aHour = parseInt(a.time.split(':')[0]);
+          const bHour = parseInt(b.time.split(':')[0]);
+          return Math.abs(aHour - originalHour) - Math.abs(bHour - originalHour);
+        });
+
+        // Take top 2 from each day (closest to original time)
+        const picks = sorted.slice(0, 2);
+        for (const slot of picks) {
+          const dateLabel = formatSuggestionDateLabel(date);
+          suggestions.push({
+            date,
+            time: slot.time,
+            label: `${dateLabel} ${formatSlotTimeShort(slot.time)}`,
+            dateLabel,
+          });
+        }
+      }
+
+      // Limit to 5 suggestions, prioritizing variety across days
+      const finalSuggestions: SuggestedSlot[] = [];
+      const usedDays = new Set<string>();
+
+      // First pass: one per day (closest to original time)
+      for (const s of suggestions) {
+        if (!usedDays.has(s.date) && finalSuggestions.length < 5) {
+          finalSuggestions.push(s);
+          usedDays.add(s.date);
+        }
+      }
+      // Second pass: fill remaining from leftover
+      for (const s of suggestions) {
+        if (finalSuggestions.length >= 5) break;
+        if (!finalSuggestions.includes(s)) {
+          finalSuggestions.push(s);
+        }
+      }
+
+      setSuggestedSlots(finalSuggestions);
+    } catch {
+      setSuggestedSlots([]);
+    } finally {
+      setIsLoadingSuggestions(false);
+    }
+  }, []);
+
   const openRescheduleModal = (booking: CustomerOrder) => {
     setRescheduleBookingId(booking.id);
     setRescheduleDate('');
     setRescheduleTime('');
     setAvailableSlots([]);
+    setSuggestedSlots([]);
+    setShowFullDatePicker(false);
+    setConfirmingSuggestion(null);
     setShowRescheduleModal(true);
+    fetchSuggestedSlots(booking);
+  };
+
+  const handleSuggestionClick = (suggestion: SuggestedSlot) => {
+    setConfirmingSuggestion(suggestion);
+  };
+
+  const confirmSuggestion = async () => {
+    if (!confirmingSuggestion || !rescheduleBookingId) return;
+    setIsRescheduling(true);
+    try {
+      await api.post(`/customer/my-orders/${rescheduleBookingId}/reschedule`, {
+        newDate: confirmingSuggestion.date,
+        newTime: confirmingSuggestion.time,
+      });
+      setShowRescheduleModal(false);
+      setRescheduleBookingId(null);
+      setConfirmingSuggestion(null);
+      queryClient.invalidateQueries({ queryKey: ['customer', 'orders'] });
+      queryClient.invalidateQueries({ queryKey: ['customer', 'stats'] });
+    } catch {
+      // Error handled by API interceptor
+    } finally {
+      setIsRescheduling(false);
+    }
   };
 
   const fetchAvailableSlots = async (date: string) => {
@@ -315,31 +453,157 @@ export function UserDashboardPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showRescheduleModal} onOpenChange={(open) => !open && setShowRescheduleModal(false)}>
+      <Dialog open={showRescheduleModal} onOpenChange={(open) => { if (!open) { setShowRescheduleModal(false); setConfirmingSuggestion(null); } }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Reschedule Booking</DialogTitle>
-            <DialogDescription>Select a new date and time for your appointment.</DialogDescription>
+            <DialogDescription>
+              {confirmingSuggestion
+                ? 'Confirm your new time'
+                : 'Pick a suggested time or choose your own.'}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">New Date</label>
-              <input type="date" value={rescheduleDate} min={getMinDate()} onChange={(e) => { setRescheduleDate(e.target.value); setRescheduleTime(''); fetchAvailableSlots(e.target.value); }} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3]" />
-            </div>
-            {rescheduleDate && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">New Time</label>
-                {isLoadingSlots ? <div className="text-center py-4"><div className="w-6 h-6 border-2 border-[#2196f3] border-t-transparent rounded-full animate-spin mx-auto" /></div>
-                : availableSlots.length === 0 ? <p className="text-sm text-gray-500 py-4 text-center">No times available. Try another date.</p>
-                : <div className="grid grid-cols-3 gap-2">{availableSlots.filter(s => s.available).map(slot => (
-                  <button key={slot.time} onClick={() => setRescheduleTime(slot.time)} className={`p-2 text-sm rounded-lg border ${rescheduleTime === slot.time ? 'border-[#2196f3] bg-[#b8e07c]/10 text-[#29338c]' : 'border-gray-200 hover:border-gray-300'}`}>{slot.formattedTime}</button>
-                ))}</div>}
+            {/* Confirmation view for a suggested slot */}
+            {confirmingSuggestion ? (
+              <div className="space-y-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
+                  <Calendar className="w-8 h-8 text-[#2196f3] mx-auto mb-2" />
+                  <p className="text-lg font-semibold text-gray-900">
+                    {confirmingSuggestion.label}
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {formatFullDate(confirmingSuggestion.date)}
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setConfirmingSuggestion(null)}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={confirmSuggestion}
+                    disabled={isRescheduling}
+                    className="flex-1 px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] disabled:opacity-50"
+                  >
+                    {isRescheduling ? 'Rescheduling...' : 'Confirm Reschedule'}
+                  </button>
+                </div>
               </div>
+            ) : (
+              <>
+                {/* Suggested quick-pick slots */}
+                {!showFullDatePicker && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Zap className="w-4 h-4 text-amber-500" />
+                      <span className="text-sm font-medium text-gray-700">Quick reschedule</span>
+                    </div>
+                    {isLoadingSuggestions ? (
+                      <div className="text-center py-6">
+                        <div className="w-6 h-6 border-2 border-[#2196f3] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                        <p className="text-xs text-gray-400">Finding available times...</p>
+                      </div>
+                    ) : suggestedSlots.length === 0 ? (
+                      <p className="text-sm text-gray-500 py-4 text-center">No quick suggestions available. Pick a date below.</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {suggestedSlots.map((suggestion, idx) => (
+                          <button
+                            key={`${suggestion.date}-${suggestion.time}-${idx}`}
+                            onClick={() => handleSuggestionClick(suggestion)}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-full border border-[#b8e07c] bg-white text-gray-800 hover:bg-[#b8e07c]/20 hover:border-[#2196f3] transition-colors"
+                          >
+                            <Clock className="w-3.5 h-3.5 text-[#2196f3]" />
+                            {suggestion.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Divider */}
+                {!showFullDatePicker && (
+                  <div className="relative py-2">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-gray-200" />
+                    </div>
+                    <div className="relative flex justify-center">
+                      <button
+                        onClick={() => setShowFullDatePicker(true)}
+                        className="bg-white px-3 py-1 text-sm text-[#2196f3] hover:text-[#29338c] font-medium flex items-center gap-1"
+                      >
+                        <CalendarDays className="w-4 h-4" />
+                        Pick a different date
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Full date picker (fallback) */}
+                {showFullDatePicker && (
+                  <>
+                    {suggestedSlots.length > 0 && (
+                      <button
+                        onClick={() => setShowFullDatePicker(false)}
+                        className="text-sm text-[#2196f3] hover:text-[#29338c] font-medium flex items-center gap-1"
+                      >
+                        <Zap className="w-3.5 h-3.5" />
+                        Back to suggestions
+                      </button>
+                    )}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">New Date</label>
+                      <input
+                        type="date"
+                        value={rescheduleDate}
+                        min={getMinDate()}
+                        onChange={(e) => { setRescheduleDate(e.target.value); setRescheduleTime(''); fetchAvailableSlots(e.target.value); }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3]"
+                      />
+                    </div>
+                    {rescheduleDate && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">New Time</label>
+                        {isLoadingSlots ? (
+                          <div className="text-center py-4">
+                            <div className="w-6 h-6 border-2 border-[#2196f3] border-t-transparent rounded-full animate-spin mx-auto" />
+                          </div>
+                        ) : availableSlots.length === 0 ? (
+                          <p className="text-sm text-gray-500 py-4 text-center">No times available. Try another date.</p>
+                        ) : (
+                          <div className="grid grid-cols-3 gap-2">
+                            {availableSlots.filter(s => s.available).map(slot => (
+                              <button
+                                key={slot.time}
+                                onClick={() => setRescheduleTime(slot.time)}
+                                className={`p-2 text-sm rounded-lg border ${rescheduleTime === slot.time ? 'border-[#2196f3] bg-[#b8e07c]/10 text-[#29338c]' : 'border-gray-200 hover:border-gray-300'}`}
+                              >
+                                {slot.formattedTime}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex gap-3 pt-2">
+                      <button onClick={() => setShowRescheduleModal(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
+                      <button onClick={handleReschedule} disabled={!rescheduleDate || !rescheduleTime || isRescheduling} className="flex-1 px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] disabled:opacity-50">{isRescheduling ? 'Rescheduling...' : 'Confirm'}</button>
+                    </div>
+                  </>
+                )}
+
+                {/* Cancel button when in suggestions view */}
+                {!showFullDatePicker && (
+                  <div className="pt-1">
+                    <button onClick={() => setShowRescheduleModal(false)} className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-sm">Cancel</button>
+                  </div>
+                )}
+              </>
             )}
-            <div className="flex gap-3 pt-2">
-              <button onClick={() => setShowRescheduleModal(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
-              <button onClick={handleReschedule} disabled={!rescheduleDate || !rescheduleTime || isRescheduling} className="flex-1 px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] disabled:opacity-50">{isRescheduling ? 'Rescheduling...' : 'Confirm'}</button>
-            </div>
           </div>
         </DialogContent>
       </Dialog>
