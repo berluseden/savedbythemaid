@@ -86,9 +86,11 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     // --- 401: attempt token refresh before giving up ---
-    if (status === 401 && !originalRequest._retry) {
+    const requestUrl = originalRequest.url || '';
+    const isAuthEndpoint = requestUrl.includes('/auth/me') || requestUrl.includes('/auth/refresh') || requestUrl.includes('/auth/login');
+
+    if (status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       if (isRefreshing) {
-        // Another request is already refreshing — wait for it
         return new Promise((resolve) => {
           addRefreshSubscriber((token: string) => {
             originalRequest.headers.Authorization = `Bearer ${token}`;
@@ -111,13 +113,14 @@ api.interceptors.response.use(
           return api(originalRequest);
         }
       } catch {
-        // Refresh failed — force logout
+        // Refresh failed — silent, let original 401 propagate
       } finally {
         isRefreshing = false;
       }
+    }
 
-      authStorage.clear();
-      window.location.href = '/login';
+    // For auth endpoints, just reject silently (AuthContext handles the state)
+    if (status === 401 && isAuthEndpoint) {
       return Promise.reject(error);
     }
 
