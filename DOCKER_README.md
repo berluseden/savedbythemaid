@@ -296,3 +296,10 @@ Agregar a crontab para ejecución diaria:
 - [Docker Compose Docs](https://docs.docker.com/compose/)
 - [.NET Docker Guide](https://docs.microsoft.com/en-us/dotnet/core/docker/)
 - [React Deployment](https://create-react-app.dev/docs/deployment/)
+
+
+MYSQL_ROOT_PASSWORD: Root@123456
+MYSQL_PASSWORD: App@123456
+MYSQL_USER: appuser (no app_user)
+MYSQL_DATABASE: SavedByTheMaidNew
+JWT Secret: YourSuperSecretKeyForJWTTokenGenerationAtLeast32CharactersLong
