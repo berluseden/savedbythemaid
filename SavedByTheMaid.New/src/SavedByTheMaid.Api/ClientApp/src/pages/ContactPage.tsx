@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { contactSchema, type ContactFormData } from '@/shared/schemas/contact.schema';
 import { getErrorMessage } from '@/shared/lib/error-utils';
+import api from '@/lib/api';
 
 export default function ContactPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -16,9 +17,7 @@ export default function ContactPage() {
   const onSubmit = async (data: ContactFormData) => {
     try {
       setError('');
-      // TODO: Replace with real API call when backend is ready
-      // await api.post('/contact', data);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await api.post('/contact', data);
       setIsSubmitted(true);
       reset();
     } catch (err) {

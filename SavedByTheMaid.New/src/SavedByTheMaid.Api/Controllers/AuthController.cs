@@ -106,8 +106,8 @@ public class AuthController : ControllerBase
             EmailConfirmed = false,
             PhoneNumber = request.Phone,
             SecurityStamp = Guid.NewGuid().ToString(),
-            FirstName = request.Name?.Split(' ').FirstOrDefault(),
-            LastName = request.Name?.Split(' ').Skip(1).FirstOrDefault()
+            FirstName = request.FirstName,
+            LastName = request.LastName
         };
 
         user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
@@ -145,6 +145,8 @@ public class AuthController : ControllerBase
             {
                 Id = user.Id,
                 Email = user.Email!,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
                 Phone = user.PhoneNumber,
                 Roles = roles
             }
@@ -203,6 +205,8 @@ public class AuthController : ControllerBase
             {
                 Id = user.Id,
                 Email = user.Email!,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
                 Phone = user.PhoneNumber,
                 Roles = roles
             }
@@ -234,6 +238,8 @@ public class AuthController : ControllerBase
         {
             Id = user.Id,
             Email = user.Email!,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
             Phone = user.PhoneNumber,
             Roles = userRoles.Where(r => r != null).Cast<string>().ToArray()
         });
@@ -488,6 +494,8 @@ public class AuthController : ControllerBase
             {
                 Id = user.Id,
                 Email = user.Email!,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
                 Phone = user.PhoneNumber,
                 Roles = roles
             }

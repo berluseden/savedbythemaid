@@ -4,6 +4,7 @@ import { Calendar, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { Alert } from '@/components/ui/Alert';
 import { bookingApi, type EstimateResponse, type BookingConfirmation } from '@/lib/api';
+import { authStorage } from '@/shared/lib/auth-storage';
 import { formatCurrency } from '@/lib/utils';
 import type { BookingData } from './types';
 
@@ -49,10 +50,9 @@ export const ConfirmStep = React.memo(function ConfirmStep({
       }),
     onSuccess: (response) => {
       setError(null);
-      // If user was created, save tokens automatically
+      // If user was created, save tokens via centralized auth storage
       if (response.data.authToken) {
-        localStorage.setItem('token', response.data.authToken.accessToken);
-        localStorage.setItem('refreshToken', response.data.authToken.refreshToken);
+        authStorage.setToken(response.data.authToken.accessToken, true);
       }
       onSuccess(response.data);
     },

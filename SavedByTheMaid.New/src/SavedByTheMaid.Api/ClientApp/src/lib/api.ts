@@ -65,19 +65,72 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Token refresh state — shared across concurrent 401 responses
+let isRefreshing = false;
+let refreshSubscribers: ((token: string) => void)[] = [];
+
+function onTokenRefreshed(token: string) {
+  refreshSubscribers.forEach(cb => cb(token));
+  refreshSubscribers = [];
+}
+
+function addRefreshSubscriber(cb: (token: string) => void) {
+  refreshSubscribers.push(cb);
+}
+
 // Interceptor to handle errors
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     const status = error.response?.status;
+    const originalRequest = error.config;
+
+    // --- 401: attempt token refresh before giving up ---
+    if (status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        // Another request is already refreshing — wait for it
+        return new Promise((resolve) => {
+          addRefreshSubscriber((token: string) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            resolve(api(originalRequest));
+          });
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const res = await axios.post('/api/auth/refresh', {}, { withCredentials: true });
+        const newToken = res.data.accessToken;
+        if (newToken) {
+          authStorage.setToken(newToken, authStorage.isRemembered());
+          api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
+          onTokenRefreshed(newToken);
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          return api(originalRequest);
+        }
+      } catch {
+        // Refresh failed — force logout
+      } finally {
+        isRefreshing = false;
+      }
+
+      authStorage.clear();
+      window.location.href = '/login';
+      return Promise.reject(error);
+    }
+
+    // --- 403: access denied ---
+    if (status === 403) {
+      pushToast('Access denied. You do not have permission for this action.', 'warning');
+      return Promise.reject(error);
+    }
+
     let userMessage: string;
 
     if (!error.response) {
       userMessage = 'Could not connect to the server. Check your connection and try again.';
-    } else if (status === 401) {
-      authStorage.clear();
-      window.location.href = '/login';
-      userMessage = 'Unauthorized. Please sign in.';
     } else if (status === 400) {
       userMessage = getErrorMessage(error, 'Invalid request. Please check your input and try again.');
     } else if (status === 404) {
@@ -149,9 +202,9 @@ export const authApi = {
   checkEmail: (email: string) =>
     api.get<{ email: string; exists: boolean }>(`/auth/check-email?email=${encodeURIComponent(email)}`),
 
-  logout: () => {
+  logout: () => api.post('/auth/logout').catch(() => {}).finally(() => {
     authStorage.clear();
-  },
+  }),
 };
 
 export { api };

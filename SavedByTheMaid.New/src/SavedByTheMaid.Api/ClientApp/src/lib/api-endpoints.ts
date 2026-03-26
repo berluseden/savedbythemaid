@@ -44,10 +44,10 @@ export const contactApi = {
 // ==========================================
 
 export interface CustomerStats {
-  totalOrders: number;
-  upcomingOrders: number;
-  completedOrders: number;
+  completedBookings: number;
   totalSpent: number;
+  nextBooking: string | null;
+  loyaltyPoints: number;
 }
 
 export interface CustomerBooking {

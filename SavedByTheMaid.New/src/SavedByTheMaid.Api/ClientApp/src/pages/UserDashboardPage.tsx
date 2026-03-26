@@ -97,7 +97,8 @@ export function UserDashboardPage() {
       setShowCancelModal(false);
       setCancellingId(null);
       setCancelReason('');
-      queryClient.invalidateQueries({ queryKey: ['customer'] });
+      queryClient.invalidateQueries({ queryKey: ['customer', 'orders'] });
+      queryClient.invalidateQueries({ queryKey: ['customer', 'stats'] });
     },
   });
 
@@ -141,7 +142,8 @@ export function UserDashboardPage() {
       await api.post(`/customer/my-orders/${rescheduleBookingId}/reschedule`, { newDate: rescheduleDate, newTime: rescheduleTime });
       setShowRescheduleModal(false);
       setRescheduleBookingId(null);
-      queryClient.invalidateQueries({ queryKey: ['customer'] });
+      queryClient.invalidateQueries({ queryKey: ['customer', 'orders'] });
+      queryClient.invalidateQueries({ queryKey: ['customer', 'stats'] });
     } catch (err: unknown) {
       // Error handled by API interceptor
     } finally { setIsRescheduling(false); }

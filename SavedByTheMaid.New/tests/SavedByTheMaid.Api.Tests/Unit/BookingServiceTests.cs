@@ -1003,7 +1003,7 @@ public class BookingServiceTests : IDisposable
 
         // Assert
         count.Should().BeGreaterThan(0);
-        count.Should().BeLessOrEqualTo(4); // at most 4 weeks ahead
+        count.Should().BeLessThanOrEqualTo(4); // at most 4 weeks ahead
 
         // Verify the meetings are spaced 7 days apart
         var meetings = await _context.ServiceMeets
@@ -1110,7 +1110,7 @@ public class BookingServiceTests : IDisposable
             order, firstMeet, RecurrenceType.Weekly, endDate);
 
         // Assert
-        count.Should().BeLessOrEqualTo(2);
+        count.Should().BeLessThanOrEqualTo(2);
 
         var allMeetings = await _context.ServiceMeets
             .Where(m => m.ServiceOrderId == order.Id && m.Id != firstMeet.Id)
@@ -1248,7 +1248,7 @@ public class BookingServiceTests : IDisposable
             order, firstMeet, RecurrenceType.Weekly, endDate);
 
         // Assert - max 8 occurrences
-        count.Should().BeLessOrEqualTo(8);
+        count.Should().BeLessThanOrEqualTo(8);
     }
 
     [Fact]

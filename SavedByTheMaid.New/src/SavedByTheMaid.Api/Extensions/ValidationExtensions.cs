@@ -11,7 +11,7 @@ public static class ValidationExtensions
     /// <summary>
     /// Validates the instance and returns a BadRequest result if validation fails, or null if valid.
     /// </summary>
-    public static async Task<IActionResult?> ValidateAndReturnErrors<T>(
+    public static async Task<ActionResult?> ValidateAndReturnErrors<T>(
         this IValidator<T> validator, T instance)
     {
         var result = await validator.ValidateAsync(instance);

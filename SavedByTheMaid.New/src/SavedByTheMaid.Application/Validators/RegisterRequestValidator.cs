@@ -37,9 +37,14 @@ public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
             .When(x => !string.IsNullOrEmpty(x.Phone))
             .WithMessage("Phone number cannot exceed 20 characters.");
 
-        RuleFor(x => x.Name)
+        RuleFor(x => x.FirstName)
             .MaximumLength(100)
-            .When(x => !string.IsNullOrEmpty(x.Name))
-            .WithMessage("Name cannot exceed 100 characters.");
+            .When(x => !string.IsNullOrEmpty(x.FirstName))
+            .WithMessage("First name cannot exceed 100 characters.");
+
+        RuleFor(x => x.LastName)
+            .MaximumLength(100)
+            .When(x => !string.IsNullOrEmpty(x.LastName))
+            .WithMessage("Last name cannot exceed 100 characters.");
     }
 }

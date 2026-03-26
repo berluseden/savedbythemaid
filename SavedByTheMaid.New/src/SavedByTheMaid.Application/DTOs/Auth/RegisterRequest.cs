@@ -17,6 +17,9 @@ public record RegisterRequest
     [StringLength(20, ErrorMessage = "Phone number cannot exceed 20 characters")]
     public string? Phone { get; init; }
 
-    [StringLength(100, ErrorMessage = "Name cannot exceed 100 characters")]
-    public string? Name { get; init; }
+    [StringLength(100, ErrorMessage = "First name cannot exceed 100 characters")]
+    public string? FirstName { get; init; }
+
+    [StringLength(100, ErrorMessage = "Last name cannot exceed 100 characters")]
+    public string? LastName { get; init; }
 }
