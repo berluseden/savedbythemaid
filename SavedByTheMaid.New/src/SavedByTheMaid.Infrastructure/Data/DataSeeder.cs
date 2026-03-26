@@ -198,6 +198,25 @@ public class DataSeeder
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         ");
 
+        // RefreshTokens -- JWT refresh token storage for rotation and revocation
+        await _context.Database.ExecuteSqlRawAsync(@"
+            CREATE TABLE IF NOT EXISTS RefreshTokens (
+                Id INT AUTO_INCREMENT PRIMARY KEY,
+                Token VARCHAR(512) NOT NULL,
+                JwtId VARCHAR(256) NOT NULL,
+                UserId VARCHAR(255) NOT NULL,
+                ExpiresAt DATETIME(6) NOT NULL,
+                CreatedAt DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+                Revoked TINYINT(1) NOT NULL DEFAULT 0,
+                RevokedAt DATETIME(6) NULL,
+                ReplacedByToken VARCHAR(512) NULL,
+                CONSTRAINT FK_RefreshTokens_AspNetUsers
+                    FOREIGN KEY (UserId) REFERENCES AspNetUsers(Id) ON DELETE CASCADE,
+                INDEX IX_RefreshTokens_UserId (UserId),
+                INDEX IX_RefreshTokens_Token (Token(255))
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        ");
+
         // Ensure new columns exist on SoftReserves (added after initial schema)
         try
         {
