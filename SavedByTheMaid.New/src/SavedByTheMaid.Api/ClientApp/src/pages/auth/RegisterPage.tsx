@@ -40,8 +40,6 @@ export default function RegisterPage() {
   };
 
   const passwordChecks = validatePassword(password);
-  const isPasswordValid = Object.values(passwordChecks).every(Boolean);
-
   const onSubmit = async (data: RegisterFormData) => {
     setError('');
     setIsLoading(true);
@@ -51,7 +49,7 @@ export default function RegisterPage() {
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
-        phone: data.phone,
+        phone: data.phone ?? '',
         password: data.password,
       });
       navigate(redirectPath);

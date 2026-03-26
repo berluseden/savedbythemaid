@@ -1,4 +1,4 @@
-import { RecurrenceDiscount, RECURRENCE_TYPES } from './types';
+import { type RecurrenceDiscount, RECURRENCE_TYPES } from './types';
 
 interface DiscountTableProps {
   discounts: RecurrenceDiscount[];

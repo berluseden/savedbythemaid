@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Edit2, Trash2, Percent, Settings } from 'lucide-react';
-import { PriceMultiplier, CONDITION_TYPES } from './types';
+import { type PriceMultiplier, CONDITION_TYPES } from './types';
 
 interface MultiplierTableProps {
   multipliers: PriceMultiplier[];

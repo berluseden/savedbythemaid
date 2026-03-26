@@ -15,7 +15,7 @@ export const registerSchema = z.object({
   phone: phoneSchema,
   password: passwordSchema,
   confirmPassword: z.string().min(1, 'Please confirm your password'),
-  acceptTerms: z.literal(true, { errorMap: () => ({ message: 'You must accept the terms' }) }),
+  acceptTerms: z.literal(true).refine((val) => val === true, { message: 'You must accept the terms' }),
 }).refine(data => data.password === data.confirmPassword, {
   message: 'Passwords do not match',
   path: ['confirmPassword'],

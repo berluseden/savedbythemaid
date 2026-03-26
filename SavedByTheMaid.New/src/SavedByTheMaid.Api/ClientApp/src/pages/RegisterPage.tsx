@@ -49,7 +49,7 @@ export function RegisterPage() {
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
-        phone: data.phone,
+        phone: data.phone ?? '',
         password: data.password,
       });
       navigate('/');

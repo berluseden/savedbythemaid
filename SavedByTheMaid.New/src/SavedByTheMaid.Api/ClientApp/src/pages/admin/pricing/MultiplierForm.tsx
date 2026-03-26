@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { PriceMultiplier, CONDITION_TYPES } from './types';
+import { type PriceMultiplier, CONDITION_TYPES } from './types';
 
 interface MultiplierFormProps {
   isOpen: boolean;
