@@ -1,9 +1,12 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SavedByTheMaid.Api.Auth;
+using SavedByTheMaid.Api.Extensions;
 using SavedByTheMaid.Domain.Entities;
+using SavedByTheMaid.Infrastructure.Data;
 
 namespace SavedByTheMaid.Api.Controllers.Admin;
 
@@ -14,40 +17,50 @@ public class UsersController : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
+    private readonly ApplicationDbContext _context;
+    private readonly IValidator<CreateUserRequest> _createUserValidator;
 
     public UsersController(
         UserManager<ApplicationUser> userManager,
-        RoleManager<IdentityRole> roleManager)
+        RoleManager<IdentityRole> roleManager,
+        ApplicationDbContext context,
+        IValidator<CreateUserRequest> createUserValidator)
     {
         _userManager = userManager;
         _roleManager = roleManager;
+        _context = context;
+        _createUserValidator = createUserValidator;
     }
 
     // GET: api/admin/users
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers()
+    public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers(CancellationToken cancellationToken = default)
     {
-        var users = await _userManager.Users
+        // Single query: fetch users and their roles in one JOIN instead of N+1 GetRolesAsync calls
+        var usersWithRoles = await _context.Users
+            .AsNoTracking()
             .OrderBy(u => u.Email)
-            .ToListAsync();
+            .Select(u => new {
+                User = u,
+                Roles = _context.UserRoles
+                    .Where(ur => ur.UserId == u.Id)
+                    .Join(_context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => r.Name)
+                    .ToList()
+            })
+            .ToListAsync(cancellationToken);
 
-        var userDtos = new List<UserDto>();
-        foreach (var user in users)
+        var userDtos = usersWithRoles.Select(x => new UserDto
         {
-            var roles = await _userManager.GetRolesAsync(user);
-            userDtos.Add(new UserDto
-            {
-                Id = user.Id,
-                Email = user.Email ?? "",
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                PhoneNumber = user.PhoneNumber,
-                IsActive = user.IsActive,
-                EmailConfirmed = user.EmailConfirmed,
-                Roles = roles.ToList(),
-                CreatedAt = user.CreatedAt
-            });
-        }
+            Id = x.User.Id,
+            Email = x.User.Email ?? "",
+            FirstName = x.User.FirstName,
+            LastName = x.User.LastName,
+            PhoneNumber = x.User.PhoneNumber,
+            IsActive = x.User.IsActive,
+            EmailConfirmed = x.User.EmailConfirmed,
+            Roles = x.Roles.Where(r => r != null).Select(r => r!).ToList(),
+            CreatedAt = x.User.CreatedAt
+        }).ToList();
 
         return Ok(userDtos);
     }
@@ -81,6 +94,9 @@ public class UsersController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<UserDto>> CreateUser(CreateUserRequest request)
     {
+        var validationError = await _createUserValidator.ValidateAndReturnErrors(request);
+        if (validationError != null) return validationError;
+
         // Check if email already exists
         var existingUser = await _userManager.FindByEmailAsync(request.Email);
         if (existingUser != null)
@@ -297,7 +313,7 @@ public class UsersController : ControllerBase
 }
 
 // DTOs
-public class UserDto
+public record UserDto
 {
     public string Id { get; set; } = "";
     public string Email { get; set; } = "";
@@ -310,7 +326,7 @@ public class UserDto
     public DateTime CreatedAt { get; set; }
 }
 
-public class RoleDto
+public record RoleDto
 {
     public string Id { get; set; } = "";
     public string Name { get; set; } = "";

@@ -63,8 +63,11 @@ public class DataSeeder
 
         try
         {
-            // ── 0. Schema: ensure additional tables exist ────────────────
-            await EnsureAdditionalTablesAsync();
+            // Schema management is owned by EF Core migrations (applied at
+            // startup via DatabaseExtensions.ApplyDatabaseMigrationsAsync).
+            // Generate new migrations with:
+            //   dotnet ef migrations add <Name> -p src/SavedByTheMaid.Infrastructure -s src/SavedByTheMaid.Api
+            // and they will be applied automatically on next boot.
 
             // ── 1. Cleanup: remove duplicate/obsolete legacy data ────────
             await CleanDuplicatesAsync();
@@ -112,129 +115,11 @@ public class DataSeeder
     }
 
     // ──────────────────────────────────────────────────────────────────────
-    //  Schema helpers
-    // ──────────────────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Creates additional MySQL tables that are not managed by EF Core migrations.
-    /// Uses <c>CREATE TABLE IF NOT EXISTS</c> so the operation is fully idempotent.
-    /// Tables created:
-    /// <list type="bullet">
-    ///   <item><c>SlotOccupancies</c> -- anti-collision tracking for employee time slots</item>
-    ///   <item><c>OrderStatusHistories</c> -- audit trail for service order status changes</item>
-    ///   <item><c>MeetStatusHistories</c> -- audit trail for appointment status changes</item>
-    /// </list>
-    /// </summary>
-    private async Task EnsureAdditionalTablesAsync()
-    {
-        _logger.LogInformation("Checking additional tables...");
-
-        // SlotOccupancies -- Anti-collision tracking for employee time slots
-        await _context.Database.ExecuteSqlRawAsync(@"
-            CREATE TABLE IF NOT EXISTS SlotOccupancies (
-                Id INT AUTO_INCREMENT PRIMARY KEY,
-                EmployeeId INT NOT NULL,
-                SlotStart DATETIME(6) NOT NULL,
-                SlotEnd DATETIME(6) NOT NULL,
-                OccupancyType INT NOT NULL DEFAULT 0,
-                ReferenceId INT NOT NULL,
-                ExpiresAt DATETIME(6) NULL,
-                CreatedAt DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-                UpdatedAt DATETIME(6) NULL,
-                CreatedByUserId VARCHAR(255) NULL,
-                UpdatedByUserId VARCHAR(255) NULL,
-                IsDeleted TINYINT(1) NOT NULL DEFAULT 0,
-                CONSTRAINT FK_SlotOccupancies_Employees
-                    FOREIGN KEY (EmployeeId) REFERENCES Employees(Id) ON DELETE CASCADE,
-                INDEX IX_SlotOccupancies_ExpiresAt_OccupancyType (ExpiresAt, OccupancyType),
-                INDEX IX_SlotOccupancies_OccupancyType_ReferenceId (OccupancyType, ReferenceId),
-                UNIQUE INDEX IX_SlotOccupancies_AntiCollision (EmployeeId, SlotStart, IsDeleted)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-        ");
-
-        // OrderStatusHistories -- Audit trail for service order status changes
-        await _context.Database.ExecuteSqlRawAsync(@"
-            CREATE TABLE IF NOT EXISTS OrderStatusHistories (
-                Id INT AUTO_INCREMENT PRIMARY KEY,
-                ServiceOrderId INT NOT NULL,
-                FromStatus INT NULL,
-                ToStatus INT NOT NULL,
-                ChangedById VARCHAR(255) NULL,
-                ChangedAt DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-                ReasonCode VARCHAR(50) NULL,
-                Notes TEXT NULL,
-                CreatedAt DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-                UpdatedAt DATETIME(6) NULL,
-                CreatedByUserId VARCHAR(255) NULL,
-                UpdatedByUserId VARCHAR(255) NULL,
-                IsDeleted TINYINT(1) NOT NULL DEFAULT 0,
-                CONSTRAINT FK_OrderStatusHistories_ServiceOrders
-                    FOREIGN KEY (ServiceOrderId) REFERENCES ServiceOrders(Id) ON DELETE CASCADE,
-                INDEX IX_OrderStatusHistories_ServiceOrderId (ServiceOrderId),
-                INDEX IX_OrderStatusHistories_ChangedAt (ChangedAt)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-        ");
-
-        // MeetStatusHistories -- Audit trail for appointment status changes
-        await _context.Database.ExecuteSqlRawAsync(@"
-            CREATE TABLE IF NOT EXISTS MeetStatusHistories (
-                Id INT AUTO_INCREMENT PRIMARY KEY,
-                ServiceMeetId INT NOT NULL,
-                FromStatus INT NULL,
-                ToStatus INT NOT NULL,
-                ChangedById VARCHAR(255) NULL,
-                ChangedAt DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-                ReasonCode VARCHAR(50) NULL,
-                Notes TEXT NULL,
-                CreatedAt DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-                UpdatedAt DATETIME(6) NULL,
-                CreatedByUserId VARCHAR(255) NULL,
-                UpdatedByUserId VARCHAR(255) NULL,
-                IsDeleted TINYINT(1) NOT NULL DEFAULT 0,
-                CONSTRAINT FK_MeetStatusHistories_ServiceMeets
-                    FOREIGN KEY (ServiceMeetId) REFERENCES ServiceMeets(Id) ON DELETE CASCADE,
-                INDEX IX_MeetStatusHistories_ServiceMeetId (ServiceMeetId),
-                INDEX IX_MeetStatusHistories_ChangedAt (ChangedAt)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-        ");
-
-        // RefreshTokens -- JWT refresh token storage for rotation and revocation
-        await _context.Database.ExecuteSqlRawAsync(@"
-            CREATE TABLE IF NOT EXISTS RefreshTokens (
-                Id INT AUTO_INCREMENT PRIMARY KEY,
-                Token VARCHAR(512) NOT NULL,
-                JwtId VARCHAR(256) NOT NULL,
-                UserId VARCHAR(255) NOT NULL,
-                ExpiresAt DATETIME(6) NOT NULL,
-                CreatedAt DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-                Revoked TINYINT(1) NOT NULL DEFAULT 0,
-                RevokedAt DATETIME(6) NULL,
-                ReplacedByToken VARCHAR(512) NULL,
-                CONSTRAINT FK_RefreshTokens_AspNetUsers
-                    FOREIGN KEY (UserId) REFERENCES AspNetUsers(Id) ON DELETE CASCADE,
-                INDEX IX_RefreshTokens_UserId (UserId),
-                INDEX IX_RefreshTokens_Token (Token(255))
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-        ");
-
-        // Ensure new columns exist on SoftReserves (added after initial schema)
-        try
-        {
-            await _context.Database.ExecuteSqlRawAsync(@"
-                ALTER TABLE SoftReserves ADD COLUMN ExtensionCount INT NOT NULL DEFAULT 0;
-            ");
-            _logger.LogInformation("Added ExtensionCount column to SoftReserves");
-        }
-        catch (MySql.Data.MySqlClient.MySqlException ex) when (ex.Message.Contains("Duplicate column"))
-        {
-            // Column already exists — nothing to do
-        }
-
-        _logger.LogInformation("Additional tables verified/created");
-    }
-
-    // ──────────────────────────────────────────────────────────────────────
     //  Legacy data cleanup
+    //  (Schema is now owned by EF Core migrations. The previous
+    //  `EnsureAdditionalTablesAsync` raw-SQL block was deleted; any
+    //  table/column/index lives in `Migrations/` and is applied by
+    //  `DatabaseExtensions.ApplyDatabaseMigrationsAsync` at startup.)
     // ──────────────────────────────────────────────────────────────────────
 
     /// <summary>
@@ -258,18 +143,23 @@ public class DataSeeder
             _logger.LogInformation("Obsolete admin user deleted");
         }
 
-        // Deduplicate ServiceAreas by name -- keep the first occurrence, remove duplicates
-        var allAreas = await _context.ServiceAreas.ToListAsync();
-        var duplicateGroups = allAreas
+        // Deduplicate ServiceAreas by name -- keep lowest Id, delete all others
+        var duplicateNames = await _context.ServiceAreas
             .GroupBy(sa => sa.Name)
             .Where(g => g.Count() > 1)
-            .ToList();
+            .Select(g => g.Key)
+            .ToListAsync();
 
-        foreach (var group in duplicateGroups)
+        foreach (var name in duplicateNames)
         {
-            var toRemove = group.Skip(1).ToList();
+            var areas = await _context.ServiceAreas
+                .Where(sa => sa.Name == name)
+                .OrderBy(sa => sa.Id)
+                .ToListAsync();
+
+            var toRemove = areas.Skip(1).ToList();
             _context.ServiceAreas.RemoveRange(toRemove);
-            _logger.LogInformation("Deleted {Count} duplicate areas for '{Name}'", toRemove.Count, group.Key);
+            _logger.LogInformation("Deleted {Count} duplicate areas for '{Name}'", toRemove.Count, name);
         }
 
         await _context.SaveChangesAsync();

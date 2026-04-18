@@ -60,6 +60,7 @@ public record ConfirmBookingRequest
     public int? FloorLevel { get; init; }
 
     public bool HasElevator { get; init; } = true;
+    public bool IsFirstTime { get; init; }
     public List<int>? AdditionalServiceIds { get; init; }
     public List<RoomSelectionDto>? Rooms { get; init; }
 

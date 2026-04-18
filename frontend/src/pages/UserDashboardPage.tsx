@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Calendar, Clock, MapPin, CreditCard, X, AlertCircle, Sparkles, ChevronRight, History, CalendarDays, Home, FileText, Zap } from 'lucide-react';
@@ -44,6 +44,7 @@ interface SuggestedSlot {
 }
 
 const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
+  PendingReview: { label: 'Pending Review', color: 'text-yellow-700', bgColor: 'bg-yellow-100' },
   Confirmed: { label: 'Confirmed', color: 'text-blue-700', bgColor: 'bg-blue-100' },
   InProgress: { label: 'In Progress', color: 'text-purple-700', bgColor: 'bg-purple-100' },
   Completed: { label: 'Completed', color: 'text-green-700', bgColor: 'bg-green-100' },
@@ -78,13 +79,37 @@ export function UserDashboardPage() {
   const [showFullDatePicker, setShowFullDatePicker] = useState(false);
   const [confirmingSuggestion, setConfirmingSuggestion] = useState<SuggestedSlot | null>(null);
 
-  const { data: allBookings = [], isLoading: loadingBookings, error: bookingsError } = useQuery({
-    queryKey: ['customer', 'orders'],
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
+
+  const { data: paginatedData, isLoading: loadingBookings, error: bookingsError } = useQuery({
+    queryKey: ['customer', 'orders', page],
     queryFn: async () => {
-      const res = await api.get<{ items: CustomerOrder[] }>('/customer/my-orders?pageSize=50');
-      return res.data.items;
+      const res = await api.get<{ items: CustomerOrder[]; totalCount: number }>(
+        `/customer/my-orders?pageSize=${PAGE_SIZE}&page=${page}`
+      );
+      return res.data;
     },
   });
+
+  // Accumulate items across pages for load-more behavior
+  const [accumulatedBookings, setAccumulatedBookings] = useState<CustomerOrder[]>([]);
+  useEffect(() => {
+    if (paginatedData?.items) {
+      if (page === 1) {
+        setAccumulatedBookings(paginatedData.items);
+      } else {
+        setAccumulatedBookings((prev) => {
+          const existingIds = new Set(prev.map((b) => b.id));
+          const newItems = paginatedData.items.filter((b) => !existingIds.has(b.id));
+          return [...prev, ...newItems];
+        });
+      }
+    }
+  }, [paginatedData, page]);
+
+  const allBookings = accumulatedBookings;
+  const hasMore = paginatedData ? allBookings.length < paginatedData.totalCount : false;
 
   const { data: stats = null, isLoading: loadingStats } = useQuery({
     queryKey: ['customer', 'stats'],
@@ -97,7 +122,10 @@ export function UserDashboardPage() {
   const isLoading = loadingBookings || loadingStats;
   const error = bookingsError ? 'Failed to load dashboard data' : '';
 
-  const upcomingBookings = allBookings.filter(o => o.status === 'Confirmed' || o.status === 'InProgress');
+  // Include PendingReview so a newly created booking is visible in the Upcoming tab
+  const upcomingBookings = allBookings.filter(
+    o => o.status === 'Confirmed' || o.status === 'InProgress' || o.status === 'PendingReview'
+  );
   const pastBookings = allBookings.filter(o => o.status === 'Completed' || o.status === 'Cancelled' || o.status === 'NoShow');
 
   const cancelMutation = useMutation({
@@ -404,6 +432,19 @@ export function UserDashboardPage() {
           {activeTab === 'history' && (pastBookings.length === 0 ? (
             <div className="p-8 text-center"><History className="w-12 h-12 text-gray-300 mx-auto mb-4" /><p className="text-gray-500">No booking history yet</p></div>
           ) : <div className="divide-y divide-gray-200">{pastBookings.map(b => renderBookingCard(b, false))}</div>)}
+
+          {/* Load more button */}
+          {hasMore && (
+            <div className="p-4 text-center border-t border-gray-200">
+              <button
+                onClick={() => setPage((p) => p + 1)}
+                disabled={loadingBookings}
+                className="px-6 py-2 text-sm font-medium text-brand border border-brand rounded-lg hover:bg-brand/5 transition-colors disabled:opacity-50"
+              >
+                {loadingBookings ? 'Loading...' : 'Load more'}
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">

@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import api from '@/lib/api';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { profileSchema, type ProfileFormData } from '@/shared/schemas/profile.schema';
 import { changePasswordSchema, type ChangePasswordFormData } from '@/shared/schemas/auth.schema';
 import { getErrorMessage } from '@/shared/lib/error-utils';
 
@@ -31,6 +32,7 @@ export function ProfilePage() {
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
 
+  // Read-only display copy of the profile
   const [profile, setProfile] = useState<ProfileData>({
     firstName: '',
     lastName: '',
@@ -42,7 +44,18 @@ export function ProfilePage() {
     zipCode: '',
   });
 
-  const [editForm, setEditForm] = useState<ProfileData>(profile);
+  const profileForm = useForm<ProfileFormData>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      phone: '',
+      address: '',
+      city: '',
+      state: '',
+      zipCode: '',
+    },
+  });
 
   const passwordForm = useForm<ChangePasswordFormData>({
     resolver: zodResolver(changePasswordSchema),
@@ -53,7 +66,15 @@ export function ProfilePage() {
       setIsLoading(true);
       const response = await api.get<ProfileData>('/customer/profile');
       setProfile(response.data);
-      setEditForm(response.data);
+      profileForm.reset({
+        firstName: response.data.firstName,
+        lastName: response.data.lastName,
+        phone: response.data.phone,
+        address: response.data.address,
+        city: response.data.city,
+        state: response.data.state,
+        zipCode: response.data.zipCode,
+      });
     } catch {
       // Fallback to auth context user
       const fallback: ProfileData = {
@@ -67,36 +88,52 @@ export function ProfilePage() {
         zipCode: '',
       };
       setProfile(fallback);
-      setEditForm(fallback);
+      profileForm.reset({
+        firstName: fallback.firstName,
+        lastName: fallback.lastName,
+        phone: fallback.phone,
+        address: fallback.address,
+        city: fallback.city,
+        state: fallback.state,
+        zipCode: fallback.zipCode,
+      });
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, profileForm]);
 
   useEffect(() => {
     fetchProfile();
   }, [fetchProfile]);
 
-  const handleSave = async () => {
+  const handleSave = profileForm.handleSubmit(async (formData: ProfileFormData) => {
     try {
       setIsSaving(true);
       setError('');
 
       await api.put('/customer/profile', {
-        firstName: editForm.firstName,
-        lastName: editForm.lastName,
-        phone: editForm.phone,
-        address: editForm.address,
-        city: editForm.city,
-        state: editForm.state,
-        zipCode: editForm.zipCode,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: formData.phone,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        zipCode: formData.zipCode,
       });
 
-      setProfile(editForm);
+      setProfile((prev) => ({
+        ...prev,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: formData.phone ?? '',
+        address: formData.address ?? '',
+        city: formData.city ?? '',
+        state: formData.state ?? '',
+        zipCode: formData.zipCode ?? '',
+      }));
       setIsEditing(false);
       setSuccess('Profile updated successfully!');
 
-      // Refresh auth context user
       if (refreshUser) {
         refreshUser();
       }
@@ -107,10 +144,18 @@ export function ProfilePage() {
     } finally {
       setIsSaving(false);
     }
-  };
+  });
 
   const handleCancel = () => {
-    setEditForm(profile);
+    profileForm.reset({
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      phone: profile.phone,
+      address: profile.address,
+      city: profile.city,
+      state: profile.state,
+      zipCode: profile.zipCode,
+    });
     setIsEditing(false);
     setError('');
   };
@@ -133,6 +178,9 @@ export function ProfilePage() {
       setIsChangingPassword(false);
     }
   };
+
+  const pf = profileForm.register;
+  const pfErrors = profileForm.formState.errors;
 
   if (isLoading) {
     return (
@@ -205,163 +253,215 @@ export function ProfilePage() {
                 <User className="w-5 h-5 text-brand" aria-hidden="true" />
                 Personal Information
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    First Name
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editForm.firstName}
-                      onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
-                    />
-                  ) : (
-                    <p className="text-gray-900 py-2">{profile.firstName || '-'}</p>
-                  )}
+              <form id="profile-form" onSubmit={handleSave} noValidate>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
+                      First Name
+                    </label>
+                    {isEditing ? (
+                      <>
+                        <input
+                          id="firstName"
+                          type="text"
+                          aria-invalid={pfErrors.firstName ? 'true' : 'false'}
+                          aria-describedby={pfErrors.firstName ? 'firstName-error' : undefined}
+                          {...pf('firstName')}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                        />
+                        {pfErrors.firstName && (
+                          <p id="firstName-error" className="mt-1 text-sm text-red-600">{pfErrors.firstName.message}</p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-gray-900 py-2">{profile.firstName || '-'}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
+                      Last Name
+                    </label>
+                    {isEditing ? (
+                      <>
+                        <input
+                          id="lastName"
+                          type="text"
+                          aria-invalid={pfErrors.lastName ? 'true' : 'false'}
+                          aria-describedby={pfErrors.lastName ? 'lastName-error' : undefined}
+                          {...pf('lastName')}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                        />
+                        {pfErrors.lastName && (
+                          <p id="lastName-error" className="mt-1 text-sm text-red-600">{pfErrors.lastName.message}</p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-gray-900 py-2">{profile.lastName || '-'}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                      <Mail className="w-4 h-4" aria-hidden="true" /> Email
+                    </label>
+                    <p className="text-gray-900 py-2">{profile.email}</p>
+                    {isEditing && (
+                      <p className="text-xs text-gray-500">Email cannot be changed</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                      <Phone className="w-4 h-4" aria-hidden="true" /> Phone
+                    </label>
+                    {isEditing ? (
+                      <>
+                        <input
+                          id="phone"
+                          type="tel"
+                          aria-invalid={pfErrors.phone ? 'true' : 'false'}
+                          aria-describedby={pfErrors.phone ? 'phone-error' : undefined}
+                          {...pf('phone')}
+                          placeholder="(555) 123-4567"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                        />
+                        {pfErrors.phone && (
+                          <p id="phone-error" className="mt-1 text-sm text-red-600">{pfErrors.phone.message}</p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-gray-900 py-2">{profile.phone || 'Not specified'}</p>
+                    )}
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Last Name
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editForm.lastName}
-                      onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
-                    />
-                  ) : (
-                    <p className="text-gray-900 py-2">{profile.lastName || '-'}</p>
-                  )}
-                </div>
+                {/* Address */}
+                <section className="mt-6">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-brand" aria-hidden="true" />
+                    Address
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                      <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
+                        Street Address
+                      </label>
+                      {isEditing ? (
+                        <>
+                          <input
+                            id="address"
+                            type="text"
+                            aria-invalid={pfErrors.address ? 'true' : 'false'}
+                            aria-describedby={pfErrors.address ? 'address-error' : undefined}
+                            {...pf('address')}
+                            placeholder="123 Main St, Apt 4B"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                          />
+                          {pfErrors.address && (
+                            <p id="address-error" className="mt-1 text-sm text-red-600">{pfErrors.address.message}</p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-gray-900 py-2">{profile.address || 'Not specified'}</p>
+                      )}
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                    <Mail className="w-4 h-4" aria-hidden="true" /> Email
-                  </label>
-                  <p className="text-gray-900 py-2">{profile.email}</p>
-                  {isEditing && (
-                    <p className="text-xs text-gray-500">Email cannot be changed</p>
-                  )}
-                </div>
+                    <div>
+                      <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
+                        City
+                      </label>
+                      {isEditing ? (
+                        <>
+                          <input
+                            id="city"
+                            type="text"
+                            aria-invalid={pfErrors.city ? 'true' : 'false'}
+                            aria-describedby={pfErrors.city ? 'city-error' : undefined}
+                            {...pf('city')}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                          />
+                          {pfErrors.city && (
+                            <p id="city-error" className="mt-1 text-sm text-red-600">{pfErrors.city.message}</p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-gray-900 py-2">{profile.city || 'Not specified'}</p>
+                      )}
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                    <Phone className="w-4 h-4" aria-hidden="true" /> Phone
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="tel"
-                      value={editForm.phone}
-                      onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                      placeholder="(555) 123-4567"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
-                    />
-                  ) : (
-                    <p className="text-gray-900 py-2">{profile.phone || 'Not specified'}</p>
-                  )}
-                </div>
-              </div>
+                    <div>
+                      <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">
+                        State
+                      </label>
+                      {isEditing ? (
+                        <>
+                          <input
+                            id="state"
+                            type="text"
+                            aria-invalid={pfErrors.state ? 'true' : 'false'}
+                            aria-describedby={pfErrors.state ? 'state-error' : undefined}
+                            {...pf('state')}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                          />
+                          {pfErrors.state && (
+                            <p id="state-error" className="mt-1 text-sm text-red-600">{pfErrors.state.message}</p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-gray-900 py-2">{profile.state || 'Not specified'}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700 mb-1">
+                        ZIP Code
+                      </label>
+                      {isEditing ? (
+                        <>
+                          <input
+                            id="zipCode"
+                            type="text"
+                            aria-invalid={pfErrors.zipCode ? 'true' : 'false'}
+                            aria-describedby={pfErrors.zipCode ? 'zipCode-error' : undefined}
+                            {...pf('zipCode')}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                          />
+                          {pfErrors.zipCode && (
+                            <p id="zipCode-error" className="mt-1 text-sm text-red-600">{pfErrors.zipCode.message}</p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-gray-900 py-2">{profile.zipCode || 'Not specified'}</p>
+                      )}
+                    </div>
+                  </div>
+                </section>
+
+                {/* Actions */}
+                {isEditing && (
+                  <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 mt-6">
+                    <button
+                      type="button"
+                      onClick={handleCancel}
+                      disabled={isSaving}
+                      className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+                    >
+                      <X className="w-4 h-4" />
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSaving}
+                      className="px-6 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors flex items-center gap-2 disabled:opacity-50"
+                    >
+                      <Save className="w-4 h-4" aria-hidden="true" />
+                      {isSaving ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
+                )}
+              </form>
             </section>
-
-            {/* Address */}
-            <section>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-brand" aria-hidden="true" />
-                Address
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Street Address
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editForm.address}
-                      onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
-                      placeholder="123 Main St, Apt 4B"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
-                    />
-                  ) : (
-                    <p className="text-gray-900 py-2">{profile.address || 'Not specified'}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    City
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editForm.city}
-                      onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
-                    />
-                  ) : (
-                    <p className="text-gray-900 py-2">{profile.city || 'Not specified'}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    State
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editForm.state}
-                      onChange={(e) => setEditForm({ ...editForm, state: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
-                    />
-                  ) : (
-                    <p className="text-gray-900 py-2">{profile.state || 'Not specified'}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    ZIP Code
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editForm.zipCode}
-                      onChange={(e) => setEditForm({ ...editForm, zipCode: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
-                    />
-                  ) : (
-                    <p className="text-gray-900 py-2">{profile.zipCode || 'Not specified'}</p>
-                  )}
-                </div>
-              </div>
-            </section>
-
-            {/* Actions */}
-            {isEditing && (
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-                <button
-                  onClick={handleCancel}
-                  disabled={isSaving}
-                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
-                >
-                  <X className="w-4 h-4" />
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className="px-6 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors flex items-center gap-2 disabled:opacity-50"
-                >
-                  <Save className="w-4 h-4" aria-hidden="true" />
-                  {isSaving ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            )}
 
             {/* Security Section */}
             {!isEditing && (

@@ -444,8 +444,6 @@ public class BookingApplicationService : IBookingApplicationService
                 Message = result.Message,
                 AuthToken = result.AuthToken != null ? new AuthTokenDto
                 {
-                    AccessToken = result.AuthToken.AccessToken,
-                    RefreshToken = result.AuthToken.RefreshToken,
                     ExpiresAt = result.AuthToken.ExpiresAt,
                     IsNewUser = result.AuthToken.IsNewUser
                 } : null,

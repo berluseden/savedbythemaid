@@ -7,6 +7,7 @@ public abstract class BaseEntity
     public DateTime? UpdatedAt { get; set; }
     public int? CreatedByUserId { get; set; }
     public int? UpdatedByUserId { get; set; }
+    // TODO: tighten setters with private set + Mark*() methods (deferred — breaks current call sites)
     public bool IsDeleted { get; set; } = false;
 }
 

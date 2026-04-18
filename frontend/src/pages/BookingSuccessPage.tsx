@@ -14,11 +14,12 @@ interface BookingConfirmation {
   total: number;
   orderStatus: string;
   message: string;
+  // Note: backend may include an authToken envelope (new-user flow). The
+  // refresh token must NEVER live on the client — it belongs in the
+  // HttpOnly cookie set by the server. Don't add refreshToken here.
   authToken?: {
-    accessToken: string;
-    refreshToken: string;
-    expiresAt: string;
     isNewUser: boolean;
+    expiresAt: string;
   };
 }
 
@@ -49,13 +50,14 @@ export default function BookingSuccessPage() {
   const [copied, setCopied] = useState(false);
   const [countdown, setCountdown] = useState(5);
 
-  // Refresh auth context if there's a stored token (newly created user)
+  // Refresh auth context if the booking flow created/elevated a session.
+  // The HttpOnly cookie is already set by the server; just rehydrate the
+  // user profile if we're not authenticated yet on this client.
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token && !isAuthenticated) {
+    if (!isAuthenticated && confirmation?.authToken?.isNewUser) {
       refreshUser();
     }
-  }, [refreshUser, isAuthenticated]);
+  }, [refreshUser, isAuthenticated, confirmation?.authToken?.isNewUser]);
 
   // Auto-redirect to dashboard after 5 seconds
   useEffect(() => {

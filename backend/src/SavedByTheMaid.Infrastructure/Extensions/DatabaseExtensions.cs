@@ -8,7 +8,18 @@ namespace SavedByTheMaid.Infrastructure.Extensions;
 public static class DatabaseExtensions
 {
     /// <summary>
-    /// Applies pending migrations and runs initial seeds
+    /// Applies pending EF Core migrations at startup. Called from
+    /// <c>Program.cs</c> after the host is built and before
+    /// <see cref="DataSeeder"/> runs.
+    ///
+    /// Workflow:
+    ///   1. Wait for the database to accept connections (handled by
+    ///      <c>WaitForDatabaseAsync</c> in <c>Infrastructure.DependencyInjection</c>).
+    ///   2. Apply any pending migrations (<see cref="RelationalDatabaseFacadeExtensions.MigrateAsync"/>).
+    ///   3. <see cref="DataSeeder"/> populates master data on top of the schema.
+    ///
+    /// For test environments using the InMemory provider we fall back to
+    /// <c>EnsureCreatedAsync</c> because relational migrations don't apply.
     /// </summary>
     public static async Task ApplyDatabaseMigrationsAsync(this IServiceProvider services)
     {
@@ -18,136 +29,40 @@ public static class DatabaseExtensions
 
         try
         {
-            logger.LogInformation("Verifying database connection...");
+            // InMemory / non-relational test providers: just create the schema.
+            if (!context.Database.IsRelational())
+            {
+                logger.LogInformation("Non-relational provider detected; using EnsureCreatedAsync");
+                await context.Database.EnsureCreatedAsync();
+                return;
+            }
 
-            // Verify connection
-            var canConnect = await context.Database.CanConnectAsync();
-            if (!canConnect)
+            // Verify connectivity (the caller already retries on cold-start
+            // races, so a single check here is enough).
+            if (!await context.Database.CanConnectAsync())
             {
                 logger.LogError("Cannot connect to the database");
                 throw new InvalidOperationException("Cannot connect to the database");
             }
 
-            logger.LogInformation("Verifying database schema...");
-
-            // If the provider is not relational (e.g. InMemory in tests), use EnsureCreated
-            if (!context.Database.IsRelational())
+            var pending = (await context.Database.GetPendingMigrationsAsync()).ToList();
+            if (pending.Count == 0)
             {
-                logger.LogWarning("Non-relational database provider detected. Using EnsureCreatedAsync() for test environment.");
-                var created = await context.Database.EnsureCreatedAsync();
-                if (created)
-                {
-                    logger.LogInformation("Database schema (InMemory) created successfully");
-                }
-                else
-                {
-                    logger.LogInformation("Database schema already exists (InMemory)");
-                }
-
-                // Avoid running relational-provider-specific SQL fixes
+                logger.LogInformation("Database schema is up to date — no pending migrations");
                 return;
             }
 
-            // Check if migrations are available (only for relational providers)
-            var appliedMigrations = await context.Database.GetAppliedMigrationsAsync();
-            var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
-
-            if (!appliedMigrations.Any() && !pendingMigrations.Any())
-            {
-                // No migrations found, use EnsureCreated
-                logger.LogWarning("No migrations found. Creating schema with EnsureCreated()");
-                var created = await context.Database.EnsureCreatedAsync();
-                if (created)
-                {
-                    logger.LogInformation("Database schema created successfully");
-                }
-                else
-                {
-                    logger.LogInformation("Database schema already exists");
-                }
-            }
-            else if (pendingMigrations.Any())
-            {
-                // There are pending migrations, apply them
-                logger.LogInformation("Pending migrations: {Migrations}", string.Join(", ", pendingMigrations));
-                await context.Database.MigrateAsync();
-                logger.LogInformation("Migrations applied successfully");
-            }
-            else
-            {
-                logger.LogInformation("No pending migrations. Schema is up to date.");
-            }
-
-            // Apply manual fixes if the PaymentStatus column exists
-            await ApplyManualFixesAsync(context, logger);
+            logger.LogInformation(
+                "Applying {Count} pending migration(s): {Migrations}",
+                pending.Count,
+                string.Join(", ", pending));
+            await context.Database.MigrateAsync();
+            logger.LogInformation("Migrations applied successfully");
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error applying migrations");
             throw;
-        }
-    }
-
-    private static async Task ApplyManualFixesAsync(ApplicationDbContext context, ILogger logger)
-    {
-        try
-        {
-            // Check if the PaymentStatus column exists
-            var columnExists = await context.Database.ExecuteSqlRawAsync(@"
-                SELECT COUNT(*) 
-                FROM INFORMATION_SCHEMA.COLUMNS 
-                WHERE TABLE_SCHEMA = DATABASE() 
-                  AND TABLE_NAME = 'ServiceOrders' 
-                  AND COLUMN_NAME = 'PaymentStatus'") > 0;
-
-            if (columnExists)
-            {
-                logger.LogWarning("PaymentStatus column detected, removing...");
-                await context.Database.ExecuteSqlRawAsync(@"
-                    ALTER TABLE ServiceOrders DROP COLUMN IF EXISTS PaymentStatus");
-                logger.LogInformation("PaymentStatus column removed");
-            }
-
-            // Verify and create index IX_ServiceOrders_CreatedAt
-            var hasCreatedAtIndex = await context.Database.ExecuteSqlRawAsync(@"
-                SELECT COUNT(*) 
-                FROM INFORMATION_SCHEMA.STATISTICS 
-                WHERE TABLE_SCHEMA = DATABASE() 
-                  AND TABLE_NAME = 'ServiceOrders' 
-                  AND INDEX_NAME = 'IX_ServiceOrders_CreatedAt'") > 0;
-
-            if (!hasCreatedAtIndex)
-            {
-                logger.LogInformation("Creating index IX_ServiceOrders_CreatedAt...");
-                await context.Database.ExecuteSqlRawAsync(@"
-                    CREATE INDEX IX_ServiceOrders_CreatedAt 
-                    ON ServiceOrders(CreatedAt DESC)");
-                logger.LogInformation("Index IX_ServiceOrders_CreatedAt created");
-            }
-
-            // Verify and create composite index
-            var hasCompositeIndex = await context.Database.ExecuteSqlRawAsync(@"
-                SELECT COUNT(*) 
-                FROM INFORMATION_SCHEMA.STATISTICS 
-                WHERE TABLE_SCHEMA = DATABASE() 
-                  AND TABLE_NAME = 'ServiceOrders' 
-                  AND INDEX_NAME = 'IX_ServiceOrders_OrderStatus_CreatedAt'") > 0;
-
-            if (!hasCompositeIndex)
-            {
-                logger.LogInformation("Creating index IX_ServiceOrders_OrderStatus_CreatedAt...");
-                await context.Database.ExecuteSqlRawAsync(@"
-                    CREATE INDEX IX_ServiceOrders_OrderStatus_CreatedAt 
-                    ON ServiceOrders(OrderStatus, CreatedAt DESC)");
-                logger.LogInformation("Index IX_ServiceOrders_OrderStatus_CreatedAt created");
-            }
-
-            logger.LogInformation("Manual fixes applied successfully");
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error applying manual fixes");
-            // Do not throw exception, allow the app to continue
         }
     }
 }

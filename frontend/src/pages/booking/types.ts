@@ -1,10 +1,14 @@
 import type { MapPin } from 'lucide-react';
 import type { EstimateResponse, BookingConfirmation } from '@/lib/api';
+import type { RoomSelection, DirtLevel } from '@/shared/types/api.types';
 
 // Re-export API types used across booking steps
 export type { EstimateResponse, BookingConfirmation };
 
 export type BookingStep = 'zipcode' | 'service' | 'details' | 'schedule' | 'contact' | 'confirm';
+
+// Recurrence options match the backend RecurrenceType enum (string-serialized).
+export type RecurrenceType = 'None' | 'Weekly' | 'BiWeekly' | 'Monthly';
 
 export interface BookingData {
   zipCode: string;
@@ -14,6 +18,17 @@ export interface BookingData {
   bathrooms: number;
   squareFootage: number;
   additionalServiceIds: number[];
+  // Per-room selections from the cleaning-place catalog (room-based pricing)
+  rooms: RoomSelection[];
+  // Property modifiers feeding the pricing engine
+  dirtLevel: DirtLevel;        // 0=Light, 1=Normal, 2=Heavy
+  hasPets: boolean;
+  hasElevator: boolean;
+  floorLevel: number;          // 0 = ground floor / N/A
+  isFirstTime: boolean;        // first-time-customer surcharge flag
+  // Recurrence selection (drives discount + creates future meetings)
+  recurrenceType: RecurrenceType;
+  recurrenceEndDate?: string;  // ISO date, only meaningful when recurrenceType !== 'None'
   date: string;
   timeSlot: string;
   employeeId: number;
@@ -39,6 +54,14 @@ export const initialBookingData: BookingData = {
   bathrooms: 1,
   squareFootage: 1000,
   additionalServiceIds: [],
+  rooms: [],
+  dirtLevel: 1,        // Normal
+  hasPets: false,
+  hasElevator: true,
+  floorLevel: 0,
+  isFirstTime: true,   // most bookings are first-time
+  recurrenceType: 'None',
+  recurrenceEndDate: undefined,
   date: '',
   timeSlot: '',
   employeeId: 0,

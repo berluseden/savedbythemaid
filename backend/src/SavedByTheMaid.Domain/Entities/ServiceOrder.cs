@@ -65,6 +65,11 @@ public class ServiceOrder : BaseAuditableEntity
     // Total estimated duration (calculated)
     public int EstimatedDurationMinutes { get; set; }
 
+    // Optimistic concurrency token — incremented by the caller on every update.
+    // Uses ConcurrencyCheck because MySql.EntityFrameworkCore does not support rowversion/timestamp columns.
+    [System.ComponentModel.DataAnnotations.ConcurrencyCheck]
+    public int Version { get; set; } = 0;
+
     // Navigation
     public virtual ICollection<ServiceOrderItem> Items { get; set; } = new List<ServiceOrderItem>();
     public virtual ICollection<ServiceMeet> Meetings { get; set; } = new List<ServiceMeet>();

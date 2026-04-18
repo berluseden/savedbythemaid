@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Search,
   Calendar,
@@ -16,49 +16,31 @@ import {
   PlayCircle,
 } from 'lucide-react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
-import api from '../../lib/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
-
-type OrderStatus = 'PendingReview' | 'Draft' | 'Confirmed' | 'InProgress' | 'Completed' | 'Cancelled' | 'NoShow';
-type PaymentStatus = 'Pending' | 'Authorized' | 'Paid' | 'Refunded' | 'Failed';
-type MeetStatus = 'Scheduled' | 'Assigned' | 'OnTheWay' | 'InProgress' | 'Completed' | 'Cancelled' | 'Rescheduled' | 'NoShow';
-
-interface OrderSummary {
-  id: number;
-  confirmationNumber: string;
-  contactName: string | null;
-  contactPhone: string | null;
-  address: string;
-  city: string | null;
-  zipCode: string;
-  serviceAreaName: string | null;
-  serviceTypeName: string | null;
-  total: number;
-  paymentStatus: PaymentStatus;
-  orderStatus: OrderStatus;
-  recurrenceType: string;
-  createdAt: string;
-}
-
-interface MeetingSummary {
-  id: number;
-  orderId: number;
-  scheduledStart: string;
-  scheduledEnd: string;
-  actualStart: string | null;
-  actualEnd: string | null;
-  employeeId: number | null;
-  employeeName: string | null;
-  status: MeetStatus;
-  estimatedDurationMinutes: number;
-}
-
-interface Employee {
-  id: number;
-  firstName: string;
-  lastName: string;
-  isActive: boolean;
-}
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/shared/components/ui/alert-dialog';
+import { Skeleton, TableRowSkeleton } from '@/shared/components/ui/skeleton';
+import { pushToast } from '@/lib/toast';
+import {
+  useAdminBookings,
+  useActiveEmployees,
+  useOrderMeetings,
+  useUpdateBookingStatus,
+  useCancelOrder,
+  useAssignEmployee,
+  useUpdateMeetingStatus,
+} from './bookings/hooks';
+import { formatCurrency, formatDate, formatDateTime } from './bookings/types';
+import type { OrderSummary, MeetingSummary } from './bookings/types';
+import type { OrderStatus, MeetStatus } from '@/shared/lib/status-config';
 
 const statusConfig: Record<OrderStatus, { label: string; color: string; bgColor: string }> = {
   PendingReview: { label: 'Pending Review', color: 'text-orange-700', bgColor: 'bg-orange-100' },
@@ -82,108 +64,88 @@ const meetStatusConfig: Record<MeetStatus, { label: string; color: string; bgCol
 };
 
 export function AdminBookingsPage() {
-  const [bookings, setBookings] = useState<OrderSummary[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterDate, setFilterDate] = useState<string>('');
   const [selectedBooking, setSelectedBooking] = useState<OrderSummary | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [error, setError] = useState('');
-  const [meetings, setMeetings] = useState<MeetingSummary[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
   const [assigningMeetingId, setAssigningMeetingId] = useState<number | null>(null);
+  const [cancelConfirmId, setCancelConfirmId] = useState<number | null>(null);
   const itemsPerPage = 10;
 
-  useEffect(() => {
-    fetchBookings();
-    fetchEmployees();
-  }, []);
+  // Server state via TanStack Query — cached, deduped, refetched as needed
+  const bookingsQuery = useAdminBookings();
+  const employeesQuery = useActiveEmployees();
+  const meetingsQuery = useOrderMeetings(selectedBooking?.id ?? null);
 
-  useEffect(() => {
-    if (selectedBooking) {
-      fetchMeetings(selectedBooking.id);
-    }
-  }, [selectedBooking]);
+  const bookings = bookingsQuery.data ?? [];
+  const employees = employeesQuery.data ?? [];
+  const meetings: MeetingSummary[] = meetingsQuery.data ?? [];
+  const isLoading = bookingsQuery.isLoading;
+  const error = bookingsQuery.isError ? 'Error loading bookings' : '';
 
-  const fetchEmployees = async () => {
-    try {
-      const response = await api.get<Employee[]>('/admin/employees');
-      setEmployees(response.data.filter(e => e.isActive));
-    } catch {
-      // Error handled by API interceptor
-    }
-  };
+  const updateStatusMutation = useUpdateBookingStatus();
+  const cancelOrderMutation = useCancelOrder();
+  const assignEmployeeMutation = useAssignEmployee();
+  const updateMeetingMutation = useUpdateMeetingStatus();
 
-  const fetchMeetings = async (orderId: number) => {
-    try {
-      const response = await api.get<MeetingSummary[]>(`/admin/orders/meetings?orderId=${orderId}`);
-      setMeetings(response.data);
-    } catch {
-      // Error handled by API interceptor
-      setMeetings([]);
-    }
-  };
-
-  const fetchBookings = async () => {
-    setIsLoading(true);
-    try {
-      const params: Record<string, string> = { pageSize: '100' };
-      const response = await api.get<OrderSummary[]>('/admin/orders', { params });
-      setBookings(response.data);
-    } catch (err) {
-      setError('Error loading bookings');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateBookingStatus = async (bookingId: number, newStatus: OrderStatus) => {
-    try {
-      await api.put(`/admin/orders/${bookingId}/status`, { orderStatus: newStatus });
-      await fetchBookings();
-      if (selectedBooking?.id === bookingId) {
-        setSelectedBooking(prev => prev ? { ...prev, orderStatus: newStatus } : null);
+  const updateBookingStatus = (bookingId: number, newStatus: OrderStatus) => {
+    updateStatusMutation.mutate(
+      { bookingId, status: newStatus },
+      {
+        onSuccess: () => {
+          pushToast(`Booking updated to ${newStatus}`, 'success');
+          if (selectedBooking?.id === bookingId) {
+            setSelectedBooking((prev) => (prev ? { ...prev, orderStatus: newStatus } : null));
+          }
+        },
+        onError: () => pushToast('Could not update booking status. Please try again.', 'error'),
       }
-    } catch (err) {
-      setError('Error updating status');
-    }
+    );
   };
 
-  const cancelOrder = async (bookingId: number) => {
-    try {
-      await api.post(`/admin/orders/${bookingId}/cancel`, { reason: 'Cancelled by administrator' });
-      await fetchBookings();
-      setSelectedBooking(null);
-    } catch (err) {
-      setError('Error canceling order');
-    }
+  const requestCancel = (bookingId: number) => setCancelConfirmId(bookingId);
+
+  const confirmCancel = () => {
+    if (cancelConfirmId == null) return;
+    const id = cancelConfirmId;
+    cancelOrderMutation.mutate(id, {
+      onSuccess: () => {
+        pushToast('Booking cancelled', 'success');
+        setCancelConfirmId(null);
+        if (selectedBooking?.id === id) setSelectedBooking(null);
+      },
+      onError: () => {
+        pushToast('Could not cancel booking. Please try again.', 'error');
+        setCancelConfirmId(null);
+      },
+    });
   };
 
-  const assignEmployee = async (meetingId: number, employeeId: number) => {
-    try {
-      await api.put(`/admin/orders/meetings/${meetingId}/assign`, { employeeId });
-      if (selectedBooking) {
-        await fetchMeetings(selectedBooking.id);
+  const assignEmployee = (meetingId: number, employeeId: number) => {
+    assignEmployeeMutation.mutate(
+      { meetingId, employeeId },
+      {
+        onSuccess: () => {
+          pushToast('Employee assigned', 'success');
+          setAssigningMeetingId(null);
+        },
+        onError: () => pushToast('Could not assign employee. The slot may conflict.', 'error'),
       }
-      setAssigningMeetingId(null);
-    } catch (err) {
-      setError('Error assigning employee');
-    }
+    );
   };
 
-  const updateMeetingStatus = async (meetingId: number, status: MeetStatus) => {
-    try {
-      await api.put(`/admin/orders/meetings/${meetingId}/status`, { status });
-      if (selectedBooking) {
-        await fetchMeetings(selectedBooking.id);
+  const updateMeetingStatus = (meetingId: number, status: MeetStatus) => {
+    updateMeetingMutation.mutate(
+      { meetingId, status },
+      {
+        onSuccess: () => pushToast(`Appointment ${status.toLowerCase()}`, 'success'),
+        onError: () => pushToast('Could not update appointment status.', 'error'),
       }
-    } catch (err) {
-      setError('Error updating appointment status');
-    }
+    );
   };
 
-  const filteredBookings = bookings.filter(booking => {
+  const filteredBookings = bookings.filter((booking: OrderSummary) => {
     const matchesSearch =
       (booking.contactName?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
       booking.confirmationNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -199,32 +161,38 @@ export function AdminBookingsPage() {
     currentPage * itemsPerPage
   );
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-
-  const formatDate = (date: string) =>
-    new Date(date).toLocaleDateString('en-US', {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-
-  const formatDateTime = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
   if (isLoading) {
     return (
       <AdminLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-[#2196f3] border-t-transparent rounded-full animate-spin" />
+        <div role="status" aria-live="polite" aria-busy="true" className="space-y-6">
+          <span className="sr-only">Loading bookings…</span>
+
+          {/* Header skeleton */}
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-40" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+
+          {/* Stats grid skeleton */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="p-4 rounded-lg border bg-white space-y-2">
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-7 w-12" />
+              </div>
+            ))}
+          </div>
+
+          {/* Table skeleton */}
+          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <table className="w-full">
+              <tbody>
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <TableRowSkeleton key={i} columns={8} />
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </AdminLayout>
     );
@@ -260,58 +228,77 @@ export function AdminBookingsPage() {
         </div>
 
         {error && (
-          <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg">
+          <div role="alert" className="bg-red-50 text-red-600 px-4 py-3 rounded-lg">
             {error}
-            <button onClick={() => setError('')} className="ml-2 underline">Close</button>
+            <button
+              type="button"
+              onClick={() => bookingsQuery.refetch()}
+              className="ml-2 underline"
+            >
+              Retry
+            </button>
           </div>
         )}
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col sm:flex-row gap-4" role="search" aria-label="Filter bookings">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <label htmlFor="bookings-page-search" className="sr-only">Search bookings</label>
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" aria-hidden="true" />
             <input
+              id="bookings-page-search"
               type="search"
               placeholder="Search by name, ID or address..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
             />
           </div>
-          <input
-            type="date"
-            value={filterDate}
-            onChange={(e) => setFilterDate(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
-          />
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
-          >
-            <option value="all">All statuses</option>
-            {Object.entries(statusConfig).map(([status, config]) => (
-              <option key={status} value={status}>
-                {config.label}
-              </option>
-            ))}
-          </select>
+          <div>
+            <label htmlFor="bookings-page-date" className="sr-only">Filter by date</label>
+            <input
+              id="bookings-page-date"
+              type="date"
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label htmlFor="bookings-page-status" className="sr-only">Filter by status</label>
+            <select
+              id="bookings-page-status"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+            >
+              <option value="all">All statuses</option>
+              {Object.entries(statusConfig).map(([status, config]) => (
+                <option key={status} value={status}>
+                  {config.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Table */}
         <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
+              <caption className="sr-only">
+                Bookings list — {filteredBookings.length} result{filteredBookings.length === 1 ? '' : 's'}
+              </caption>
               <thead>
                 <tr className="text-left text-sm text-gray-500 bg-gray-50 border-b">
-                  <th className="px-6 py-3 font-medium">Confirmation</th>
-                  <th className="px-6 py-3 font-medium">Customer</th>
-                  <th className="px-6 py-3 font-medium">Service</th>
-                  <th className="px-6 py-3 font-medium">Date</th>
-                  <th className="px-6 py-3 font-medium">Status</th>
-                  <th className="px-6 py-3 font-medium">Phone</th>
-                  <th className="px-6 py-3 font-medium text-right">Total</th>
-                  <th className="px-6 py-3 font-medium text-right">Actions</th>
+                  <th scope="col" className="px-6 py-3 font-medium">Confirmation</th>
+                  <th scope="col" className="px-6 py-3 font-medium">Customer</th>
+                  <th scope="col" className="px-6 py-3 font-medium">Service</th>
+                  <th scope="col" className="px-6 py-3 font-medium">Date</th>
+                  <th scope="col" className="px-6 py-3 font-medium">Status</th>
+                  <th scope="col" className="px-6 py-3 font-medium">Phone</th>
+                  <th scope="col" className="px-6 py-3 font-medium text-right">Total</th>
+                  <th scope="col" className="px-6 py-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -364,7 +351,7 @@ export function AdminBookingsPage() {
                               <CheckCircle className="h-4 w-4" />
                             </button>
                             <button
-                              onClick={() => cancelOrder(booking.id)}
+                              onClick={() => requestCancel(booking.id)}
                               className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
                               title="Reject"
                             >
@@ -659,7 +646,7 @@ export function AdminBookingsPage() {
                         Confirm Booking
                       </button>
                       <button
-                        onClick={() => cancelOrder(selectedBooking.id)}
+                        onClick={() => requestCancel(selectedBooking.id)}
                         className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
                       >
                         Cancel Booking
@@ -694,6 +681,34 @@ export function AdminBookingsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Destructive-action confirmation for cancel/reject */}
+      <AlertDialog
+        open={cancelConfirmId !== null}
+        onOpenChange={(open) => !open && setCancelConfirmId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel this booking?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will cancel the booking and notify the customer. This action
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelOrderMutation.isPending}>
+              Keep booking
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmCancel}
+              disabled={cancelOrderMutation.isPending}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              {cancelOrderMutation.isPending ? 'Cancelling…' : 'Yes, cancel'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   );
 }

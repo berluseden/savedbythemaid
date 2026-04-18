@@ -30,7 +30,7 @@ export function LoginPage() {
     setError('');
 
     try {
-      const redirectPath = await login(data.email, data.password, data.rememberMe);
+      const redirectPath = await login(data.email, data.password, Boolean(data.rememberMe));
       const destination = from !== '/' ? from : redirectPath;
       navigate(destination, { replace: true });
     } catch (err) {
@@ -69,13 +69,19 @@ export function LoginPage() {
                 <input
                   type="email"
                   id="email"
+                  autoComplete="email"
+                  inputMode="email"
+                  spellCheck={false}
+                  autoCapitalize="off"
+                  aria-invalid={errors.email ? 'true' : 'false'}
+                  aria-describedby={errors.email ? 'email-error' : undefined}
                   {...register('email')}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
                   placeholder="you@example.com"
                 />
               </div>
               {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                <p id="email-error" className="mt-1 text-sm text-red-600">{errors.email.message}</p>
               )}
             </div>
 
@@ -89,6 +95,9 @@ export function LoginPage() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   id="password"
+                  autoComplete="current-password"
+                  aria-invalid={errors.password ? 'true' : 'false'}
+                  aria-describedby={errors.password ? 'password-error' : undefined}
                   {...register('password')}
                   className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
                   placeholder="••••••••"
@@ -97,13 +106,14 @@ export function LoginPage() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-pressed={showPassword}
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" aria-hidden="true" /> : <Eye className="h-5 w-5" aria-hidden="true" />}
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                <p id="password-error" className="mt-1 text-sm text-red-600">{errors.password.message}</p>
               )}
             </div>
 

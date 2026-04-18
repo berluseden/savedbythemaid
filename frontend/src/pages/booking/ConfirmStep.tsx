@@ -4,7 +4,6 @@ import { Calendar, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { Alert } from '@/components/ui/Alert';
 import { bookingApi, type EstimateResponse, type BookingConfirmation } from '@/lib/api';
-import { authStorage } from '@/shared/lib/auth-storage';
 import { formatCurrency } from '@/lib/utils';
 import type { BookingData } from './types';
 
@@ -37,11 +36,22 @@ export const ConfirmStep = React.memo(function ConfirmStep({
         bedrooms: data.bedrooms,
         bathrooms: data.bathrooms,
         squareFootage: data.squareFootage,
+        // Pricing modifiers — must match what was sent to /estimate, otherwise
+        // the backend recalculation diverges from what the customer saw.
+        dirtLevel: data.dirtLevel,
+        hasPets: data.hasPets,
+        floorLevel: data.floorLevel,
+        hasElevator: data.hasElevator,
+        isFirstTime: data.isFirstTime,
         additionalServiceIds: data.additionalServiceIds,
+        rooms: data.rooms.length > 0 ? data.rooms : undefined,
         subtotal: estimate?.subtotal || 0,
         tax: 0,
         discount: estimate?.discount || 0,
         total: estimate?.total || 0,
+        // Recurrence — drives discount AND triggers creation of recurring meets
+        recurrenceType: data.recurrenceType,
+        recurrenceEndDate: data.recurrenceEndDate,
         contactName: `${data.firstName} ${data.lastName}`,
         contactPhone: data.phone,
         contactEmail: data.email,
@@ -50,15 +60,21 @@ export const ConfirmStep = React.memo(function ConfirmStep({
       }),
     onSuccess: (response) => {
       setError(null);
-      // If user was created, save tokens via centralized auth storage
-      if (response.data.authToken) {
-        authStorage.setToken(response.data.authToken.accessToken, true);
-      }
+      // Backend sets HttpOnly cookies for the (possibly new) user on confirm —
+      // nothing to store on the client.
       onSuccess(response.data);
     },
     onError: (err: unknown) => {
-      // Try to extract detailed error message
-      const maybe = err as { response?: { data?: { message?: string; details?: string } }; message?: string };
+      // Try to extract detailed error message; recognize the email-first 409
+      // and surface the login prompt explicitly.
+      const maybe = err as {
+        response?: { status?: number; data?: { code?: string; message?: string; details?: string } };
+        message?: string;
+      };
+      if (maybe.response?.status === 409 && maybe.response?.data?.code === 'login_required') {
+        setError('An account with this email already exists. Please go back and sign in to continue.');
+        return;
+      }
       const message = maybe.response?.data?.message || maybe.response?.data?.details || maybe.message || 'Something went wrong. Please try again.';
       setError(message);
     },
@@ -147,9 +163,9 @@ export const ConfirmStep = React.memo(function ConfirmStep({
         </div>
       </div>
 
-      <div className="flex justify-between mt-8">
-        <Button variant="outline" onClick={onBack} aria-label="Go back">Back</Button>
-        <Button onClick={handleConfirm} loading={confirmBooking.isPending} aria-label="Confirm booking">
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between sm:gap-0 mt-8">
+        <Button variant="outline" onClick={onBack} aria-label="Go back" className="w-full sm:w-auto">Back</Button>
+        <Button onClick={handleConfirm} loading={confirmBooking.isPending} aria-label="Confirm booking" className="w-full sm:w-auto">
           Confirm Booking
         </Button>
       </div>

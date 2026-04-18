@@ -52,21 +52,29 @@ export const ContactStep = React.memo(function ContactStep({
       return;
     }
 
-    // Check if email exists
+    // Check if email exists and whether it has a password set
     setCheckingEmail(true);
     try {
-      const response = await api.get<{ email: string; exists: boolean }>(`/auth/check-email?email=${encodeURIComponent(data.email)}`);
+      const response = await api.get<{ email: string; exists: boolean; hasPassword: boolean }>(
+        `/auth/check-email?email=${encodeURIComponent(data.email)}`
+      );
 
-      if (response.data.exists) {
-        // Email exists - show modal with options
+      if (response.data.exists && response.data.hasPassword) {
+        // Account exists with a password — must authenticate before booking
+        // can be associated. No "guest fallback" available (anti-fraud).
         setShowLoginModal(true);
+      } else if (response.data.exists) {
+        // Legacy account without a password (created via prior guest checkout)
+        // — continue, backend will associate the booking by email.
+        onNext();
       } else {
-        // New email, show modal to create password
+        // Brand new email — offer optional account creation
         setShowPasswordModal(true);
       }
-    } catch (err) {
-      // If email verification fails, continue without password (backend will handle it)
-      onNext();
+    } catch {
+      // If verification fails (network), let the user retry rather than
+      // silently associating the booking to an account they may not own.
+      setErrors({ email: 'Could not verify your email. Please try again.' });
     } finally {
       setCheckingEmail(false);
     }
@@ -115,13 +123,14 @@ export const ContactStep = React.memo(function ContactStep({
     if (e.key === 'Enter') handleLogin();
   }, [handleLogin]);
 
-  const handleContinueAsGuest = useCallback(() => {
+  // "Continue as guest" is intentionally removed when the account already
+  // has a password — the user must authenticate to bind the booking. To
+  // book under a different identity, they must use a different email.
+  const handleUseDifferentEmail = useCallback(() => {
     setShowLoginModal(false);
     setLoginPassword('');
     setLoginError('');
-    // Continue without password - backend will associate booking with existing account
-    onNext();
-  }, [onNext]);
+  }, []);
 
   return (
     <div>
@@ -217,12 +226,12 @@ export const ContactStep = React.memo(function ContactStep({
             </Button>
             <Button
               variant="outline"
-              onClick={handleContinueAsGuest}
+              onClick={handleUseDifferentEmail}
               className="w-full"
               disabled={isLoggingIn}
-              aria-label="Continue as guest"
+              aria-label="Use a different email"
             >
-              Continue as Guest
+              Use a different email
             </Button>
           </div>
 
@@ -234,88 +243,96 @@ export const ContactStep = React.memo(function ContactStep({
 
 
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
             label="First Name"
+            autoComplete="given-name"
             value={data.firstName}
             onChange={(e) => onChange({ firstName: e.target.value })}
             error={errors.firstName}
-            aria-label="First name"
           />
           <Input
             label="Last Name"
+            autoComplete="family-name"
             value={data.lastName}
             onChange={(e) => onChange({ lastName: e.target.value })}
             error={errors.lastName}
-            aria-label="Last name"
           />
         </div>
         <div>
           <Input
             label="Email"
             type="email"
+            autoComplete="email"
+            inputMode="email"
+            spellCheck={false}
+            autoCapitalize="off"
             value={data.email}
             onChange={(e) => {
               onChange({ email: e.target.value, password: undefined });
               setErrors(prev => ({ ...prev, email: '' }));
             }}
             error={errors.email}
-            aria-label="Email address"
           />
-          {checkingEmail && <p className="text-sm text-gray-500 mt-1">Checking email...</p>}
-          {data.password && (
-            <p className="text-sm text-green-600 mt-1">✓ Account will be created with this email</p>
-          )}
+          <div aria-live="polite" className="min-h-[1.25rem]">
+            {checkingEmail && <p className="text-sm text-gray-500 mt-1">Checking email…</p>}
+            {data.password && (
+              <p className="text-sm text-green-600 mt-1">✓ Account will be created with this email</p>
+            )}
+          </div>
         </div>
 
         <Input
           label="Phone"
           type="tel"
+          autoComplete="tel"
+          inputMode="tel"
           value={data.phone}
           onChange={(e) => onChange({ phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
           error={errors.phone}
-          aria-label="Phone number"
         />
         <Input
           label="Street Address"
+          autoComplete="street-address"
           value={data.address}
           onChange={(e) => onChange({ address: e.target.value })}
           error={errors.address}
-          aria-label="Street address"
         />
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
             label="City"
+            autoComplete="address-level2"
             value={data.city}
             onChange={(e) => onChange({ city: e.target.value })}
             error={errors.city}
-            aria-label="City"
           />
           <Input
             label="State"
+            autoComplete="address-level1"
             value={data.state}
             onChange={(e) => onChange({ state: e.target.value.toUpperCase().slice(0, 2) })}
             error={errors.state}
             maxLength={2}
-            aria-label="State"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Special Instructions (optional)</label>
+          <label htmlFor="special-instructions" className="block text-sm font-medium text-gray-700 mb-1">
+            Special Instructions (optional)
+          </label>
           <textarea
+            id="special-instructions"
             value={data.specialInstructions}
             onChange={(e) => onChange({ specialInstructions: e.target.value })}
             rows={3}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2196f3]"
             placeholder="Gate code, parking instructions, pet info, etc."
-            aria-label="Special instructions"
           />
         </div>
       </div>
 
-      <div className="flex justify-between mt-8">
-        <Button variant="outline" onClick={onBack} aria-label="Go back">Back</Button>
-        <Button onClick={checkEmailAndProceed} loading={checkingEmail} aria-label="Review booking">
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between sm:gap-0 mt-8">
+        <Button variant="outline" onClick={onBack} aria-label="Go back" className="w-full sm:w-auto">Back</Button>
+        <Button onClick={checkEmailAndProceed} loading={checkingEmail} aria-label="Review booking" className="w-full sm:w-auto">
           Review Booking
         </Button>
       </div>

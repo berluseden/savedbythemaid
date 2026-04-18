@@ -32,7 +32,7 @@ public class ContactController : ControllerBase
     /// Send a contact form request
     /// </summary>
     [HttpPost]
-    [EnableRateLimiting("auth-sensitive")]
+    [EnableRateLimiting("contact")]
     public async Task<IActionResult> SendContactRequest([FromBody] ContactRequest request)
     {
         var validationError = await _contactValidator.ValidateAndReturnErrors(request);
@@ -47,10 +47,24 @@ public class ContactController : ControllerBase
             await _emailService.SendContactFormAsync(adminEmail, new ContactFormEmail(
                 Name: request.Name,
                 Email: request.Email,
+                Subject: request.Subject,
                 Message: request.Message
             ));
 
             _logger.LogInformation("Contact form submitted by {Name} ({Email})", request.Name, request.Email);
+
+            // Fire-and-forget auto-reply to user — do not fail the request if this errors
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _emailService.SendContactAutoReplyAsync(request.Email, request.Name);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to send contact auto-reply to {Email}", request.Email);
+                }
+            });
 
             return Ok(new { message = "Your message has been sent. We'll get back to you soon!" });
         }

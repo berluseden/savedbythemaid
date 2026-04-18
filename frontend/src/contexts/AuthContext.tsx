@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { authApi, type User } from '../lib/api';
-import { authStorage } from '@/shared/lib/auth-storage';
+import { ensureCsrfToken } from '@/lib/csrf';
 import { getErrorMessage } from '@/shared/lib/error-utils';
 
 interface AuthContextType {
@@ -28,10 +28,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check if user is authenticated on mount
-  // With HttpOnly cookies, the token is sent automatically by the browser.
-  // We always call /auth/me to verify — the cookie handles authentication.
+  // Bootstrap sequence on mount:
+  //   1. Seed the XSRF-TOKEN cookie so the very first POST (login/register)
+  //      can carry the X-XSRF-TOKEN header the backend expects.
+  //   2. Ping /auth/me to rehydrate the session from the HttpOnly cookie.
+  // Both are fire-and-forget — failures leave the user logged out but the
+  // app usable.
   useEffect(() => {
+    void ensureCsrfToken();
     refreshUser().finally(() => setIsLoading(false));
   }, []);
 
@@ -40,8 +44,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await authApi.me();
       setUser(response.data);
     } catch {
-      // Token invalid or expired
-      authStorage.clear();
       setUser(null);
     }
   };
@@ -56,12 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string, rememberMe: boolean = false): Promise<string> => {
     setIsLoading(true);
     try {
-      const response = await authApi.login({ email, password });
-      // Backend sets HttpOnly cookies automatically.
-      // Also store in localStorage as fallback for backward compatibility.
-      if (response.data.accessToken) {
-        authStorage.setToken(response.data.accessToken, rememberMe);
-      }
+      const response = await authApi.login({ email, password, rememberMe });
       setUser(response.data.user);
       return getRedirectPath(response.data.user.roles);
     } catch (err: unknown) {
@@ -76,12 +73,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       const response = await authApi.register(data);
-      // Backend sets HttpOnly cookies automatically.
-      if (response.data.accessToken) {
-        authStorage.setToken(response.data.accessToken, true);
-      }
       setUser(response.data.user);
       return getRedirectPath(response.data.user.roles);
+    } catch (err: unknown) {
+      const msg = getErrorMessage(err, 'Could not create account');
+      throw new Error(msg);
     } finally {
       setIsLoading(false);
     }
@@ -92,11 +88,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await authApi.logout();
     } catch {
-      // Ignore errors on logout
+      // Ignore errors on logout — the cookie will still be cleared by the server
+      // or will expire naturally.
     } finally {
-      authStorage.clear();
       setUser(null);
       setIsLoading(false);
+      // Re-seed a CSRF token so the next login POST from this tab works
+      // without a round-trip.
+      void ensureCsrfToken();
     }
   };
 

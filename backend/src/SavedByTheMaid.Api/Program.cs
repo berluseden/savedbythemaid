@@ -1,10 +1,14 @@
+using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using SavedByTheMaid.Api.Auth;
 using SavedByTheMaid.Api.Middleware;
@@ -73,18 +77,91 @@ if (!string.Equals(envName, "Testing", StringComparison.OrdinalIgnoreCase))
 }
 
 // ============================================
+// 0. Forwarded Headers (nginx reverse proxy support)
+// ============================================
+// KnownNetworks/KnownProxies cleared to accept headers from any upstream proxy
+// inside the Docker network — TODO: restrict to real proxy CIDR once documented.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
+// ============================================
 // 1. Service Configuration
 // ============================================
 
 // Infrastructure (DbContext, etc.) - passes the environment to enable testing
 builder.Services.AddInfrastructure(builder.Configuration, builder.Environment.EnvironmentName);
 
+// Identity Lockout policy — override Infrastructure defaults to enforce brute-force protection
+builder.Services.Configure<IdentityOptions>(options =>
+{
+    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+    options.Lockout.AllowedForNewUsers = true;
+});
+
 // JWT Settings
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IPasswordHasher<SavedByTheMaid.Domain.Entities.ApplicationUser>, PasswordHasher<SavedByTheMaid.Domain.Entities.ApplicationUser>>();
 
-// Email Service
+// Email — pluggable provider (Resend / Smtp / Noop) selected by Email:Provider.
+// Default chain: Resend (if API key present) > Smtp (if host configured) > Noop.
+{
+    var emailProvider = builder.Configuration["Email:Provider"]?.Trim();
+    var resendApiKey = builder.Configuration["Email:Resend:ApiKey"];
+    var smtpHost = builder.Configuration["Email:SmtpHost"];
+
+    var useResend = string.Equals(emailProvider, "Resend", StringComparison.OrdinalIgnoreCase)
+        || (string.IsNullOrEmpty(emailProvider) && !string.IsNullOrEmpty(resendApiKey));
+    var useSmtp = string.Equals(emailProvider, "Smtp", StringComparison.OrdinalIgnoreCase)
+        || (string.IsNullOrEmpty(emailProvider) && !string.IsNullOrEmpty(smtpHost));
+
+    if (useResend)
+    {
+        if (string.IsNullOrEmpty(resendApiKey))
+        {
+            throw new InvalidOperationException(
+                "Email:Provider=Resend but Email:Resend:ApiKey is missing. Set it via " +
+                "user-secrets (`dotnet user-secrets set Email:Resend:ApiKey re_xxx`) or env var.");
+        }
+        // HttpClient with built-in resilience pipeline (retry + circuit breaker
+        // + timeout + rate limiter). Microsoft.Extensions.Http.Resilience 10.4
+        // wraps Polly v8 and handles 429 / 5xx / network errors transparently
+        // — the Resend SDK call appears synchronous to our code.
+        builder.Services.AddHttpClient<Resend.IResend, Resend.ResendClient>(client =>
+        {
+            client.BaseAddress = new Uri("https://api.resend.com");
+            client.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", resendApiKey);
+        })
+        .AddStandardResilienceHandler();
+
+        builder.Services.AddScoped<SavedByTheMaid.Api.Services.Email.IEmailSender,
+            SavedByTheMaid.Api.Services.Email.ResendEmailSender>();
+    }
+    else if (useSmtp)
+    {
+        builder.Services.AddScoped<SavedByTheMaid.Api.Services.Email.IEmailSender,
+            SavedByTheMaid.Api.Services.Email.SmtpEmailSender>();
+    }
+    else
+    {
+        builder.Services.AddScoped<SavedByTheMaid.Api.Services.Email.IEmailSender,
+            SavedByTheMaid.Api.Services.Email.NoopEmailSender>();
+    }
+
+    // Background email queue: producer/consumer with bounded channel.
+    // Singleton so producers across all requests share the same queue, and
+    // the worker (BackgroundService) drains it across the app lifetime.
+    builder.Services.AddSingleton<SavedByTheMaid.Api.Services.Email.ChannelEmailDispatcher>();
+    builder.Services.AddSingleton<SavedByTheMaid.Api.Services.Email.IEmailDispatcher>(sp =>
+        sp.GetRequiredService<SavedByTheMaid.Api.Services.Email.ChannelEmailDispatcher>());
+    builder.Services.AddHostedService<SavedByTheMaid.Api.Services.Email.EmailQueueWorker>();
+}
 builder.Services.AddScoped<IEmailService, EmailService>();
 
 // Scheduling Service - conflict validation and SlotOccupancy management
@@ -104,18 +181,23 @@ builder.Services.AddScoped<IOrderManagementService, SavedByTheMaid.Application.S
 builder.Services.AddScoped<IBookingApplicationService, SavedByTheMaid.Application.Services.BookingApplicationService>();
 builder.Services.AddScoped<IContactService, SavedByTheMaid.Application.Services.ContactService>();
 
-// FluentValidation - register all validators from the Application assembly
+// FluentValidation - register validators from Application and Api assemblies
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<SavedByTheMaid.Api.Validators.ChangePasswordRequestValidator>();
 
 // JWT Authentication
 var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>();
 if (jwtSettings == null || string.IsNullOrEmpty(jwtSettings.Secret))
 {
-    if (builder.Environment.IsProduction())
+    if (builder.Environment.IsDevelopment())
     {
-        throw new InvalidOperationException("JWT Secret must be configured in production. Set Jwt:Secret in appsettings or environment variables.");
+        // Development-only fallback — never used in Production or Staging
+        jwtSettings = new JwtSettings { Secret = "DefaultSecretKeyForDevelopmentOnly123456789!", Issuer = "SavedByTheMaid", Audience = "SavedByTheMaidApp" };
     }
-    jwtSettings = new JwtSettings { Secret = "DefaultSecretKeyForDevelopmentOnly123456789!", Issuer = "SavedByTheMaid", Audience = "SavedByTheMaidApp" };
+    else
+    {
+        throw new InvalidOperationException("JWT Secret must be configured. Set Jwt:Secret via environment variable Jwt__Secret.");
+    }
 }
 
 builder.Services.AddAuthentication(options =>
@@ -169,11 +251,17 @@ builder.Services.AddAuthorization(options =>
 });
 
 // Rate Limiting
+// NOTE: If deployed behind a reverse proxy (nginx/load balancer), enable UseForwardedHeaders
+// so that RemoteIpAddress reflects the real client IP, not the proxy IP.
 builder.Services.AddRateLimiter(options =>
 {
     options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
         RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: context.User.Identity?.Name ?? context.Request.Headers.Host.ToString(),
+            // Use the immutable subject claim (NameIdentifier) so authenticated users
+        // cannot manipulate the key via a crafted Identity.Name value.
+        partitionKey: context.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? context.Connection.RemoteIpAddress?.ToString()
+            ?? "unknown",
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 AutoReplenishment = true,
@@ -191,6 +279,14 @@ builder.Services.AddRateLimiter(options =>
     options.AddFixedWindowLimiter("auth-sensitive", options =>
     {
         options.PermitLimit = 5;
+        options.Window = TimeSpan.FromMinutes(1);
+        options.AutoReplenishment = true;
+    });
+
+    // Separate policy for contact form — more permissive than auth endpoints
+    options.AddFixedWindowLimiter("contact", options =>
+    {
+        options.PermitLimit = 10;
         options.Window = TimeSpan.FromMinutes(1);
         options.AutoReplenishment = true;
     });
@@ -222,6 +318,18 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Antiforgery (CSRF double-submit cookie pattern for SPA + HttpOnly JWT cookies)
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "X-XSRF-TOKEN";
+    options.Cookie.Name = "XSRF-TOKEN";
+    options.Cookie.HttpOnly = false;   // JS must read this to send it as header
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = builder.Environment.IsProduction()
+        ? CookieSecurePolicy.Always
+        : CookieSecurePolicy.SameAsRequest;
+});
+
 // Controllers
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -231,6 +339,14 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
         options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
     });
+
+// RFC 9457 ProblemDetails + IExceptionHandler
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
+// Health checks — liveness (process up) + readiness (DB reachable)
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<ApplicationDbContext>("db", tags: new[] { "ready" });
 
 // OpenAPI/Swagger
 builder.Services.AddOpenApi();
@@ -271,8 +387,11 @@ var app = builder.Build();
 // 2. Middleware Pipeline
 // ============================================
 
-// Global Exception Handler (first to catch everything)
-app.UseGlobalExceptionHandler();
+// Forward real client IP/proto from nginx before any middleware that reads them
+app.UseForwardedHeaders();
+
+// RFC 9457 exception handler (replaces old UseGlobalExceptionHandler)
+app.UseExceptionHandler();
 
 // Use Serilog for request logging (only if Serilog was configured, e.g. not in Testing)
 if (!app.Environment.IsEnvironment("Testing"))
@@ -320,6 +439,8 @@ app.UseRateLimiter();
 // Authentication & Authorization (in correct order)
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseAntiforgery();
+app.UseCsrfValidation();
 
 // SPA Hosting - Serve static files ONLY if they don't match /api/*
 if (!app.Environment.IsDevelopment())
@@ -330,13 +451,17 @@ if (!app.Environment.IsDevelopment())
 
 app.MapControllers();
 
-// Health check
-app.MapGet("/health", () => Results.Ok(new 
-{ 
-    status = "healthy", 
-    timestamp = DateTime.UtcNow,
-    version = "1.0.0"
-})).AllowAnonymous();
+// Health checks — /health/live always 200 if process is up; /health/ready checks DB; /health runs all
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false }).AllowAnonymous();
+app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = h => h.Tags.Contains("ready") }).AllowAnonymous();
+app.MapHealthChecks("/health").AllowAnonymous();
+
+// CSRF token endpoint — SPA calls this on load to get the XSRF-TOKEN cookie
+app.MapGet("/api/antiforgery/token", (Microsoft.AspNetCore.Antiforgery.IAntiforgery antiforgery, HttpContext context) =>
+{
+    antiforgery.GetAndStoreTokens(context);
+    return Results.Ok();
+}).AllowAnonymous().DisableAntiforgery();
 
 // Fallback for SPA routing - AT THE END, ONLY for routes that DON'T start with /api
 if (app.Environment.IsDevelopment())

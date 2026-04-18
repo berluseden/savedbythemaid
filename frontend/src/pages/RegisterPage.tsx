@@ -80,7 +80,7 @@ export function RegisterPage() {
             )}
 
             {/* Name Fields */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
                   First Name
@@ -90,13 +90,16 @@ export function RegisterPage() {
                   <input
                     type="text"
                     id="firstName"
+                    autoComplete="given-name"
+                    aria-invalid={errors.firstName ? 'true' : 'false'}
+                    aria-describedby={errors.firstName ? 'firstName-error' : undefined}
                     {...register('firstName')}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
                     placeholder="John"
                   />
                 </div>
                 {errors.firstName && (
-                  <p className="mt-1 text-sm text-red-600">{errors.firstName.message}</p>
+                  <p id="firstName-error" className="mt-1 text-sm text-red-600">{errors.firstName.message}</p>
                 )}
               </div>
               <div>
@@ -106,12 +109,15 @@ export function RegisterPage() {
                 <input
                   type="text"
                   id="lastName"
+                  autoComplete="family-name"
+                  aria-invalid={errors.lastName ? 'true' : 'false'}
+                  aria-describedby={errors.lastName ? 'lastName-error' : undefined}
                   {...register('lastName')}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
                   placeholder="Doe"
                 />
                 {errors.lastName && (
-                  <p className="mt-1 text-sm text-red-600">{errors.lastName.message}</p>
+                  <p id="lastName-error" className="mt-1 text-sm text-red-600">{errors.lastName.message}</p>
                 )}
               </div>
             </div>
@@ -126,13 +132,19 @@ export function RegisterPage() {
                 <input
                   type="email"
                   id="email"
+                  autoComplete="email"
+                  inputMode="email"
+                  spellCheck={false}
+                  autoCapitalize="off"
+                  aria-invalid={errors.email ? 'true' : 'false'}
+                  aria-describedby={errors.email ? 'email-error' : undefined}
                   {...register('email')}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
                   placeholder="you@email.com"
                 />
               </div>
               {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                <p id="email-error" className="mt-1 text-sm text-red-600">{errors.email.message}</p>
               )}
             </div>
 
@@ -146,13 +158,17 @@ export function RegisterPage() {
                 <input
                   type="tel"
                   id="phone"
+                  autoComplete="tel"
+                  inputMode="tel"
+                  aria-invalid={errors.phone ? 'true' : 'false'}
+                  aria-describedby={errors.phone ? 'phone-error' : undefined}
                   {...register('phone')}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
                   placeholder="(555) 123-4567"
                 />
               </div>
               {errors.phone && (
-                <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
+                <p id="phone-error" className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
               )}
             </div>
 
@@ -166,6 +182,9 @@ export function RegisterPage() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   id="password"
+                  autoComplete="new-password"
+                  aria-invalid={errors.password ? 'true' : 'false'}
+                  aria-describedby="password-requirements"
                   {...register('password')}
                   className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
                   placeholder="••••••••"
@@ -174,7 +193,8 @@ export function RegisterPage() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-pressed={showPassword}
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" aria-hidden="true" /> : <Eye className="h-5 w-5" aria-hidden="true" />}
                 </button>
@@ -184,16 +204,19 @@ export function RegisterPage() {
               )}
 
               {/* Password Requirements */}
-              {password.length > 0 && (
-                <div className="mt-3 space-y-1">
-                  {passwordRequirements.map((req, i) => (
-                    <div key={i} className={`flex items-center gap-2 text-xs ${req.met ? 'text-green-600' : 'text-gray-400'}`}>
-                      <Check className={`h-3 w-3 ${req.met ? 'opacity-100' : 'opacity-0'}`} />
-                      <span>{req.text}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div
+                id="password-requirements"
+                role="status"
+                aria-live="polite"
+                className={password.length > 0 ? 'mt-3 space-y-1' : 'sr-only'}
+              >
+                {password.length > 0 && passwordRequirements.map((req, i) => (
+                  <div key={i} className={`flex items-center gap-2 text-xs ${req.met ? 'text-green-600' : 'text-gray-400'}`}>
+                    <Check className={`h-3 w-3 ${req.met ? 'opacity-100' : 'opacity-0'}`} aria-hidden="true" />
+                    <span>{req.text}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Confirm Password */}
@@ -206,6 +229,9 @@ export function RegisterPage() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   id="confirmPassword"
+                  autoComplete="new-password"
+                  aria-invalid={errors.confirmPassword || (confirmPassword.length > 0 && !passwordsMatch) ? 'true' : 'false'}
+                  aria-describedby={errors.confirmPassword ? 'confirmPassword-error' : undefined}
                   {...register('confirmPassword')}
                   className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent transition-all ${
                     confirmPassword.length > 0
@@ -217,13 +243,16 @@ export function RegisterPage() {
                   placeholder="••••••••"
                 />
                 {confirmPassword.length > 0 && (
-                  <div className={`absolute right-3 top-1/2 -translate-y-1/2 ${passwordsMatch ? 'text-green-500' : 'text-red-500'}`}>
+                  <div
+                    aria-hidden="true"
+                    className={`absolute right-3 top-1/2 -translate-y-1/2 ${passwordsMatch ? 'text-green-500' : 'text-red-500'}`}
+                  >
                     {passwordsMatch ? <Check className="h-5 w-5" /> : <span className="text-xs">&#10007;</span>}
                   </div>
                 )}
               </div>
               {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
+                <p id="confirmPassword-error" className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
               )}
             </div>
 

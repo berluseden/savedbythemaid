@@ -33,4 +33,9 @@ public class Employee : BaseAuditableEntity
     public virtual ICollection<SoftReserve> SoftReserves { get; set; } = new List<SoftReserve>();
 
     public string FullName => $"{FirstName} {LastName}";
+
+    // Optimistic concurrency token — incremented by the caller on every update.
+    // Uses ConcurrencyCheck because MySql.EntityFrameworkCore does not support rowversion/timestamp columns.
+    [System.ComponentModel.DataAnnotations.ConcurrencyCheck]
+    public int Version { get; set; } = 0;
 }

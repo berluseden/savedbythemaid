@@ -8,12 +8,24 @@ public interface IEmailService
     Task SendWelcomeEmailAsync(string email, string firstName);
     Task SendPasswordResetAsync(string email, string resetLink);
     Task SendContactFormAsync(string adminEmail, ContactFormEmail data);
+    Task SendContactAutoReplyAsync(string userEmail, string userName);
+    Task SendOrderCancelledToEmployeeAsync(string employeeEmail, OrderCancelledEmployeeEmail data);
 }
 
 public record ContactFormEmail(
     string Name,
     string Email,
+    string Subject,
     string Message
+);
+
+public record OrderCancelledEmployeeEmail(
+    string EmployeeName,
+    string CustomerName,
+    string ServiceType,
+    DateTime ScheduledDate,
+    string Address,
+    string? Reason
 );
 
 public record BookingConfirmationEmail(

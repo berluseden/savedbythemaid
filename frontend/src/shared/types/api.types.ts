@@ -79,6 +79,9 @@ export interface RoomSelection {
   quantity: number;
 }
 
+// 0 = Light, 1 = Normal, 2 = Heavy
+export type DirtLevel = 0 | 1 | 2;
+
 export interface EstimateRequest {
   serviceTypeId: number;
   cleaningPlaceId?: number;
@@ -87,7 +90,7 @@ export interface EstimateRequest {
   bedrooms?: number;
   bathrooms?: number;
   squareFootage?: number;
-  dirtLevel?: string;
+  dirtLevel?: DirtLevel;
   hasPets?: boolean;
   hasElevator?: boolean;
   isFirstTime?: boolean;
@@ -158,11 +161,13 @@ export interface ConfirmBookingRequest {
   bedrooms: number;
   bathrooms: number;
   squareFootage?: number;
-  dirtLevel?: string;
+  dirtLevel?: DirtLevel;
   hasPets?: boolean;
   floorLevel?: number;
   hasElevator?: boolean;
+  isFirstTime?: boolean;
   additionalServiceIds?: number[];
+  rooms?: RoomSelection[];
 
   // Pricing
   subtotal: number;
@@ -221,6 +226,7 @@ export interface RecurrenceDiscount {
 export interface LoginRequest {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export interface RegisterRequest {
@@ -231,9 +237,12 @@ export interface RegisterRequest {
   phone?: string;
 }
 
+/**
+ * Auth response shape.
+ * Backend sets access + refresh tokens as HttpOnly cookies — NEVER in the body.
+ * Client only receives session metadata + the user profile.
+ */
 export interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
   expiresAt: string;
   user: UserInfo;
 }

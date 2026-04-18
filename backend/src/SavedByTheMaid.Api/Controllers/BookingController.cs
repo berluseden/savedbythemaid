@@ -9,6 +9,9 @@ using SavedByTheMaid.Application.DTOs.Booking;
 using SavedByTheMaid.Infrastructure.Data;
 using SavedByTheMaid.Domain.Entities;
 using SavedByTheMaid.Domain.Enums;
+using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Hosting;
+using System.Security.Claims;
 
 namespace SavedByTheMaid.Api.Controllers;
 
@@ -27,6 +30,8 @@ public class BookingController : ControllerBase
     private readonly IBookingService _bookingService;
     private readonly IValidator<EstimateRequest> _estimateValidator;
     private readonly IValidator<ConfirmBookingRequest> _confirmBookingValidator;
+    private readonly IWebHostEnvironment _env;
+    private readonly IAntiforgery _antiforgery;
 
     public BookingController(
         ApplicationDbContext context,
@@ -35,7 +40,9 @@ public class BookingController : ControllerBase
         ISchedulingService schedulingService,
         IBookingService bookingService,
         IValidator<EstimateRequest> estimateValidator,
-        IValidator<ConfirmBookingRequest> confirmBookingValidator)
+        IValidator<ConfirmBookingRequest> confirmBookingValidator,
+        IWebHostEnvironment env,
+        IAntiforgery antiforgery)
     {
         _context = context;
         _logger = logger;
@@ -44,6 +51,8 @@ public class BookingController : ControllerBase
         _bookingService = bookingService;
         _estimateValidator = estimateValidator;
         _confirmBookingValidator = confirmBookingValidator;
+        _env = env;
+        _antiforgery = antiforgery;
     }
 
     #region Step 1 - Address and Coverage
@@ -52,12 +61,12 @@ public class BookingController : ControllerBase
     /// Checks if a ZIP code has coverage and returns the service area
     /// </summary>
     [HttpGet("coverage/{zipCode}")]
-    public async Task<ActionResult<CoverageResponse>> CheckCoverage(string zipCode)
+    public async Task<ActionResult<CoverageResponse>> CheckCoverage(string zipCode, CancellationToken cancellationToken = default)
     {
         var serviceAreaZip = await _context.ServiceAreaZips
             .AsNoTracking()
             .Include(z => z.ServiceArea)
-            .FirstOrDefaultAsync(z => z.ZipCode == zipCode && !z.IsDeleted);
+            .FirstOrDefaultAsync(z => z.ZipCode == zipCode && !z.IsDeleted, cancellationToken);
 
         if (serviceAreaZip?.ServiceArea == null || !serviceAreaZip.ServiceArea.IsActive)
         {
@@ -88,7 +97,7 @@ public class BookingController : ControllerBase
     /// Gets available cleaning place types
     /// </summary>
     [HttpGet("cleaning-places")]
-    public async Task<ActionResult<IEnumerable<CleaningPlaceDto>>> GetCleaningPlaces()
+    public async Task<ActionResult<IEnumerable<CleaningPlaceDto>>> GetCleaningPlaces(CancellationToken cancellationToken = default)
     {
         var places = await _context.CleaningPlaces
             .AsNoTracking()
@@ -108,7 +117,7 @@ public class BookingController : ControllerBase
                     BasePrice = r.BasePrice
                 }).ToList()
             })
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         return Ok(places);
     }
@@ -117,7 +126,7 @@ public class BookingController : ControllerBase
     /// Gets available service types
     /// </summary>
     [HttpGet("service-types")]
-    public async Task<ActionResult<IEnumerable<ServiceTypeDto>>> GetServiceTypes()
+    public async Task<ActionResult<IEnumerable<ServiceTypeDto>>> GetServiceTypes(CancellationToken cancellationToken = default)
     {
         var types = await _context.ServiceTypes
             .AsNoTracking()
@@ -135,7 +144,7 @@ public class BookingController : ControllerBase
                 MinutesPerBedroom = t.MinutesPerBedroom,
                 MinutesPerBathroom = t.MinutesPerBathroom
             })
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         return Ok(types);
     }
@@ -144,7 +153,7 @@ public class BookingController : ControllerBase
     /// Gets available additional services
     /// </summary>
     [HttpGet("additional-services")]
-    public async Task<ActionResult<IEnumerable<AdditionalServiceDto>>> GetAdditionalServices()
+    public async Task<ActionResult<IEnumerable<AdditionalServiceDto>>> GetAdditionalServices(CancellationToken cancellationToken = default)
     {
         var services = await _context.AdditionalServiceTypes
             .AsNoTracking()
@@ -157,7 +166,7 @@ public class BookingController : ControllerBase
                 Price = s.Price,
                 AdditionalMinutes = s.AdditionalMinutes
             })
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         return Ok(services);
     }
@@ -166,7 +175,7 @@ public class BookingController : ControllerBase
     /// Gets recurrence discounts
     /// </summary>
     [HttpGet("recurrence-discounts")]
-    public async Task<ActionResult<IEnumerable<RecurrenceDiscountDto>>> GetRecurrenceDiscounts()
+    public async Task<ActionResult<IEnumerable<RecurrenceDiscountDto>>> GetRecurrenceDiscounts(CancellationToken cancellationToken = default)
     {
         var discounts = await _context.RecurrenceDiscounts
             .AsNoTracking()
@@ -177,7 +186,7 @@ public class BookingController : ControllerBase
                 RecurrenceTypeName = d.RecurrenceType.ToString(),
                 DiscountPercent = d.DiscountPercent
             })
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         return Ok(discounts);
     }
@@ -190,7 +199,8 @@ public class BookingController : ControllerBase
     /// Calculates estimated price and time based on customer selection
     /// </summary>
     [HttpPost("estimate")]
-    public async Task<ActionResult<EstimateResponse>> CalculateEstimate(EstimateRequest request)
+    [EnableRateLimiting("booking")]
+    public async Task<ActionResult<EstimateResponse>> CalculateEstimate(EstimateRequest request, CancellationToken cancellationToken = default)
     {
         var validationError = await _estimateValidator.ValidateAndReturnErrors(request);
         if (validationError != null) return validationError;
@@ -208,7 +218,7 @@ public class BookingController : ControllerBase
             HasElevator = request.HasElevator,
             IsFirstTime = request.IsFirstTime,
             RecurrenceType = request.RecurrenceType
-        });
+        }, cancellationToken);
 
         if (!pricing.Success)
             return BadRequest(new { message = pricing.Error });
@@ -233,11 +243,13 @@ public class BookingController : ControllerBase
     /// Gets available time slots for a specific date
     /// </summary>
     [HttpPost("availability")]
-    public async Task<ActionResult<AvailabilityResponse>> GetAvailability(AvailabilityRequest request)
+    [EnableRateLimiting("booking")]
+    public async Task<ActionResult<AvailabilityResponse>> GetAvailability(AvailabilityRequest request, CancellationToken cancellationToken = default)
     {
         // Validate service area
         var serviceAreaZip = await _context.ServiceAreaZips
-            .FirstOrDefaultAsync(z => z.ZipCode == request.ZipCode);
+            .AsNoTracking()
+            .FirstOrDefaultAsync(z => z.ZipCode == request.ZipCode, cancellationToken);
 
         if (serviceAreaZip == null)
             return BadRequest("ZIP code not covered");
@@ -248,34 +260,66 @@ public class BookingController : ControllerBase
 
         // Get employees covering this area
         var employeesInZone = await _context.EmployeeServiceAreas
+            .AsNoTracking()
             .Where(e => e.ServiceAreaId == serviceAreaId && !e.IsDeleted)
             .Select(e => e.EmployeeId)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         // Get active employees with schedule for that day
         var employees = await _context.Employees
+            .AsNoTracking()
             .Where(e => e.IsActive && !e.IsDeleted)
             .Where(e => employeesInZone.Contains(e.Id))
             .Include(e => e.Schedules.Where(s => s.DayOfWeek == dayOfWeek && s.IsAvailable))
-            .Include(e => e.TimeOffs.Where(t => 
+            .Include(e => e.TimeOffs.Where(t =>
                 t.Status == TimeOffStatus.Approved &&
                 t.StartDateTime <= date.AddDays(1) &&
                 t.EndDateTime >= date))
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         // Filter by required equipment if specified
         if (request.RequiredEquipmentIds?.Any() == true)
         {
             var employeesWithEquipment = await _context.EmployeeEquipment
+                .AsNoTracking()
                 .Where(e => request.RequiredEquipmentIds.Contains(e.EquipmentId) && e.IsAvailable)
                 .Select(e => e.EmployeeId)
                 .Distinct()
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             employees = employees.Where(e => employeesWithEquipment.Contains(e.Id)).ToList();
         }
 
         var slots = new List<TimeSlotDto>();
+
+        // Batch-load all meetings and soft-reserves for every employee at once
+        // to avoid N+1 queries (2 DB calls instead of 2*N).
+        var employeeIds = employees.Select(e => e.Id).ToList();
+        var datePlusOne = date.AddDays(1);
+
+        var allMeetings = await _context.ServiceMeets
+            .AsNoTracking()
+            .Where(m => employeeIds.Contains(m.AssignedEmployeeId)
+                        && m.ScheduledStart >= date
+                        && m.ScheduledStart < datePlusOne
+                        && m.Status != MeetStatus.Cancelled
+                        && m.Status != MeetStatus.NoShow)
+            .Select(m => new { m.AssignedEmployeeId, m.ScheduledStart, m.ScheduledEnd })
+            .ToListAsync(cancellationToken);
+
+        var allSoftReserves = await _context.SoftReserves
+            .AsNoTracking()
+            .Where(s => employeeIds.Contains(s.EmployeeId)
+                        && s.ScheduledStart >= date
+                        && s.ScheduledStart < datePlusOne
+                        && s.Status == SoftReserveStatus.Active
+                        && s.ExpiresAt > DateTime.UtcNow)
+            .Select(s => new { s.EmployeeId, s.ScheduledStart, s.ScheduledEnd })
+            .ToListAsync(cancellationToken);
+
+        // Build lookups keyed by employee ID for O(1) access inside the loop
+        var meetingsByEmployee = allMeetings.ToLookup(m => m.AssignedEmployeeId);
+        var softReservesByEmployee = allSoftReserves.ToLookup(s => s.EmployeeId);
 
         foreach (var employee in employees)
         {
@@ -289,26 +333,11 @@ public class BookingController : ControllerBase
 
             if (hasTimeOff) continue;
 
-            // Get existing meetings for that day
-            var existingMeetings = await _context.ServiceMeets
-                .Where(m => m.AssignedEmployeeId == employee.Id)
-                .Where(m => m.ScheduledStart.Date == date)
-                .Where(m => m.Status != MeetStatus.Cancelled && m.Status != MeetStatus.NoShow)
-                .Select(m => new { m.ScheduledStart, m.ScheduledEnd })
-                .ToListAsync();
-
-            // Get active soft reserves
-            var activeSoftReserves = await _context.SoftReserves
-                .Where(s => s.EmployeeId == employee.Id)
-                .Where(s => s.ScheduledStart.Date == date)
-                .Where(s => s.Status == SoftReserveStatus.Active && s.ExpiresAt > DateTime.UtcNow)
-                .Select(s => new { s.ScheduledStart, s.ScheduledEnd })
-                .ToListAsync();
-
-            // Combine occupancy
-            var occupied = existingMeetings
-                .Concat(activeSoftReserves)
-                .Select(o => (Start: o.ScheduledStart, End: o.ScheduledEnd))
+            // Combine occupancy from pre-loaded lookups (no additional DB queries)
+            var occupied = meetingsByEmployee[employee.Id]
+                .Select(m => (Start: m.ScheduledStart, End: m.ScheduledEnd))
+                .Concat(softReservesByEmployee[employee.Id]
+                    .Select(s => (Start: s.ScheduledStart, End: s.ScheduledEnd)))
                 .ToList();
 
             // Generate slots every 30 minutes (accounting for buffer between services)
@@ -372,12 +401,13 @@ public class BookingController : ControllerBase
     /// Uses SlotOccupancy with UNIQUE constraint for DB-level anti-collision.
     /// </summary>
     [HttpPost("soft-reserve")]
-    public async Task<ActionResult<SoftReserveResponse>> CreateSoftReserve(CreateSoftReserveRequest request)
+    [EnableRateLimiting("booking")]
+    public async Task<ActionResult<SoftReserveResponse>> CreateSoftReserve(CreateSoftReserveRequest request, CancellationToken cancellationToken = default)
     {
         // Get ServiceAreaId from ZipCode
         var serviceAreaZip = await _context.ServiceAreaZips
             .Include(z => z.ServiceArea)
-            .FirstOrDefaultAsync(z => z.ZipCode == request.ZipCode && z.ServiceArea.IsActive);
+            .FirstOrDefaultAsync(z => z.ZipCode == request.ZipCode && z.ServiceArea.IsActive, cancellationToken);
 
         if (serviceAreaZip == null)
         {
@@ -395,10 +425,10 @@ public class BookingController : ControllerBase
         // 1. Verify employee has a work schedule for that day
         var dayOfWeek = request.Date.DayOfWeek;
         var schedule = await _context.EmployeeSchedules
-            .FirstOrDefaultAsync(s => 
+            .FirstOrDefaultAsync(s =>
                 s.EmployeeId == request.EmployeeId &&
                 s.DayOfWeek == dayOfWeek &&
-                s.IsAvailable);
+                s.IsAvailable, cancellationToken);
 
         if (schedule == null)
         {
@@ -411,18 +441,18 @@ public class BookingController : ControllerBase
             return BadRequest(new { message = "Time is outside the employee's work shift." });
         }
 
-        // 2. Check conflicts using centralized service (TimeOffs and other Bookings)
-        var conflict = await _schedulingService.CheckConflictsAsync(request.EmployeeId, startDateTime, endDateTime);
-        if (conflict != null)
-        {
-            _logger.LogWarning("Conflict detected creating SoftReserve: {Message}", conflict.Message);
-            return Conflict(new { message = conflict.Message, details = conflict.Details });
-        }
-
-        using var transaction = await _context.Database.BeginTransactionAsync();
+        using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
 
         try
         {
+            // 2. Check conflicts inside the transaction to prevent race conditions
+            var conflict = await _schedulingService.CheckConflictsAsync(request.EmployeeId, startDateTime, endDateTime, cancellationToken: cancellationToken);
+            if (conflict != null)
+            {
+                _logger.LogWarning("Conflict detected creating SoftReserve: {Message}", conflict.Message);
+                return Conflict(new { message = conflict.Message, details = conflict.Details });
+            }
+
             // Create soft reserve first to get the ID
             var softReserve = new SoftReserve
             {
@@ -437,20 +467,21 @@ public class BookingController : ControllerBase
             };
 
             _context.SoftReserves.Add(softReserve);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
 
             // Insert SlotOccupancy rows using the service
             // UNIQUE constraint on (EmployeeId, SlotStart) prevents double-booking
             await _schedulingService.AcquireSlotsAsync(
-                request.EmployeeId, 
-                startDateTime, 
-                endDateTime, 
-                OccupancyType.SoftReserve, 
-                softReserve.Id, 
-                expiresAt);
+                request.EmployeeId,
+                startDateTime,
+                endDateTime,
+                OccupancyType.SoftReserve,
+                softReserve.Id,
+                expiresAt,
+                cancellationToken);
 
             // Commit transaction
-            await transaction.CommitAsync();
+            await transaction.CommitAsync(cancellationToken);
 
             _logger.LogInformation(
                 "SoftReserve {SoftReserveId} created for employee {EmployeeId}",
@@ -487,10 +518,10 @@ public class BookingController : ControllerBase
     /// Cancels a soft reserve manually
     /// </summary>
     [HttpDelete("soft-reserve/{id}")]
-    public async Task<IActionResult> CancelSoftReserve(int id, [FromQuery] string sessionId)
+    public async Task<IActionResult> CancelSoftReserve(int id, [FromQuery] string sessionId, CancellationToken cancellationToken = default)
     {
         var softReserve = await _context.SoftReserves
-            .FirstOrDefaultAsync(s => s.Id == id && s.SessionId == sessionId);
+            .FirstOrDefaultAsync(s => s.Id == id && s.SessionId == sessionId, cancellationToken);
 
         if (softReserve == null)
             return NotFound();
@@ -499,7 +530,10 @@ public class BookingController : ControllerBase
             return BadRequest(new { message = "This reservation has already been processed or expired. Please select a new time." });
 
         softReserve.Status = SoftReserveStatus.Cancelled;
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
+
+        // Release slot occupancies so the time slot becomes available immediately
+        await _schedulingService.ReleaseSlotsAsync(softReserve.Id, OccupancyType.SoftReserve, cancellationToken);
 
         return NoContent();
     }
@@ -508,10 +542,10 @@ public class BookingController : ControllerBase
     /// Extends the time of a soft reserve
     /// </summary>
     [HttpPost("soft-reserve/{id}/extend")]
-    public async Task<ActionResult<SoftReserveResponse>> ExtendSoftReserve(int id, [FromQuery] string sessionId)
+    public async Task<ActionResult<SoftReserveResponse>> ExtendSoftReserve(int id, [FromQuery] string sessionId, CancellationToken cancellationToken = default)
     {
         var softReserve = await _context.SoftReserves
-            .FirstOrDefaultAsync(s => s.Id == id && s.SessionId == sessionId);
+            .FirstOrDefaultAsync(s => s.Id == id && s.SessionId == sessionId, cancellationToken);
 
         if (softReserve == null)
             return NotFound();
@@ -534,13 +568,13 @@ public class BookingController : ControllerBase
         // Also extend the SlotOccupancy expiry to match
         var slotsToExtend = await _context.SlotOccupancies
             .Where(s => s.OccupancyType == OccupancyType.SoftReserve && s.ReferenceId == softReserve.Id)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
         foreach (var slot in slotsToExtend)
         {
             slot.ExpiresAt = newExpiry;
         }
 
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
 
         return Ok(new SoftReserveResponse
         {
@@ -562,20 +596,62 @@ public class BookingController : ControllerBase
     /// Confirms the booking: validates reserve, creates order + meeting, converts slots.
     /// </summary>
     [HttpPost("confirm")]
-    public async Task<ActionResult<BookingConfirmationResponse>> ConfirmBooking(ConfirmBookingRequest request)
+    [EnableRateLimiting("booking")]
+    public async Task<ActionResult<BookingConfirmationResponse>> ConfirmBooking(ConfirmBookingRequest request, CancellationToken cancellationToken = default)
     {
         var validationError = await _confirmBookingValidator.ValidateAndReturnErrors(request);
         if (validationError != null) return validationError;
 
-        using var transaction = await _context.Database.BeginTransactionAsync();
+        using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
 
         try
         {
+            // Security: never trust the CustomerId coming from the request body —
+            // authenticated users are identified by their JWT cookie, guests are
+            // resolved server-side from the contact email.
+            var authenticatedCustomerId = User.Identity?.IsAuthenticated == true
+                ? User.FindFirstValue(ClaimTypes.NameIdentifier)
+                : null;
+
+            if (!string.IsNullOrEmpty(request.CustomerId) && request.CustomerId != authenticatedCustomerId)
+            {
+                _logger.LogWarning(
+                    "Booking confirm rejected CustomerId mismatch: bodyCustomerId={BodyCustomerId} tokenCustomerId={TokenCustomerId}",
+                    request.CustomerId,
+                    authenticatedCustomerId ?? "<anonymous>");
+                return Forbid();
+            }
+
+            // Email-first guardrail: if the contact email already belongs to an
+            // account with a password and the request is anonymous, refuse to
+            // silently bind the order to that account. The client must redirect
+            // the user to log in first. (Drupal Commerce / Baymard 2026 pattern.)
+            if (authenticatedCustomerId == null && !string.IsNullOrEmpty(request.ContactEmail))
+            {
+                var existing = await _context.Users
+                    .AsNoTracking()
+                    .Where(u => u.Email == request.ContactEmail)
+                    .Select(u => new { u.PasswordHash })
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (existing != null && !string.IsNullOrEmpty(existing.PasswordHash))
+                {
+                    _logger.LogInformation(
+                        "Booking confirm requires login for existing account: {Email}",
+                        request.ContactEmail);
+                    return Conflict(new
+                    {
+                        code = "login_required",
+                        message = "An account with this email already exists. Please sign in to continue."
+                    });
+                }
+            }
+
             var result = await _bookingService.ConfirmBookingAsync(new ConfirmBookingInput
             {
                 SoftReserveId = request.SoftReserveId,
                 SessionId = request.SessionId,
-                CustomerId = request.CustomerId,
+                CustomerId = authenticatedCustomerId,
                 ZipCode = request.ZipCode,
                 Address = request.Address,
                 AddressLine2 = request.AddressLine2,
@@ -590,6 +666,7 @@ public class BookingController : ControllerBase
                 HasPets = request.HasPets,
                 FloorLevel = request.FloorLevel,
                 HasElevator = request.HasElevator,
+                IsFirstTime = request.IsFirstTime,
                 AdditionalServiceIds = request.AdditionalServiceIds,
                 Rooms = request.Rooms?.Select(r => new RoomPricingItem(r.RoomId, r.Quantity)).ToList(),
                 Total = request.Total,
@@ -600,7 +677,7 @@ public class BookingController : ControllerBase
                 ContactEmail = request.ContactEmail,
                 Password = request.Password,
                 SpecialInstructions = request.SpecialInstructions
-            });
+            }, cancellationToken);
 
             if (!result.Success)
             {
@@ -609,38 +686,60 @@ public class BookingController : ControllerBase
                 return BadRequest(new { message = result.Error });
             }
 
-            await transaction.CommitAsync();
+            await transaction.CommitAsync(cancellationToken);
+
+            // Set auth cookies for newly created users during booking
+            if (result.AuthToken != null)
+                SetAuthCookies(result.AuthToken.AccessToken, result.AuthToken.RefreshToken, result.AuthToken.ExpiresAt);
 
             // Send confirmation email (fire-and-forget)
             if (!string.IsNullOrEmpty(request.ContactEmail))
             {
-                var serviceType = await _context.ServiceTypes.FindAsync(request.ServiceTypeId);
-                var softReserve = await _context.SoftReserves
-                    .FirstOrDefaultAsync(s => s.Id == request.SoftReserveId);
-                var employee = softReserve != null
-                    ? await _context.Employees.FindAsync(softReserve.EmployeeId)
-                    : null;
+                // Capture only value types and immutable data — no scoped service references
+                var capturedEmail = request.ContactEmail;
+                var capturedContactName = request.ContactName;
+                var capturedAddress = $"{request.Address}, {request.City}, {request.State} {request.ZipCode}";
+                var capturedScheduledStart = result.ScheduledStart;
+                var capturedScheduledEnd = result.ScheduledEnd;
+                var capturedTotal = result.Total;
+                var capturedOrderId = result.OrderId;
+                var capturedServiceTypeId = request.ServiceTypeId;
+                var capturedSoftReserveId = request.SoftReserveId;
+                var scopeFactory = HttpContext.RequestServices.GetRequiredService<IServiceScopeFactory>();
 
                 _ = Task.Run(async () =>
                 {
+                    // Create a dedicated scope so all resolved services have valid lifetimes
+                    await using var scope = scopeFactory.CreateAsyncScope();
+                    var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+                    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
                     try
                     {
-                        await _emailService.SendBookingConfirmationAsync(
-                            request.ContactEmail,
+                        var serviceType = await db.ServiceTypes.FindAsync(capturedServiceTypeId);
+                        var softReserve = await db.SoftReserves
+                            .FirstOrDefaultAsync(s => s.Id == capturedSoftReserveId);
+                        var employee = softReserve != null
+                            ? await db.Employees.FindAsync(softReserve.EmployeeId)
+                            : null;
+
+                        await emailService.SendBookingConfirmationAsync(
+                            capturedEmail,
                             new BookingConfirmationEmail(
-                                CustomerName: request.ContactName ?? "Valued Customer",
+                                CustomerName: capturedContactName ?? "Valued Customer",
                                 ServiceType: serviceType?.Name ?? "Cleaning Service",
-                                ScheduledDate: result.ScheduledStart.Date,
-                                ScheduledTime: result.ScheduledStart.ToString("h:mm tt"),
-                                Address: $"{request.Address}, {request.City}, {request.State} {request.ZipCode}",
-                                TotalAmount: result.Total,
+                                ScheduledDate: capturedScheduledStart.Date,
+                                ScheduledTime: capturedScheduledStart.ToString("h:mm tt"),
+                                Address: capturedAddress,
+                                TotalAmount: capturedTotal,
                                 EmployeeName: employee != null ? $"{employee.FirstName} {employee.LastName}" : "Our professional cleaner",
-                                EstimatedDuration: (int)(result.ScheduledEnd - result.ScheduledStart).TotalMinutes
+                                EstimatedDuration: (int)(capturedScheduledEnd - capturedScheduledStart).TotalMinutes
                             ));
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Failed to send confirmation email for Order {OrderId}", result.OrderId);
+                        var logger = scope.ServiceProvider.GetRequiredService<ILogger<BookingController>>();
+                        logger.LogError(ex, "Failed to send confirmation email for Order {OrderId}", capturedOrderId);
                     }
                 });
             }
@@ -657,8 +756,6 @@ public class BookingController : ControllerBase
                 Message = result.Message,
                 AuthToken = result.AuthToken != null ? new AuthTokenDto
                 {
-                    AccessToken = result.AuthToken.AccessToken,
-                    RefreshToken = result.AuthToken.RefreshToken,
                     ExpiresAt = result.AuthToken.ExpiresAt,
                     IsNewUser = result.AuthToken.IsNewUser
                 } : null,
@@ -676,6 +773,29 @@ public class BookingController : ControllerBase
 
     #region Helpers
 
+    private void SetAuthCookies(string accessToken, string refreshToken, DateTime expiresAt)
+    {
+        var isProduction = _env.IsProduction();
+        _antiforgery.GetAndStoreTokens(HttpContext);
+        Response.Cookies.Append("accessToken", accessToken, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = isProduction,
+            SameSite = isProduction ? SameSiteMode.Strict : SameSiteMode.Lax,
+            Expires = new DateTimeOffset(expiresAt),
+            IsEssential = true,
+            Path = "/api"
+        });
+        Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = isProduction,
+            SameSite = isProduction ? SameSiteMode.Strict : SameSiteMode.Lax,
+            Expires = DateTimeOffset.UtcNow.AddDays(7),
+            IsEssential = true,
+            Path = "/api/auth"
+        });
+    }
 
     /// <summary>
     /// Checks if an exception is a UNIQUE constraint violation

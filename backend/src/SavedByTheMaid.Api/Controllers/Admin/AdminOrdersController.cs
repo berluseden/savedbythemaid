@@ -36,14 +36,19 @@ public class AdminOrdersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<OrderSummaryDto>>> GetAll(
+    [ProducesResponseType(typeof(PagedResult<OrderSummaryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PagedResult<OrderSummaryDto>>> GetAll(
         [FromQuery] OrderStatus? status = null,
         [FromQuery] DateTime? from = null,
         [FromQuery] DateTime? to = null,
         [FromQuery] int? serviceAreaId = null,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20)
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
     {
+        pageSize = Math.Clamp(pageSize, 1, 100);
         _logger.LogInformation("Querying orders - Status: {Status}, From: {From}, To: {To}, Page: {Page}",
             status, from, to, page);
             
@@ -62,7 +67,9 @@ public class AdminOrdersController : ControllerBase
         if (serviceAreaId.HasValue)
             query = query.Where(o => o.ServiceAreaId == serviceAreaId.Value);
 
-        return await query
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
             .AsNoTracking()
             .OrderByDescending(o => o.CreatedAt)
             .Skip((page - 1) * pageSize)
@@ -87,30 +94,109 @@ public class AdminOrdersController : ControllerBase
                     .Select(m => (DateTime?)m.ScheduledStart)
                     .FirstOrDefault()
             })
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<OrderSummaryDto>(items, totalCount, page, pageSize);
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<ServiceOrder>> GetById(int id)
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> GetById(int id, CancellationToken cancellationToken = default)
     {
         var order = await _context.ServiceOrders
             .AsNoTracking()
-            .Include(o => o.Customer)
-            .Include(o => o.ServiceArea)
-            .Include(o => o.ServiceType)
-            .Include(o => o.CleaningPlace)
-            .Include(o => o.Items).ThenInclude(i => i.AdditionalServiceType)
-            .Include(o => o.Rooms).ThenInclude(r => r.CleaningPlaceRoom)
-            .Include(o => o.Meetings).ThenInclude(m => m.AssignedEmployee)
-            .FirstOrDefaultAsync(o => o.Id == id && !o.IsDeleted);
+            .Where(o => o.Id == id && !o.IsDeleted)
+            .Select(o => new
+            {
+                o.Id,
+                ConfirmationNumber = $"SBM-{o.Id:D6}",
+                o.ContactName,
+                o.ContactPhone,
+                o.Address,
+                o.City,
+                o.State,
+                o.ZipCode,
+                o.SpecialInstructions,
+                o.OrderStatus,
+                o.RecurrenceType,
+                o.EstimatedDurationMinutes,
+                o.Subtotal,
+                o.Discount,
+                o.Tax,
+                o.Total,
+                o.CreatedAt,
+                o.IsDeleted,
+                Customer = o.Customer == null ? null : new
+                {
+                    o.Customer.Id,
+                    o.Customer.Email,
+                    o.Customer.FirstName,
+                    o.Customer.LastName,
+                    o.Customer.PhoneNumber,
+                    o.Customer.IsActive,
+                    o.Customer.EmailConfirmed,
+                    o.Customer.CreatedAt
+                    // PasswordHash, SecurityStamp, ConcurrencyStamp intentionally excluded
+                },
+                ServiceArea = o.ServiceArea == null ? null : new { o.ServiceArea.Id, o.ServiceArea.Name },
+                ServiceType = o.ServiceType == null ? null : new { o.ServiceType.Id, o.ServiceType.Name },
+                CleaningPlace = o.CleaningPlace == null ? null : new { o.CleaningPlace.Id, o.CleaningPlace.Name },
+                Items = o.Items.Select(i => new
+                {
+                    i.Id,
+                    i.Quantity,
+                    i.UnitPrice,
+                    i.Total,
+                    AdditionalServiceType = i.AdditionalServiceType == null ? null : new
+                    {
+                        i.AdditionalServiceType.Id,
+                        i.AdditionalServiceType.Title
+                    }
+                }).ToList(),
+                Rooms = o.Rooms.Select(r => new
+                {
+                    r.Id,
+                    r.Quantity,
+                    r.CalculatedPrice,
+                    CleaningPlaceRoom = r.CleaningPlaceRoom == null ? null : new
+                    {
+                        r.CleaningPlaceRoom.Id,
+                        r.CleaningPlaceRoom.Name
+                    }
+                }).ToList(),
+                Meetings = o.Meetings.Select(m => new
+                {
+                    m.Id,
+                    m.ScheduledStart,
+                    m.ScheduledEnd,
+                    m.ActualStart,
+                    m.ActualEnd,
+                    m.Status,
+                    m.EstimatedDurationMinutes,
+                    m.Notes,
+                    m.AdjustmentStatus,
+                    m.AdjustmentAmount,
+                    AssignedEmployee = m.AssignedEmployee == null ? null : new
+                    {
+                        m.AssignedEmployee.Id,
+                        m.AssignedEmployee.FirstName,
+                        m.AssignedEmployee.LastName
+                    }
+                }).ToList()
+            })
+            .FirstOrDefaultAsync(cancellationToken);
 
-        return order == null ? NotFound() : order;
+        return order == null ? NotFound() : Ok(order);
     }
 
     [HttpPut("{id}/status")]
-    public async Task<IActionResult> UpdateStatus(int id, UpdateOrderStatusRequest request)
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateStatus(int id, UpdateOrderStatusRequest request, CancellationToken cancellationToken = default)
     {
-        var order = await _context.ServiceOrders.FindAsync(id);
+        var order = await _context.ServiceOrders.FindAsync(new object[] { id }, cancellationToken);
         if (order == null || order.IsDeleted) return NotFound();
 
         // Validate allowed OrderStatus transitions
@@ -128,7 +214,7 @@ public class AdminOrdersController : ControllerBase
             id, currentStatus, newStatus);
 
         order.OrderStatus = newStatus;
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
 
         // Record audit trail
         var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -138,19 +224,30 @@ public class AdminOrdersController : ControllerBase
         return NoContent();
     }
 
+    // POST is intentional here — cancel is a non-idempotent state transition that may trigger
+    // side-effects (notifications, refunds). Using DELETE would imply hard-deletion.
     [HttpPost("{id}/cancel")]
-    public async Task<IActionResult> CancelOrder(int id, [FromBody] CancelOrderRequest? request = null)
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CancelOrder(
+        int id,
+        [FromBody] CancelOrderRequest? request = null,
+        CancellationToken cancellationToken = default)
     {
         var adminId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         var reason = request?.Reason ?? "Order cancelled by admin";
+
+        var previousStatus = await _context.ServiceOrders
+            .Where(o => o.Id == id && !o.IsDeleted)
+            .Select(o => (OrderStatus?)o.OrderStatus)
+            .FirstOrDefaultAsync(cancellationToken);
 
         var (success, error) = await _orderCancellationService.CancelOrderAsync(id, reason, adminId);
         if (!success)
             return NotFound(new { message = error });
 
-        // Record audit trail for cancellation
         await _statusHistoryService.RecordOrderStatusChangeAsync(
-            id, OrderStatus.Cancelled, OrderStatus.Cancelled, adminId,
+            id, previousStatus, OrderStatus.Cancelled, adminId,
             reasonCode: "ADMIN_CANCEL", notes: reason);
 
         return NoContent();
@@ -158,6 +255,7 @@ public class AdminOrdersController : ControllerBase
 
     // Meetings (Appointments)
     [HttpGet("meetings")]
+    [ProducesResponseType(typeof(IEnumerable<MeetingSummaryDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<MeetingSummaryDto>>> GetMeetings(
         [FromQuery] DateTime? date = null,
         [FromQuery] int? employeeId = null,
@@ -165,8 +263,10 @@ public class AdminOrdersController : ControllerBase
         [FromQuery] MeetStatus? status = null,
         [FromQuery] int? orderId = null,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 50)
+        [FromQuery] int pageSize = 50,
+        CancellationToken cancellationToken = default)
     {
+        pageSize = Math.Clamp(pageSize, 1, 100);
         var query = _context.ServiceMeets
             .Where(m => !m.IsDeleted);
 
@@ -215,27 +315,70 @@ public class AdminOrdersController : ControllerBase
                 AdjustmentStatus = m.AdjustmentStatus,
                 AdjustmentAmount = m.AdjustmentAmount
             })
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
     }
 
     [HttpGet("meetings/{id}")]
-    public async Task<ActionResult<ServiceMeet>> GetMeetingById(int id)
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> GetMeetingById(int id, CancellationToken cancellationToken = default)
     {
         var meet = await _context.ServiceMeets
             .AsNoTracking()
-            .Include(m => m.ServiceOrder)
-                .ThenInclude(o => o!.Items)
-            .Include(m => m.AssignedEmployee)
-            .Include(m => m.ServiceArea)
-            .FirstOrDefaultAsync(m => m.Id == id && !m.IsDeleted);
+            .Where(m => m.Id == id && !m.IsDeleted)
+            .Select(m => new
+            {
+                m.Id,
+                m.ServiceOrderId,
+                ConfirmationNumber = $"SBM-{m.ServiceOrderId:D6}",
+                m.ScheduledStart,
+                m.ScheduledEnd,
+                m.ActualStart,
+                m.ActualEnd,
+                m.Status,
+                m.EstimatedDurationMinutes,
+                m.Notes,
+                m.AdjustmentStatus,
+                m.AdjustmentAmount,
+                m.AdjustmentReason,
+                ServiceArea = m.ServiceArea == null ? null : new { m.ServiceArea.Id, m.ServiceArea.Name },
+                AssignedEmployee = m.AssignedEmployee == null ? null : new
+                {
+                    m.AssignedEmployee.Id,
+                    m.AssignedEmployee.FirstName,
+                    m.AssignedEmployee.LastName
+                },
+                ServiceOrder = m.ServiceOrder == null ? null : new
+                {
+                    m.ServiceOrder.Id,
+                    m.ServiceOrder.ContactName,
+                    m.ServiceOrder.ContactPhone,
+                    m.ServiceOrder.Address,
+                    m.ServiceOrder.City,
+                    m.ServiceOrder.ZipCode,
+                    m.ServiceOrder.OrderStatus,
+                    m.ServiceOrder.Total,
+                    Items = m.ServiceOrder.Items.Select(i => new
+                    {
+                        i.Id,
+                        i.Quantity,
+                        i.UnitPrice,
+                        i.Total
+                    }).ToList()
+                }
+            })
+            .FirstOrDefaultAsync(cancellationToken);
 
-        return meet == null ? NotFound() : meet;
+        return meet == null ? NotFound() : Ok(meet);
     }
 
     [HttpPut("meetings/{id}/status")]
-    public async Task<IActionResult> UpdateMeetingStatus(int id, UpdateMeetingStatusRequest request)
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateMeetingStatus(int id, UpdateMeetingStatusRequest request, CancellationToken cancellationToken = default)
     {
-        var meet = await _context.ServiceMeets.FindAsync(id);
+        var meet = await _context.ServiceMeets.FindAsync(new object[] { id }, cancellationToken);
         if (meet == null || meet.IsDeleted) return NotFound();
 
         var previousStatus = meet.Status;
@@ -258,7 +401,7 @@ public class AdminOrdersController : ControllerBase
         if (!string.IsNullOrEmpty(request.Notes))
             meet.Notes = request.Notes;
 
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
 
         // Record audit trail
         var adminId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -269,12 +412,16 @@ public class AdminOrdersController : ControllerBase
     }
 
     [HttpPut("meetings/{id}/assign")]
-    public async Task<IActionResult> AssignEmployee(int id, AssignEmployeeRequest request)
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> AssignEmployee(int id, AssignEmployeeRequest request, CancellationToken cancellationToken = default)
     {
-        var meet = await _context.ServiceMeets.FindAsync(id);
+        var meet = await _context.ServiceMeets.FindAsync(new object[] { id }, cancellationToken);
         if (meet == null || meet.IsDeleted) return NotFound();
 
-        var employee = await _context.Employees.FindAsync(request.EmployeeId);
+        var employee = await _context.Employees.FindAsync(new object[] { request.EmployeeId }, cancellationToken);
         if (employee == null || !employee.IsActive)
             return BadRequest("Invalid or inactive employee");
 
@@ -286,7 +433,7 @@ public class AdminOrdersController : ControllerBase
             .FirstOrDefaultAsync(s =>
                 s.EmployeeId == request.EmployeeId &&
                 s.DayOfWeek == meetDayOfWeek &&
-                s.IsAvailable && !s.IsDeleted);
+                s.IsAvailable && !s.IsDeleted, cancellationToken);
 
         if (empSchedule == null)
             return BadRequest($"The employee does not work on {meetDayOfWeek}");
@@ -352,8 +499,8 @@ public class AdminOrdersController : ControllerBase
             meet.AssignedEmployeeId = request.EmployeeId;
             meet.Status = MeetStatus.Assigned;
 
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
 
             _logger.LogInformation(
                 "Employee {EmployeeId} successfully assigned to meeting {MeetingId}",
@@ -382,12 +529,16 @@ public class AdminOrdersController : ControllerBase
         }
     }
 
-    [HttpPost("meetings/{id}/reschedule")]
-    public async Task<IActionResult> RescheduleMeeting(int id, RescheduleMeetingRequest request)
+    [HttpPut("meetings/{id}/schedule")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> RescheduleMeeting(int id, RescheduleMeetingRequest request, CancellationToken cancellationToken = default)
     {
         var meet = await _context.ServiceMeets
             .Include(m => m.AssignedEmployee)
-            .FirstOrDefaultAsync(m => m.Id == id && !m.IsDeleted);
+            .FirstOrDefaultAsync(m => m.Id == id && !m.IsDeleted, cancellationToken);
             
         if (meet == null) return NotFound();
 
@@ -459,8 +610,8 @@ public class AdminOrdersController : ControllerBase
                 OccupancyType.Meeting,
                 meet.Id);
 
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
 
             _logger.LogInformation(
                 "Meeting {MeetingId} rescheduled: {OldStart} -> {NewStart}, employee: {OldEmployee} -> {NewEmployee}",
@@ -507,23 +658,27 @@ public class AdminOrdersController : ControllerBase
     }
 
     [HttpPost("meetings/{id}/adjustment")]
-    public async Task<IActionResult> RequestAdjustment(int id, AdjustmentRequest request)
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RequestAdjustment(int id, AdjustmentRequest request, CancellationToken cancellationToken = default)
     {
-        var meet = await _context.ServiceMeets.FindAsync(id);
+        var meet = await _context.ServiceMeets.FindAsync(new object[] { id }, cancellationToken);
         if (meet == null || meet.IsDeleted) return NotFound();
 
         meet.AdjustmentStatus = AdjustmentStatus.PendingReview;
         meet.AdjustmentAmount = request.Amount;
         meet.AdjustmentReason = request.Reason;
 
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
 
     [HttpPut("meetings/{id}/adjustment/approve")]
-    public async Task<IActionResult> ApproveAdjustment(int id, [FromQuery] bool approve = true)
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ApproveAdjustment(int id, [FromQuery] bool approve = true, CancellationToken cancellationToken = default)
     {
-        var meet = await _context.ServiceMeets.FindAsync(id);
+        var meet = await _context.ServiceMeets.FindAsync(new object[] { id }, cancellationToken);
         if (meet == null || meet.IsDeleted) return NotFound();
 
         meet.AdjustmentStatus = approve ? AdjustmentStatus.Approved : AdjustmentStatus.Rejected;
@@ -533,16 +688,18 @@ public class AdminOrdersController : ControllerBase
             meet.AdjustmentAmount = null;
         }
 
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
 
     // Calendar view
     [HttpGet("calendar")]
+    [ProducesResponseType(typeof(IEnumerable<CalendarDayDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<CalendarDayDto>>> GetCalendar(
         [FromQuery] DateTime startDate,
         [FromQuery] DateTime endDate,
-        [FromQuery] int? serviceAreaId = null)
+        [FromQuery] int? serviceAreaId = null,
+        CancellationToken cancellationToken = default)
     {
         var query = _context.ServiceMeets
             .Where(m => !m.IsDeleted)
@@ -556,7 +713,7 @@ public class AdminOrdersController : ControllerBase
             .AsNoTracking()
             .Include(m => m.AssignedEmployee)
             .Include(m => m.ServiceOrder)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         var calendar = meetings
             .GroupBy(m => m.ScheduledStart.Date)
@@ -651,6 +808,11 @@ public record AdjustmentRequest(decimal Amount, string Reason);
 /// <summary>
 /// Scheduling conflict response (HTTP 409)
 /// </summary>
+/// <summary>
+/// Generic paged result wrapper for list endpoints.
+/// </summary>
+public record PagedResult<T>(IEnumerable<T> Items, int TotalCount, int Page, int PageSize);
+
 public record SchedulingConflictResponse
 {
     /// <summary>

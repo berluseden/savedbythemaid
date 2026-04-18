@@ -56,10 +56,12 @@ export function BookingTable({
   return (
     <>
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-4" role="search" aria-label="Filter bookings">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <label htmlFor="bookings-search" className="sr-only">Search bookings</label>
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" aria-hidden="true" />
           <input
+            id="bookings-search"
             type="search"
             placeholder="Search by name, ID or address..."
             value={searchTerm}
@@ -67,40 +69,51 @@ export function BookingTable({
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
           />
         </div>
-        <input
-          type="date"
-          value={filterDate}
-          onChange={(e) => onFilterDateChange(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
-        />
-        <select
-          value={filterStatus}
-          onChange={(e) => onFilterStatusChange(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
-        >
-          <option value="all">All statuses</option>
-          {Object.entries(orderStatusConfig).map(([status, config]) => (
-            <option key={status} value={status}>
-              {config.label}
-            </option>
-          ))}
-        </select>
+        <div>
+          <label htmlFor="bookings-filter-date" className="sr-only">Filter by date</label>
+          <input
+            id="bookings-filter-date"
+            type="date"
+            value={filterDate}
+            onChange={(e) => onFilterDateChange(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+          />
+        </div>
+        <div>
+          <label htmlFor="bookings-filter-status" className="sr-only">Filter by status</label>
+          <select
+            id="bookings-filter-status"
+            value={filterStatus}
+            onChange={(e) => onFilterStatusChange(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+          >
+            <option value="all">All statuses</option>
+            {Object.entries(orderStatusConfig).map(([status, config]) => (
+              <option key={status} value={status}>
+                {config.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
+            <caption className="sr-only">
+              Bookings list — {filteredCount} result{filteredCount === 1 ? '' : 's'}
+            </caption>
             <thead>
               <tr className="text-left text-sm text-gray-500 bg-gray-50 border-b">
-                <th className="px-6 py-3 font-medium">Confirmation</th>
-                <th className="px-6 py-3 font-medium">Customer</th>
-                <th className="px-6 py-3 font-medium">Service</th>
-                <th className="px-6 py-3 font-medium">Date</th>
-                <th className="px-6 py-3 font-medium">Status</th>
-                <th className="px-6 py-3 font-medium">Phone</th>
-                <th className="px-6 py-3 font-medium text-right">Total</th>
-                <th className="px-6 py-3 font-medium text-right">Actions</th>
+                <th scope="col" className="px-6 py-3 font-medium">Confirmation</th>
+                <th scope="col" className="px-6 py-3 font-medium">Customer</th>
+                <th scope="col" className="px-6 py-3 font-medium">Service</th>
+                <th scope="col" className="px-6 py-3 font-medium">Date</th>
+                <th scope="col" className="px-6 py-3 font-medium">Status</th>
+                <th scope="col" className="px-6 py-3 font-medium">Phone</th>
+                <th scope="col" className="px-6 py-3 font-medium text-right">Total</th>
+                <th scope="col" className="px-6 py-3 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -137,46 +150,56 @@ export function BookingTable({
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-1">
                       <button
+                        type="button"
                         onClick={() => onViewBooking(booking)}
                         className="p-2 text-gray-400 hover:text-brand hover:bg-accent-light/10 rounded-lg"
+                        aria-label={`View details for booking ${booking.confirmationNumber}`}
                         title="View details"
                       >
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-4 w-4" aria-hidden="true" />
                       </button>
                       {(booking.orderStatus === 'PendingReview' || booking.orderStatus === 'Draft') && (
                         <>
                           <button
+                            type="button"
                             onClick={() => onUpdateStatus(booking.id, 'Confirmed')}
                             className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg"
+                            aria-label={`Approve and confirm booking ${booking.confirmationNumber}`}
                             title="Approve and Confirm"
                           >
-                            <CheckCircle className="h-4 w-4" />
+                            <CheckCircle className="h-4 w-4" aria-hidden="true" />
                           </button>
                           <button
+                            type="button"
                             onClick={() => onCancelOrder(booking.id)}
                             className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                            aria-label={`Reject booking ${booking.confirmationNumber}`}
                             title="Reject"
                           >
-                            <XCircle className="h-4 w-4" />
+                            <XCircle className="h-4 w-4" aria-hidden="true" />
                           </button>
                         </>
                       )}
                       {booking.orderStatus === 'Confirmed' && (
                         <button
+                          type="button"
                           onClick={() => onUpdateStatus(booking.id, 'InProgress')}
                           className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg"
+                          aria-label={`Start booking ${booking.confirmationNumber}`}
                           title="Start"
                         >
-                          <AlertCircle className="h-4 w-4" />
+                          <AlertCircle className="h-4 w-4" aria-hidden="true" />
                         </button>
                       )}
                       {booking.orderStatus === 'InProgress' && (
                         <button
+                          type="button"
                           onClick={() => onUpdateStatus(booking.id, 'Completed')}
                           className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg"
+                          aria-label={`Mark booking ${booking.confirmationNumber} as complete`}
                           title="Complete"
                         >
-                          <CheckCircle className="h-4 w-4" />
+                          <CheckCircle className="h-4 w-4" aria-hidden="true" />
                         </button>
                       )}
                     </div>
@@ -197,18 +220,22 @@ export function BookingTable({
             </p>
             <div className="flex gap-2">
               <button
+                type="button"
                 onClick={onPrevPage}
                 disabled={!hasPrevPage}
+                aria-label="Previous page"
                 className="p-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
               >
-                <ChevronLeft className="h-5 w-5" />
+                <ChevronLeft className="h-5 w-5" aria-hidden="true" />
               </button>
               <button
+                type="button"
                 onClick={onNextPage}
                 disabled={!hasNextPage}
+                aria-label="Next page"
                 className="p-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
               >
-                <ChevronRight className="h-5 w-5" />
+                <ChevronRight className="h-5 w-5" aria-hidden="true" />
               </button>
             </div>
           </div>

@@ -29,12 +29,7 @@ interface PriceMultiplier {
   isActive: boolean;
 }
 
-interface RecurrenceDiscount {
-  id: number;
-  recurrenceType: number;
-  discountPercent: number;
-  isActive: boolean;
-}
+import type { AdminRecurrenceDiscount } from './pricing/types';
 
 const CONDITION_TYPES = [
   { value: 0, label: 'Square Footage', description: 'Multiplier based on property size (sq ft)' },
@@ -82,7 +77,7 @@ export function AdminPricingPage() {
   });
 
   // Recurrence discounts state
-  const [discounts, setDiscounts] = useState<RecurrenceDiscount[]>([]);
+  const [discounts, setDiscounts] = useState<AdminRecurrenceDiscount[]>([]);
   const [discountForm, setDiscountForm] = useState({
     recurrenceType: 1,
     discountPercent: 0,
@@ -97,7 +92,7 @@ export function AdminPricingPage() {
     try {
       const [multipliersRes, discountsRes] = await Promise.all([
         api.get<PriceMultiplier[]>('/admin/pricemultipliers'),
-        api.get<RecurrenceDiscount[]>('/admin/pricemultipliers/recurrence-discounts'),
+        api.get<AdminRecurrenceDiscount[]>('/admin/pricemultipliers/recurrence-discounts'),
       ]);
       setMultipliers(multipliersRes.data);
       setDiscounts(discountsRes.data);

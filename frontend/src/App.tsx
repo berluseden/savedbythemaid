@@ -13,6 +13,7 @@ const BookingSuccessPage = lazy(() => import('@/pages/BookingSuccessPage'));
 const LoginPage = lazy(() => import('@/pages/LoginPage').then(m => ({ default: m.LoginPage })));
 const RegisterPage = lazy(() => import('@/pages/RegisterPage').then(m => ({ default: m.RegisterPage })));
 const ForgotPasswordPage = lazy(() => import('@/pages/ForgotPasswordPage').then(m => ({ default: m.ForgotPasswordPage })));
+const ResetPasswordPage = lazy(() => import('@/pages/ResetPasswordPage').then(m => ({ default: m.ResetPasswordPage })));
 const UserDashboardPage = lazy(() => import('@/pages/UserDashboardPage').then(m => ({ default: m.UserDashboardPage })));
 const ProfilePage = lazy(() => import('@/pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
 const ServicesPage = lazy(() => import('@/pages/ServicesPage'));
@@ -69,6 +70,7 @@ function App() {
               <Route path="/login" element={<AuthLayout><LoginPage /></AuthLayout>} />
               <Route path="/register" element={<AuthLayout><RegisterPage /></AuthLayout>} />
               <Route path="/forgot-password" element={<AuthLayout><ForgotPasswordPage /></AuthLayout>} />
+              <Route path="/reset-password" element={<AuthLayout><ResetPasswordPage /></AuthLayout>} />
 
               {/* User dashboard (protected) */}
               <Route

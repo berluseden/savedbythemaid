@@ -14,9 +14,11 @@ const spinnerVariants = cva('animate-spin text-brand', {
 
 export interface SpinnerProps extends VariantProps<typeof spinnerVariants> {
   className?: string;
+  /** Accessible label announced by screen readers. */
+  label?: string;
 }
 
-function Spinner({ className, size }: SpinnerProps) {
+function Spinner({ className, size, label = 'Loading' }: SpinnerProps) {
   return (
     <svg
       className={cn(spinnerVariants({ size }), className)}
@@ -24,7 +26,7 @@ function Spinner({ className, size }: SpinnerProps) {
       fill="none"
       viewBox="0 0 24 24"
       role="status"
-      aria-label="Loading"
+      aria-label={label}
     >
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
       <path

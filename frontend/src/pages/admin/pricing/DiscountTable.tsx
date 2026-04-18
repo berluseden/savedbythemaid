@@ -1,7 +1,7 @@
-import { type RecurrenceDiscount, RECURRENCE_TYPES } from './types';
+import { type AdminRecurrenceDiscount, RECURRENCE_TYPES } from './types';
 
 interface DiscountTableProps {
-  discounts: RecurrenceDiscount[];
+  discounts: AdminRecurrenceDiscount[];
 }
 
 export function DiscountTable({ discounts }: DiscountTableProps) {

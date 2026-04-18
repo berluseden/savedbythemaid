@@ -5,6 +5,7 @@ using SavedByTheMaid.Application.Interfaces;
 using SavedByTheMaid.Domain.Common;
 using SavedByTheMaid.Domain.Enums;
 using SavedByTheMaid.Domain.Errors;
+using SavedByTheMaid.Domain.Services;
 
 namespace SavedByTheMaid.Application.Services;
 
@@ -20,37 +21,6 @@ public class OrderManagementService : IOrderManagementService
     private readonly IOrderCancellationServiceAdapter _cancellationService;
     private readonly IStatusHistoryServiceAdapter _statusHistoryService;
     private readonly ILogger<OrderManagementService> _logger;
-
-    /// <summary>
-    /// Valid order status transitions. Final states (Completed, Cancelled, NoShow) have no outgoing transitions.
-    /// </summary>
-    private static readonly Dictionary<OrderStatus, OrderStatus[]> ValidOrderTransitions = new()
-    {
-        [OrderStatus.PendingReview] = [OrderStatus.Confirmed, OrderStatus.Cancelled],
-#pragma warning disable CS0618
-        [OrderStatus.Draft] = [OrderStatus.Confirmed, OrderStatus.Cancelled],
-#pragma warning restore CS0618
-        [OrderStatus.Confirmed] = [OrderStatus.InProgress, OrderStatus.Cancelled, OrderStatus.NoShow],
-        [OrderStatus.InProgress] = [OrderStatus.Completed, OrderStatus.Cancelled],
-        [OrderStatus.Completed] = [],
-        [OrderStatus.Cancelled] = [],
-        [OrderStatus.NoShow] = []
-    };
-
-    /// <summary>
-    /// Valid meeting status transitions.
-    /// </summary>
-    private static readonly Dictionary<MeetStatus, MeetStatus[]> ValidMeetTransitions = new()
-    {
-        [MeetStatus.Scheduled] = [MeetStatus.Assigned, MeetStatus.Cancelled, MeetStatus.Rescheduled],
-        [MeetStatus.Assigned] = [MeetStatus.OnTheWay, MeetStatus.Cancelled, MeetStatus.Rescheduled, MeetStatus.NoShow],
-        [MeetStatus.OnTheWay] = [MeetStatus.InProgress, MeetStatus.Cancelled, MeetStatus.NoShow],
-        [MeetStatus.InProgress] = [MeetStatus.Completed, MeetStatus.Cancelled],
-        [MeetStatus.Rescheduled] = [MeetStatus.Assigned, MeetStatus.Cancelled, MeetStatus.Scheduled],
-        [MeetStatus.Completed] = [],
-        [MeetStatus.Cancelled] = [],
-        [MeetStatus.NoShow] = []
-    };
 
     public OrderManagementService(
         IApplicationDbContext context,
@@ -113,14 +83,13 @@ public class OrderManagementService : IOrderManagementService
             var currentStatus = order.OrderStatus;
             var newStatus = request.OrderStatus;
 
-            // Validate transition
-            if (!ValidOrderTransitions.TryGetValue(currentStatus, out var allowedTargets) ||
-                !allowedTargets.Contains(newStatus))
+            var transitionResult = OrderStatusTransitions.Validate(currentStatus, newStatus);
+            if (transitionResult.IsFailure)
             {
                 _logger.LogWarning(
                     "Invalid order status transition attempted: {OrderId} from {From} to {To}",
                     orderId, currentStatus, newStatus);
-                return Result.Failure(OrderErrors.InvalidStatusTransition(currentStatus, newStatus));
+                return transitionResult;
             }
 
             _logger.LogInformation(
@@ -161,16 +130,13 @@ public class OrderManagementService : IOrderManagementService
             var previousStatus = meet.Status;
             var newStatus = request.Status;
 
-            // Validate transition
-            if (!ValidMeetTransitions.TryGetValue(previousStatus, out var allowedTargets) ||
-                !allowedTargets.Contains(newStatus))
+            var meetTransitionResult = MeetStatusTransitions.Validate(previousStatus, newStatus);
+            if (meetTransitionResult.IsFailure)
             {
                 _logger.LogWarning(
                     "Invalid meeting status transition attempted: {MeetingId} from {From} to {To}",
                     meetingId, previousStatus, newStatus);
-                return Result.Failure(new Error(
-                    "Meeting.InvalidStatusTransition",
-                    $"Invalid status transition from {previousStatus} to {newStatus}."));
+                return meetTransitionResult;
             }
 
             // Apply side effects based on new status
@@ -338,6 +304,13 @@ public class OrderManagementService : IOrderManagementService
     /// <inheritdoc />
     public async Task<Result> RescheduleOrderAsync(int orderId, RescheduleOrderRequest request, string? rescheduledById = null)
     {
+        if (DateTime.TryParse(request.NewDate, out var earlyCheck) &&
+            TimeSpan.TryParse(request.NewTime, out var earlyTimeCheck) &&
+            earlyCheck.Date.Add(earlyTimeCheck) <= DateTime.UtcNow)
+        {
+            return Result.Failure(new Error("Reschedule.PastDate", "New date must be in the future."));
+        }
+
         try
         {
             // Parse the new date/time from the request
@@ -427,6 +400,7 @@ public class OrderManagementService : IOrderManagementService
 
                 // Update the meeting
                 var oldStart = meet.ScheduledStart;
+                var previousStatus = meet.Status;
                 meet.ScheduledStart = newStart;
                 meet.ScheduledEnd = newEnd;
                 meet.Status = MeetStatus.Rescheduled;
@@ -450,7 +424,7 @@ public class OrderManagementService : IOrderManagementService
                 // Record audit trail
                 await _statusHistoryService.RecordMeetStatusChangeAsync(
                     meet.Id,
-                    MeetStatus.Scheduled,
+                    previousStatus,
                     MeetStatus.Rescheduled,
                     rescheduledById,
                     notes: $"Rescheduled from {oldStart:yyyy-MM-dd HH:mm} to {newStart:yyyy-MM-dd HH:mm}");

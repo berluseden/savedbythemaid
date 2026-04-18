@@ -26,7 +26,8 @@ export function formatDateShort(date: Date | string): string {
   }).format(new Date(date));
 }
 
-export function formatTime(date: Date | string): string {
+export function formatTime(date: Date | string | null | undefined): string {
+  if (!date) return '';
   return new Intl.DateTimeFormat('en-US', {
     hour: 'numeric',
     minute: '2-digit',

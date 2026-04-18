@@ -127,7 +127,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<SlotOccupancy>()
             .HasIndex(so => new { so.EmployeeId, so.SlotStart })
             .IsUnique()
-            .HasFilter("\"IsDeleted\" = false"); // Allows reusing slots from deleted occupancies
+            .HasFilter("`IsDeleted` = 0"); // Allows reusing slots from soft-deleted occupancies (MySQL: booleans stored as TINYINT)
 
         // SlotOccupancy - index for expired entry cleanup
         builder.Entity<SlotOccupancy>()
@@ -239,6 +239,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<RefreshToken>()
             .HasIndex(t => t.UserId);
 
+        // Composite index for the common query: active tokens for a user
+        builder.Entity<RefreshToken>()
+            .HasIndex(t => new { t.UserId, t.Revoked })
+            .HasDatabaseName("IX_RefreshTokens_UserId_Revoked");
+
         builder.Entity<RefreshToken>()
             .HasOne(t => t.User)
             .WithMany()
@@ -293,6 +298,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .WithMany()
             .HasForeignKey(h => h.ChangedById)
             .OnDelete(DeleteBehavior.SetNull);
+
+        // ========== OPTIMISTIC CONCURRENCY ==========
+        // MySql.EntityFrameworkCore does not support rowversion — using ConcurrencyCheck on Version (int).
+        // The [ConcurrencyCheck] attribute on the entity is sufficient; Fluent API call below is explicit documentation.
+        builder.Entity<ServiceOrder>().Property(e => e.Version).IsConcurrencyToken();
+        builder.Entity<ServiceMeet>().Property(e => e.Version).IsConcurrencyToken();
+        builder.Entity<Employee>().Property(e => e.Version).IsConcurrencyToken();
 
         // ========== DECIMAL PRECISION ==========
 

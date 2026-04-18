@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SavedByTheMaid.Api.Auth;
@@ -17,19 +18,19 @@ public interface IBookingService
     /// Calculates price and time estimate for a service configuration.
     /// Used by both Estimate and Confirm endpoints to ensure consistency.
     /// </summary>
-    Task<PricingResult> CalculatePricingAsync(PricingInput input);
+    Task<PricingResult> CalculatePricingAsync(PricingInput input, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Confirms a booking: validates soft reserve, creates user if needed,
     /// creates order + meeting, converts slots, and creates recurring meetings.
     /// </summary>
-    Task<BookingConfirmationResult> ConfirmBookingAsync(ConfirmBookingInput input);
+    Task<BookingConfirmationResult> ConfirmBookingAsync(ConfirmBookingInput input, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Creates recurring meetings with slot acquisition for anti-collision.
     /// </summary>
     Task<int> CreateRecurringMeetingsAsync(ServiceOrder order, ServiceMeet firstMeet,
-        RecurrenceType recurrenceType, DateTime? endDate);
+        RecurrenceType recurrenceType, DateTime? endDate, CancellationToken cancellationToken = default);
 }
 
 #region Service Input/Output Models
@@ -81,6 +82,7 @@ public record ConfirmBookingInput
     public bool HasPets { get; init; }
     public int? FloorLevel { get; init; }
     public bool HasElevator { get; init; } = true;
+    public bool IsFirstTime { get; init; }
     public List<int>? AdditionalServiceIds { get; init; }
     public List<RoomPricingItem>? Rooms { get; init; }
     public decimal Total { get; init; }
@@ -144,9 +146,9 @@ public class BookingService : IBookingService
         _schedulingService = schedulingService;
     }
 
-    public async Task<PricingResult> CalculatePricingAsync(PricingInput input)
+    public async Task<PricingResult> CalculatePricingAsync(PricingInput input, CancellationToken cancellationToken = default)
     {
-        var serviceType = await _context.ServiceTypes.FindAsync(input.ServiceTypeId);
+        var serviceType = await _context.ServiceTypes.FindAsync(new object[] { input.ServiceTypeId }, cancellationToken);
         if (serviceType == null)
             return new PricingResult { Success = false, Error = "Invalid service type" };
 
@@ -157,10 +159,16 @@ public class BookingService : IBookingService
         // Room-based pricing (consistent between estimate and confirm)
         if (input.Rooms?.Any() == true)
         {
+            // Batch-load all room types in a single query to avoid N+1
+            var roomIds = input.Rooms.Select(r => r.RoomId).ToList();
+            var roomTypes = await _context.CleaningPlaceRooms
+                .AsNoTracking()
+                .Where(r => roomIds.Contains(r.Id))
+                .ToDictionaryAsync(r => r.Id, cancellationToken);
+
             foreach (var room in input.Rooms)
             {
-                var roomType = await _context.CleaningPlaceRooms.FindAsync(room.RoomId);
-                if (roomType != null)
+                if (roomTypes.TryGetValue(room.RoomId, out var roomType))
                 {
                     totalMinutes += roomType.BaseMinutes * room.Quantity;
                     subtotal += roomType.BasePrice * room.Quantity;
@@ -187,7 +195,7 @@ public class BookingService : IBookingService
         {
             var additionals = await _context.AdditionalServiceTypes
                 .Where(a => input.AdditionalServiceIds.Contains(a.Id))
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             subtotal += additionals.Sum(a => a.Price);
             totalMinutes += additionals.Sum(a => a.AdditionalMinutes);
@@ -197,7 +205,7 @@ public class BookingService : IBookingService
         var multipliers = await _context.PriceMultipliers
             .Where(m => m.IsActive)
             .Where(m => m.ServiceTypeId == null || m.ServiceTypeId == input.ServiceTypeId)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         decimal timeFactor = 1.0m;
         decimal priceFactor = 1.0m;
@@ -232,7 +240,7 @@ public class BookingService : IBookingService
         if (input.RecurrenceType != RecurrenceType.None)
         {
             var recurrenceDiscount = await _context.RecurrenceDiscounts
-                .FirstOrDefaultAsync(d => d.RecurrenceType == input.RecurrenceType && d.IsActive);
+                .FirstOrDefaultAsync(d => d.RecurrenceType == input.RecurrenceType && d.IsActive, cancellationToken);
             if (recurrenceDiscount != null)
             {
                 discount = subtotal * recurrenceDiscount.DiscountPercent;
@@ -252,11 +260,11 @@ public class BookingService : IBookingService
         };
     }
 
-    public async Task<BookingConfirmationResult> ConfirmBookingAsync(ConfirmBookingInput input)
+    public async Task<BookingConfirmationResult> ConfirmBookingAsync(ConfirmBookingInput input, CancellationToken cancellationToken = default)
     {
         // Validate soft reserve
         var softReserve = await _context.SoftReserves
-            .FirstOrDefaultAsync(s => s.Id == input.SoftReserveId && s.SessionId == input.SessionId);
+            .FirstOrDefaultAsync(s => s.Id == input.SoftReserveId && s.SessionId == input.SessionId, cancellationToken);
 
         if (softReserve == null)
             return new BookingConfirmationResult { Success = false, IsNotFound = true, Error = "Your time slot reservation was not found. Please go back and select a new time." };
@@ -267,9 +275,16 @@ public class BookingService : IBookingService
         if (softReserve.ExpiresAt <= DateTime.UtcNow)
         {
             softReserve.Status = SoftReserveStatus.Expired;
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken); // persist expiry before returning early — outside main transaction
             return new BookingConfirmationResult { Success = false, IsExpired = true, Error = "Your time slot has expired. Please go back and select a new time." };
         }
+
+        // Begin a single atomic transaction for all booking-related writes.
+        // If any step fails, the entire booking is rolled back to prevent partial data.
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
 
         // Recalculate pricing server-side (anti-fraud)
         _logger.LogInformation("Recalculating pricing for confirmation - SoftReserve {SoftReserveId}", input.SoftReserveId);
@@ -285,8 +300,9 @@ public class BookingService : IBookingService
             DirtLevel = input.DirtLevel,
             HasPets = input.HasPets,
             HasElevator = input.HasElevator,
+            IsFirstTime = input.IsFirstTime,
             RecurrenceType = input.RecurrenceType
-        });
+        }, cancellationToken);
 
         if (!pricing.Success)
             return new BookingConfirmationResult { Success = false, Error = pricing.Error };
@@ -299,7 +315,7 @@ public class BookingService : IBookingService
         }
 
         // Create or find user
-        var (customerId, authToken, isNewUser, isGuest) = await ResolveCustomerAsync(input);
+        var (customerId, authToken, isNewUser, isGuest) = await ResolveCustomerAsync(input, cancellationToken);
 
         // Create order
         var order = new ServiceOrder
@@ -336,46 +352,86 @@ public class BookingService : IBookingService
             EstimatedDurationMinutes = (int)(softReserve.ScheduledEnd - softReserve.ScheduledStart).TotalMinutes
         };
 
-        _context.ServiceOrders.Add(order);
-        await _context.SaveChangesAsync();
-
-        // Save room selections
+        // Batch-load rooms and additional services before adding order (no Id yet)
+        var roomTypes = new Dictionary<int, CleaningPlaceRoom>();
         if (input.Rooms?.Any() == true)
         {
-            foreach (var room in input.Rooms)
+            var roomIds = input.Rooms.Select(r => r.RoomId).ToList();
+            var loaded = await _context.CleaningPlaceRooms
+                .AsNoTracking()
+                .Where(r => roomIds.Contains(r.Id))
+                .ToListAsync(cancellationToken);
+            foreach (var r in loaded) roomTypes[r.Id] = r;
+        }
+
+        var additionalTypes = new Dictionary<int, AdditionalServiceType>();
+        if (input.AdditionalServiceIds?.Any() == true)
+        {
+            var ids = input.AdditionalServiceIds;
+            var additionals = await _context.AdditionalServiceTypes
+                .Where(a => ids.Contains(a.Id))
+                .ToListAsync(cancellationToken);
+            foreach (var a in additionals) additionalTypes[a.Id] = a;
+        }
+
+        _context.ServiceOrders.Add(order);
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken); // needed to get order.Id for FK relationships
+        }
+        catch (DbUpdateException ex) when (IsDuplicateKeyException(ex))
+        {
+            // Two concurrent requests raced through ResolveCustomerAsync with the same email.
+            // The other request won the insert — re-fetch that user and update the order's CustomerId.
+            _logger.LogWarning(
+                "Duplicate user insert race condition for email {Email} — re-fetching existing user",
+                input.ContactEmail);
+
+            var racedUser = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == input.ContactEmail, cancellationToken);
+
+            if (racedUser == null)
+                throw; // A different constraint was violated — let it propagate
+
+            // Detach the conflicting new user from the context to avoid further tracking issues
+            var conflictEntry = _context.ChangeTracker.Entries<ApplicationUser>()
+                .FirstOrDefault(e => e.Entity.Email == input.ContactEmail && e.State == Microsoft.EntityFrameworkCore.EntityState.Added);
+            if (conflictEntry != null)
+                conflictEntry.State = Microsoft.EntityFrameworkCore.EntityState.Detached;
+
+            order.CustomerId = racedUser.Id;
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        // Save room selections
+        foreach (var room in input.Rooms ?? [])
+        {
+            if (roomTypes.TryGetValue(room.RoomId, out var roomType))
             {
-                var roomType = await _context.CleaningPlaceRooms.FindAsync(room.RoomId);
-                if (roomType != null)
+                _context.ServiceOrderRooms.Add(new ServiceOrderRoom
                 {
-                    _context.ServiceOrderRooms.Add(new ServiceOrderRoom
-                    {
-                        ServiceOrderId = order.Id,
-                        CleaningPlaceRoomId = room.RoomId,
-                        Quantity = room.Quantity,
-                        CalculatedPrice = roomType.BasePrice * room.Quantity
-                    });
-                }
+                    ServiceOrderId = order.Id,
+                    CleaningPlaceRoomId = room.RoomId,
+                    Quantity = room.Quantity,
+                    CalculatedPrice = roomType.BasePrice * room.Quantity
+                });
             }
         }
 
         // Save additional service items
-        if (input.AdditionalServiceIds?.Any() == true)
+        foreach (var additionalId in input.AdditionalServiceIds ?? [])
         {
-            foreach (var additionalId in input.AdditionalServiceIds)
+            if (additionalTypes.TryGetValue(additionalId, out var additional))
             {
-                var additional = await _context.AdditionalServiceTypes.FindAsync(additionalId);
-                if (additional != null)
+                _context.ServiceOrderItems.Add(new ServiceOrderItem
                 {
-                    _context.ServiceOrderItems.Add(new ServiceOrderItem
-                    {
-                        ServiceOrderId = order.Id,
-                        AdditionalServiceTypeId = additionalId,
-                        Description = additional.Title,
-                        Quantity = 1,
-                        UnitPrice = additional.Price,
-                        Total = additional.Price
-                    });
-                }
+                    ServiceOrderId = order.Id,
+                    AdditionalServiceTypeId = additionalId,
+                    Description = additional.Title,
+                    Quantity = 1,
+                    UnitPrice = additional.Price,
+                    Total = additional.Price
+                });
             }
         }
 
@@ -392,24 +448,26 @@ public class BookingService : IBookingService
         };
 
         _context.ServiceMeets.Add(meet);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken); // needed to get meet.Id for slot conversion
 
         // Convert soft reserve to meeting
         softReserve.Status = SoftReserveStatus.Converted;
         softReserve.ServiceOrderId = order.Id;
         softReserve.CustomerId = customerId;
 
-        await ConvertSoftReserveToMeetingOccupancyAsync(softReserve.Id, meet.Id);
-        await _context.SaveChangesAsync();
+        await ConvertSoftReserveToMeetingOccupancyAsync(softReserve.Id, meet.Id, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
 
         // Create recurring meetings if applicable
         if (input.RecurrenceType != RecurrenceType.None)
         {
-            await CreateRecurringMeetingsAsync(order, meet, input.RecurrenceType, input.RecurrenceEndDate);
+            await CreateRecurringMeetingsAsync(order, meet, input.RecurrenceType, input.RecurrenceEndDate, cancellationToken);
         }
 
         _logger.LogInformation("Order confirmed - OrderId: {OrderId}, MeetId: {MeetId}, Total: {Total}",
             order.Id, meet.Id, order.Total);
+
+        await transaction.CommitAsync(cancellationToken);
 
         return new BookingConfirmationResult
         {
@@ -429,10 +487,18 @@ public class BookingService : IBookingService
             AuthToken = authToken,
             IsGuest = isGuest
         };
+
+        } // end try
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            _logger.LogError(ex, "ConfirmBookingAsync failed and was rolled back - SoftReserve {SoftReserveId}", input.SoftReserveId);
+            throw;
+        }
     }
 
     public async Task<int> CreateRecurringMeetingsAsync(ServiceOrder order, ServiceMeet firstMeet,
-        RecurrenceType recurrenceType, DateTime? endDate)
+        RecurrenceType recurrenceType, DateTime? endDate, CancellationToken cancellationToken = default)
     {
         var maxOccurrences = 8;
         var isMonthly = recurrenceType == RecurrenceType.Monthly;
@@ -452,23 +518,61 @@ public class BookingService : IBookingService
             ? firstMeet.ScheduledStart.AddMonths(1)
             : firstMeet.ScheduledStart.AddDays(dayInterval);
         var horizon = endDate ?? (isMonthly
-            ? DateTime.UtcNow.AddMonths(maxOccurrences)
-            : DateTime.UtcNow.AddDays(maxOccurrences * dayInterval));
+            ? firstMeet.ScheduledStart.AddMonths(maxOccurrences)
+            : firstMeet.ScheduledStart.AddDays(maxOccurrences * dayInterval));
 
         _logger.LogInformation("Creating recurring meetings for Order {OrderId}, type {RecurrenceType}",
             order.Id, recurrenceType);
+
+        // Batch-load all data needed for the loop to avoid N+1 queries
+        var loopEnd = horizon.AddMinutes(duration);
+
+        var employeeSchedules = await _context.EmployeeSchedules
+            .AsNoTracking()
+            .Where(s => s.EmployeeId == firstMeet.AssignedEmployeeId && s.IsAvailable && !s.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        var existingMeets = await _context.ServiceMeets
+            .AsNoTracking()
+            .Where(m =>
+                m.AssignedEmployeeId == firstMeet.AssignedEmployeeId &&
+                m.Status != MeetStatus.Cancelled && m.Status != MeetStatus.NoShow &&
+                m.ScheduledStart < loopEnd && m.ScheduledEnd > firstMeet.ScheduledStart)
+            .Select(m => new { m.ScheduledStart, m.ScheduledEnd })
+            .ToListAsync(cancellationToken);
+
+        var timeOffs = await _context.EmployeeTimeOffs
+            .AsNoTracking()
+            .Where(t =>
+                t.EmployeeId == firstMeet.AssignedEmployeeId &&
+                t.Status == TimeOffStatus.Approved &&
+                t.StartDateTime < loopEnd &&
+                t.EndDateTime > firstMeet.ScheduledStart)
+            .Select(t => new { t.StartDateTime, t.EndDateTime })
+            .ToListAsync(cancellationToken);
+
+        // Collect new meets; SaveChanges is called once after the loop
+        var newMeets = new List<ServiceMeet>();
 
         while (currentStart <= horizon && count < maxOccurrences)
         {
             var currentEnd = currentStart.AddMinutes(duration);
 
-            // Validate employee works on that day
+            // Validate employee works on that day (in-memory)
             var recurDayOfWeek = currentStart.DayOfWeek;
-            var empSchedule = await _context.EmployeeSchedules
-                .FirstOrDefaultAsync(s =>
-                    s.EmployeeId == firstMeet.AssignedEmployeeId &&
-                    s.DayOfWeek == recurDayOfWeek &&
-                    s.IsAvailable && !s.IsDeleted);
+            var empSchedule = employeeSchedules.FirstOrDefault(s => s.DayOfWeek == recurDayOfWeek);
+
+            // Cross-midnight guard: we do not support meetings that span two calendar days.
+            // A meeting crossing midnight would have currentEnd.Date > currentStart.Date,
+            // which makes TimeOfDay comparisons unreliable. Skip with a clear warning.
+            if (currentEnd.Date > currentStart.Date)
+            {
+                _logger.LogWarning(
+                    "Skipping recurring meeting at {Date}: meeting would cross midnight (start={Start}, end={End})",
+                    currentStart, currentStart, currentEnd);
+                currentStart = isMonthly ? currentStart.AddMonths(1) : currentStart.AddDays(dayInterval);
+                continue;
+            }
 
             if (empSchedule == null ||
                 currentStart.TimeOfDay < empSchedule.StartTime ||
@@ -479,20 +583,13 @@ public class BookingService : IBookingService
                 continue;
             }
 
-            // Check for conflicts with existing meetings
-            var hasConflict = await _context.ServiceMeets
-                .AnyAsync(m =>
-                    m.AssignedEmployeeId == firstMeet.AssignedEmployeeId &&
-                    m.Status != MeetStatus.Cancelled && m.Status != MeetStatus.NoShow &&
-                    m.ScheduledStart < currentEnd && m.ScheduledEnd > currentStart);
+            // Check for conflicts with existing meetings (in-memory)
+            var hasConflict = existingMeets.Any(m =>
+                m.ScheduledStart < currentEnd && m.ScheduledEnd > currentStart);
 
-            // Check for approved time off
-            var hasTimeOff = await _context.EmployeeTimeOffs
-                .AnyAsync(t =>
-                    t.EmployeeId == firstMeet.AssignedEmployeeId &&
-                    t.Status == TimeOffStatus.Approved &&
-                    t.StartDateTime <= currentEnd &&
-                    t.EndDateTime >= currentStart);
+            // Check for approved time off (in-memory)
+            var hasTimeOff = timeOffs.Any(t =>
+                t.StartDateTime <= currentEnd && t.EndDateTime >= currentStart);
 
             if (!hasConflict && !hasTimeOff)
             {
@@ -507,27 +604,38 @@ public class BookingService : IBookingService
                     Status = MeetStatus.Scheduled
                 };
                 _context.ServiceMeets.Add(recurringMeet);
-                await _context.SaveChangesAsync();
-
-                // Acquire slots for anti-collision
-                if (firstMeet.AssignedEmployeeId.HasValue)
-                {
-                    await _schedulingService.AcquireSlotsAsync(
-                        firstMeet.AssignedEmployeeId.Value,
-                        currentStart, currentEnd,
-                        OccupancyType.Meeting, recurringMeet.Id);
-                }
+                newMeets.Add(recurringMeet);
                 count++;
             }
             else
             {
-                _logger.LogWarning("Skipping recurring meeting at {Date} due to conflict or time off", currentStart);
+                // Accumulate skipped dates and log so ops can detect scheduling gaps
+                _logger.LogWarning(
+                    "Recurring meeting skipped due to conflict: {Date} (conflict={HasConflict}, timeOff={HasTimeOff})",
+                    currentStart, hasConflict, hasTimeOff);
             }
 
             currentStart = isMonthly ? currentStart.AddMonths(1) : currentStart.AddDays(dayInterval);
         }
 
-        await _context.SaveChangesAsync();
+        // Persist all new meets in a single round-trip
+        await _context.SaveChangesAsync(cancellationToken);
+
+        // Acquire slots for anti-collision (individual calls required per meet)
+        if (firstMeet.AssignedEmployeeId.HasValue)
+        {
+            foreach (var recurringMeet in newMeets)
+            {
+                await _schedulingService.AcquireSlotsAsync(
+                    firstMeet.AssignedEmployeeId.Value,
+                    recurringMeet.ScheduledStart, recurringMeet.ScheduledEnd,
+                    OccupancyType.Meeting, recurringMeet.Id,
+                    cancellationToken: cancellationToken);
+            }
+
+            // Persist slot occupancies within the same transaction as the meets
+            await _context.SaveChangesAsync(cancellationToken);
+        }
         _logger.LogInformation("Created {Count} recurring meetings with slots for Order {OrderId}", count, order.Id);
         return count;
     }
@@ -537,13 +645,13 @@ public class BookingService : IBookingService
     /// Returns (customerId, authToken, isNewUser, isGuest).
     /// </summary>
     private async Task<(string? CustomerId, AuthTokenResult? AuthToken, bool IsNewUser, bool IsGuest)>
-        ResolveCustomerAsync(ConfirmBookingInput input)
+        ResolveCustomerAsync(ConfirmBookingInput input, CancellationToken cancellationToken = default)
     {
         if (!string.IsNullOrEmpty(input.CustomerId))
             return (input.CustomerId, null, false, false);
 
         // Check if email already exists
-        var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == input.ContactEmail);
+        var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == input.ContactEmail, cancellationToken);
 
         if (existingUser != null)
         {
@@ -568,14 +676,19 @@ public class BookingService : IBookingService
             EmailConfirmed = false,
             PhoneNumber = input.ContactPhone,
             SecurityStamp = Guid.NewGuid().ToString(),
-            FirstName = input.ContactName?.Split(' ').FirstOrDefault(),
-            LastName = input.ContactName?.Split(' ').Skip(1).FirstOrDefault()
+            FirstName = (input.ContactName ?? string.Empty)
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .FirstOrDefault(),
+            LastName = (input.ContactName ?? string.Empty)
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries) is { Length: > 1 } nameParts
+                ? string.Join(' ', nameParts.Skip(1))
+                : null
         };
 
         newUser.PasswordHash = _passwordHasher.HashPassword(newUser, input.Password);
         _context.Users.Add(newUser);
 
-        var customerRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == Roles.Customer);
+        var customerRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == Roles.Customer, cancellationToken);
         if (customerRole != null)
         {
             _context.UserRoles.Add(new IdentityUserRole<string>
@@ -586,28 +699,52 @@ public class BookingService : IBookingService
         }
 
         var accessToken = _jwtService.GenerateAccessToken(newUser.Id, newUser.Email!, new[] { Roles.Customer });
-        var refreshToken = _jwtService.GenerateRefreshToken();
+        var refreshTokenValue = _jwtService.GenerateRefreshToken();
+
+        var jti = new JwtSecurityTokenHandler().ReadJwtToken(accessToken).Id ?? Guid.NewGuid().ToString();
+
+        _context.RefreshTokens.Add(new RefreshToken
+        {
+            Token = refreshTokenValue,
+            JwtId = jti,
+            UserId = newUser.Id,
+            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            CreatedAt = DateTime.UtcNow
+        });
 
         _logger.LogInformation("User created automatically during booking: {Email}", input.ContactEmail);
 
         return (newUser.Id, new AuthTokenResult
         {
             AccessToken = accessToken,
-            RefreshToken = refreshToken,
+            RefreshToken = refreshTokenValue,
             ExpiresAt = DateTime.UtcNow.AddHours(24),
             IsNewUser = true
         }, true, false);
     }
 
     /// <summary>
+    /// Returns true when a DbUpdateException wraps a duplicate key / unique constraint violation.
+    /// Covers MySQL error 1062 (Pomelo) and generic UNIQUE constraint messages.
+    /// </summary>
+    private static bool IsDuplicateKeyException(DbUpdateException ex)
+    {
+        var inner = ex.InnerException?.Message ?? ex.Message;
+        return inner.Contains("Duplicate entry", StringComparison.OrdinalIgnoreCase) ||
+               inner.Contains("UNIQUE constraint", StringComparison.OrdinalIgnoreCase) ||
+               inner.Contains("duplicate key", StringComparison.OrdinalIgnoreCase) ||
+               inner.Contains("1062");
+    }
+
+    /// <summary>
     /// Converts SlotOccupancy entries from SoftReserve to Meeting type.
     /// </summary>
-    private async Task ConvertSoftReserveToMeetingOccupancyAsync(int softReserveId, int meetId)
+    private async Task ConvertSoftReserveToMeetingOccupancyAsync(int softReserveId, int meetId, CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
         var slots = await _context.SlotOccupancies
             .Where(s => s.OccupancyType == OccupancyType.SoftReserve && s.ReferenceId == softReserveId)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         foreach (var slot in slots)
         {

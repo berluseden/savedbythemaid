@@ -21,8 +21,7 @@ public class ConfirmBookingRequestValidator : AbstractValidator<ConfirmBookingRe
         RuleFor(x => x.ZipCode)
             .NotEmpty()
             .WithMessage("ZIP code is required.")
-            .Matches(@"^\d{5}(-\d{4})?$")
-            .WithMessage("ZIP code must be in the format 12345 or 12345-6789.");
+            .IsValidZipCode();
 
         RuleFor(x => x.Address)
             .NotEmpty()
@@ -73,9 +72,7 @@ public class ConfirmBookingRequestValidator : AbstractValidator<ConfirmBookingRe
         RuleFor(x => x.ContactEmail)
             .NotEmpty()
             .WithMessage("Email is required.")
-            .EmailAddress()
-            .WithMessage("A valid email address is required.")
-            .MaximumLength(256);
+            .IsValidEmail();
 
         RuleFor(x => x.ContactName)
             .MaximumLength(100)

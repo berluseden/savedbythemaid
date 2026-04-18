@@ -1,7 +1,12 @@
 import axios from 'axios';
 import { pushToast } from '@/lib/toast';
-import { authStorage } from '@/shared/lib/auth-storage';
 import { getErrorMessage } from '@/shared/lib/error-utils';
+import {
+  CSRF_METHODS,
+  XSRF_HEADER_NAME,
+  ensureCsrfToken,
+  getXsrfCookie,
+} from '@/lib/csrf';
 
 import type {
   CoverageResponse,
@@ -52,35 +57,71 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: true, // Send HttpOnly cookies automatically
+  // Align axios defaults with the backend's antiforgery header so its
+  // built-in xsrf handling also kicks in if the manual interceptor is bypassed.
+  xsrfCookieName: 'XSRF-TOKEN',
+  xsrfHeaderName: XSRF_HEADER_NAME,
 });
 
-// Interceptor to add JWT token (fallback for backward compatibility)
-// With HttpOnly cookies, the browser sends the token automatically.
-// This interceptor handles the legacy case where tokens are in storage.
-api.interceptors.request.use((config) => {
-  const token = authStorage.getToken();
+// Request interceptor — attach CSRF header on mutating requests.
+// If the XSRF cookie is missing (first POST after a cold start) we seed it
+// via GET /api/antiforgery/token first, then retry.
+api.interceptors.request.use(async (config) => {
+  const method = (config.method || 'get').toUpperCase();
+  if (!CSRF_METHODS.has(method)) return config;
+
+  let token = getXsrfCookie();
+  if (!token) {
+    await ensureCsrfToken();
+    token = getXsrfCookie();
+  }
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    config.headers.set(XSRF_HEADER_NAME, token);
   }
   return config;
 });
 
-// Token refresh state — shared across concurrent 401 responses
+// Token refresh state — shared across concurrent 401 responses.
+// Tokens live in HttpOnly cookies; we only need to coalesce the refresh call.
 let isRefreshing = false;
-let refreshSubscribers: ((token: string | null, error?: unknown) => void)[] = [];
+let refreshSubscribers: ((ok: boolean, error?: unknown) => void)[] = [];
 
-function onTokenRefreshed(token: string) {
-  refreshSubscribers.forEach(cb => cb(token));
+function onTokenRefreshed() {
+  refreshSubscribers.forEach((cb) => cb(true));
   refreshSubscribers = [];
 }
 
 function onRefreshFailed(error: unknown) {
-  refreshSubscribers.forEach(cb => cb(null, error));
+  refreshSubscribers.forEach((cb) => cb(false, error));
   refreshSubscribers = [];
 }
 
-function addRefreshSubscriber(cb: (token: string | null, error?: unknown) => void) {
+function addRefreshSubscriber(cb: (ok: boolean, error?: unknown) => void) {
   refreshSubscribers.push(cb);
+}
+
+/**
+ * Heuristic detection of an antiforgery failure coming back from the API.
+ * The backend may answer 400 or 403; the body typically mentions
+ * "antiforgery" or "CSRF". We check a few common shapes.
+ */
+function isCsrfFailure(error: {
+  response?: { status?: number; data?: unknown; headers?: Record<string, string> };
+}): boolean {
+  const status = error.response?.status;
+  if (status !== 400 && status !== 403) return false;
+
+  const data = error.response?.data;
+  const haystacks: string[] = [];
+  if (typeof data === 'string') haystacks.push(data);
+  else if (data && typeof data === 'object') {
+    const obj = data as Record<string, unknown>;
+    for (const key of ['message', 'title', 'detail', 'error', 'code']) {
+      const v = obj[key];
+      if (typeof v === 'string') haystacks.push(v);
+    }
+  }
+  return haystacks.some((s) => /antiforgery|xsrf|csrf/i.test(s));
 }
 
 // Interceptor to handle errors
@@ -90,6 +131,25 @@ api.interceptors.response.use(
     const status = error.response?.status;
     const originalRequest = error.config;
 
+    // --- 400/403 CSRF failure: re-seed the token and retry once ---
+    // Common cause: backend rotated the antiforgery cookie (login/logout)
+    // and an in-flight request carried the old one.
+    if (originalRequest && !originalRequest._csrfRetry && isCsrfFailure(error)) {
+      originalRequest._csrfRetry = true;
+      try {
+        // Force a fresh token regardless of current cookie state.
+        await axios.get('/api/antiforgery/token', { withCredentials: true });
+      } catch {
+        // If we cannot re-seed, fall through to the generic error path.
+      }
+      const fresh = getXsrfCookie();
+      if (fresh) {
+        originalRequest.headers = originalRequest.headers ?? {};
+        originalRequest.headers[XSRF_HEADER_NAME] = fresh;
+        return api(originalRequest);
+      }
+    }
+
     // --- 401: attempt token refresh before giving up ---
     const requestUrl = originalRequest.url || '';
     const isAuthEndpoint = requestUrl.includes('/auth/me') || requestUrl.includes('/auth/refresh') || requestUrl.includes('/auth/login');
@@ -97,12 +157,11 @@ api.interceptors.response.use(
     if (status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
-          addRefreshSubscriber((token, refreshError) => {
-            if (!token) {
+          addRefreshSubscriber((ok, refreshError) => {
+            if (!ok) {
               reject(refreshError ?? error);
               return;
             }
-            originalRequest.headers.Authorization = `Bearer ${token}`;
             resolve(api(originalRequest));
           });
         });
@@ -112,21 +171,15 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const res = await axios.post('/api/auth/refresh', {}, { withCredentials: true });
-        const newToken = res.data.accessToken;
-        if (!newToken) {
-          throw new Error('Refresh response missing accessToken');
-        }
-        authStorage.setToken(newToken, authStorage.isRemembered());
-        api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
-        onTokenRefreshed(newToken);
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        // Backend sets new HttpOnly cookies on success — we do not read tokens.
+        // Use the api instance so the CSRF interceptor attaches the X-XSRF-TOKEN header.
+        // The _retry flag on originalRequest prevents the 401 interceptor from
+        // triggering a second refresh cycle for this specific call.
+        await api.post('/auth/refresh', {});
+        onTokenRefreshed();
         return api(originalRequest);
       } catch (refreshError) {
-        // Refresh failed — flush queued requests, clear session, force logout
         onRefreshFailed(refreshError);
-        authStorage.clear();
-        delete api.defaults.headers.common.Authorization;
         if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
           window.location.assign('/login');
         }
@@ -222,9 +275,7 @@ export const authApi = {
   checkEmail: (email: string) =>
     api.get<{ email: string; exists: boolean }>(`/auth/check-email?email=${encodeURIComponent(email)}`),
 
-  logout: () => api.post('/auth/logout').catch(() => {}).finally(() => {
-    authStorage.clear();
-  }),
+  logout: () => api.post('/auth/logout').catch((err) => console.warn('logout failed', err)),
 };
 
 export { api };

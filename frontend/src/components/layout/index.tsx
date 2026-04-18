@@ -1,13 +1,14 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Calendar, Sparkles, Phone, User, LogOut, ChevronDown } from 'lucide-react';
+import { Home, Calendar, Sparkles, Phone, User, LogOut, ChevronDown, Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export function Header() {
   const location = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const navigation = [
     { name: 'Home', href: '/', icon: Home },
@@ -19,7 +20,23 @@ export function Header() {
   const handleLogout = async () => {
     await logout();
     setShowUserMenu(false);
+    setShowMobileMenu(false);
   };
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setShowMobileMenu(false);
+  }, [location.pathname]);
+
+  // Lock body scroll while drawer is open (native-feel)
+  useEffect(() => {
+    if (showMobileMenu) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = '';
+      };
+    }
+  }, [showMobileMenu]);
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-md">
@@ -55,8 +72,20 @@ export function Header() {
             })}
           </nav>
 
+          {/* Mobile hamburger — visible below md */}
+          <button
+            type="button"
+            onClick={() => setShowMobileMenu(true)}
+            aria-label="Open navigation menu"
+            aria-expanded={showMobileMenu}
+            aria-controls="mobile-nav-drawer"
+            className="md:hidden inline-flex items-center justify-center rounded-lg p-2 text-gray-700 hover:bg-gray-100 touch-target"
+          >
+            <Menu className="h-6 w-6" aria-hidden="true" />
+          </button>
+
           {/* Auth/CTA */}
-          <div className="flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-4">
             {isAuthenticated && user ? (
               <div className="relative">
                 <button
@@ -133,6 +162,113 @@ export function Header() {
           </div>
         </div>
       </div>
+
+      {/* Mobile drawer — slide-in from right, native-app feel */}
+      {showMobileMenu && (
+        <div
+          id="mobile-nav-drawer"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Navigation menu"
+          className="md:hidden fixed inset-0 z-50"
+        >
+          {/* Scrim */}
+          <button
+            type="button"
+            aria-label="Close menu"
+            onClick={() => setShowMobileMenu(false)}
+            className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-200"
+          />
+          {/* Panel */}
+          <div
+            className="absolute right-0 top-0 bottom-0 w-[85%] max-w-sm bg-white shadow-xl flex flex-col animate-in slide-in-from-right duration-200"
+            style={{ paddingTop: 'env(safe-area-inset-top)' }}
+          >
+            <div className="flex items-center justify-between px-4 h-16 border-b">
+              <span className="font-semibold text-gray-900">Menu</span>
+              <button
+                type="button"
+                onClick={() => setShowMobileMenu(false)}
+                aria-label="Close menu"
+                className="inline-flex items-center justify-center rounded-lg p-2 text-gray-700 hover:bg-gray-100 touch-target"
+              >
+                <X className="h-6 w-6" aria-hidden="true" />
+              </button>
+            </div>
+
+            <nav aria-label="Mobile navigation" className="flex-1 overflow-y-auto py-2">
+              {navigation.map((item) => {
+                const isActive = location.pathname === item.href;
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={cn(
+                      'flex items-center gap-3 px-4 py-3 text-base font-medium touch-target',
+                      isActive
+                        ? 'bg-accent-light/10 text-brand'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    )}
+                  >
+                    <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                    <span>{item.name}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <div
+              className="border-t px-4 py-4 space-y-2"
+              style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1rem)' }}
+            >
+              {isAuthenticated && user ? (
+                <>
+                  <Link
+                    to="/dashboard"
+                    className="flex items-center gap-3 px-3 py-3 rounded-lg text-base text-gray-700 hover:bg-gray-50 touch-target"
+                  >
+                    <User className="h-5 w-5" aria-hidden="true" />
+                    My Dashboard
+                  </Link>
+                  {user.roles?.includes('Admin') && (
+                    <Link
+                      to="/admin"
+                      className="flex items-center gap-3 px-3 py-3 rounded-lg text-base text-gray-700 hover:bg-gray-50 touch-target"
+                    >
+                      <Sparkles className="h-5 w-5" aria-hidden="true" />
+                      Admin Panel
+                    </Link>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-3 px-3 py-3 rounded-lg text-base text-red-600 hover:bg-red-50 touch-target"
+                  >
+                    <LogOut className="h-5 w-5" aria-hidden="true" />
+                    Sign Out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-50 touch-target"
+                  >
+                    <User className="h-5 w-5" aria-hidden="true" />
+                    Login
+                  </Link>
+                  <Link
+                    to="/booking"
+                    className="flex w-full items-center justify-center rounded-lg bg-brand px-4 py-3 text-base font-medium text-white hover:bg-brand-dark touch-target"
+                  >
+                    Book Now
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

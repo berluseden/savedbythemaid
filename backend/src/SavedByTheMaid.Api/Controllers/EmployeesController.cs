@@ -60,7 +60,7 @@ public class EmployeesController : ControllerBase
             .AsNoTracking()
             .Include(e => e.PrimaryServiceArea)
             .Include(e => e.Schedules)
-            .FirstOrDefaultAsync(e => e.Id == id && !e.IsDeleted);
+            .FirstOrDefaultAsync(e => e.Id == id && e.IsActive && !e.IsDeleted);
 
         if (employee == null)
         {
@@ -150,9 +150,9 @@ public class EmployeesController : ControllerBase
     /// </summary>
     [HttpPost("{id}/schedule")]
     [Authorize(Policy = Policies.AdminOnly)]
-    public async Task<ActionResult<EmployeeScheduleDto>> AddSchedule(int id, CreateScheduleRequest request)
+    public async Task<ActionResult<EmployeeScheduleDto>> AddSchedule(int id, CreateScheduleRequest request, CancellationToken cancellationToken = default)
     {
-        var employee = await _context.Employees.FindAsync(id);
+        var employee = await _context.Employees.FindAsync(new object[] { id }, cancellationToken);
         if (employee == null || employee.IsDeleted)
         {
             return NotFound();
@@ -174,7 +174,7 @@ public class EmployeesController : ControllerBase
         };
 
         _context.EmployeeSchedules.Add(schedule);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
 
         // Return DTO instead of raw entity
         return Created($"/api/employees/{id}/schedule/{schedule.Id}", new EmployeeScheduleDto

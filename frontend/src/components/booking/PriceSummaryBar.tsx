@@ -130,7 +130,7 @@ export const PriceSummaryBar = React.memo(function PriceSummaryBar({
       </div>
 
       {/* Mobile sticky bottom bar (visible below lg) */}
-      <div className="fixed inset-x-0 bottom-0 z-40 lg:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 lg:hidden pb-safe">
         <div className="border-t border-gray-200 bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.08)]">
           {/* Expandable breakdown panel */}
           <div

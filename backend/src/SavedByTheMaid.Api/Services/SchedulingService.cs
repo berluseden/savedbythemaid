@@ -19,7 +19,7 @@ public interface ISchedulingService
     /// <param name="end">End of the time range</param>
     /// <param name="excludeMeetingId">ID of the meeting to exclude (for rescheduling the same meeting)</param>
     /// <returns>null if there is no conflict, SchedulingConflict with details if one exists</returns>
-    Task<SchedulingConflict?> CheckConflictsAsync(int employeeId, DateTime start, DateTime end, int? excludeMeetingId = null);
+    Task<SchedulingConflict?> CheckConflictsAsync(int employeeId, DateTime start, DateTime end, int? excludeMeetingId = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Acquires slots in SlotOccupancy for an employee in a given time range.
@@ -31,14 +31,14 @@ public interface ISchedulingService
     /// <param name="type">Occupancy type (SoftReserve or Meeting)</param>
     /// <param name="referenceId">Reference ID (SoftReserve or ServiceMeet)</param>
     /// <param name="expiresAt">Expiration date (only for SoftReserve)</param>
-    Task AcquireSlotsAsync(int employeeId, DateTime start, DateTime end, OccupancyType type, int referenceId, DateTime? expiresAt = null);
+    Task AcquireSlotsAsync(int employeeId, DateTime start, DateTime end, OccupancyType type, int referenceId, DateTime? expiresAt = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Releases SlotOccupancy slots by referenceId and type.
     /// </summary>
     /// <param name="referenceId">Reference ID</param>
     /// <param name="type">Occupancy type</param>
-    Task ReleaseSlotsAsync(int referenceId, OccupancyType type);
+    Task ReleaseSlotsAsync(int referenceId, OccupancyType type, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Transfers slots from one employee to another (for reassignment).
@@ -48,7 +48,7 @@ public interface ISchedulingService
     /// <param name="type">Occupancy type</param>
     /// <param name="newEmployeeId">New employee to transfer to</param>
     /// <returns>Conflict if transfer would cause double-booking, null on success</returns>
-    Task<SchedulingConflict?> TransferSlotsAsync(int referenceId, OccupancyType type, int newEmployeeId);
+    Task<SchedulingConflict?> TransferSlotsAsync(int referenceId, OccupancyType type, int newEmployeeId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -135,8 +135,12 @@ public class SchedulingService : ISchedulingService
         _logger = logger;
     }
 
-    public async Task<SchedulingConflict?> CheckConflictsAsync(int employeeId, DateTime start, DateTime end, int? excludeMeetingId = null)
+    public async Task<SchedulingConflict?> CheckConflictsAsync(int employeeId, DateTime start, DateTime end, int? excludeMeetingId = null, CancellationToken cancellationToken = default)
     {
+        // Normalize DateTimeKind — frontend may omit the Z suffix, producing Unspecified
+        start = NormalizeUtc(start);
+        end = NormalizeUtc(end);
+
         _logger.LogInformation(
             "Checking conflicts for employee {EmployeeId} in range {Start} - {End}, excluding meeting {ExcludeMeetingId}",
             employeeId, start, end, excludeMeetingId);
@@ -144,7 +148,7 @@ public class SchedulingService : ISchedulingService
         // Verify that the employee exists and is active
         var employee = await _context.Employees
             .AsNoTracking()
-            .FirstOrDefaultAsync(e => e.Id == employeeId && !e.IsDeleted);
+            .FirstOrDefaultAsync(e => e.Id == employeeId && !e.IsDeleted, cancellationToken);
 
         if (employee == null)
         {
@@ -171,7 +175,7 @@ public class SchedulingService : ISchedulingService
         var dayOfWeek = start.DayOfWeek;
         var schedule = await _context.EmployeeSchedules
             .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.EmployeeId == employeeId && s.DayOfWeek == dayOfWeek && s.IsAvailable && !s.IsDeleted);
+            .FirstOrDefaultAsync(s => s.EmployeeId == employeeId && s.DayOfWeek == dayOfWeek && s.IsAvailable && !s.IsDeleted, cancellationToken);
 
         var bufferMinutes = schedule?.BufferMinutes ?? 0;
         var bufferedStart = start.AddMinutes(-bufferMinutes);
@@ -191,13 +195,13 @@ public class SchedulingService : ISchedulingService
 
         var existingSlot = await slotConflictQuery
             .OrderBy(s => s.SlotStart)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (existingSlot != null)
         {
             // Get details of the conflicting meeting or reservation
             string details = existingSlot.OccupancyType == OccupancyType.Meeting
-                ? await GetMeetingDetailsAsync(existingSlot.ReferenceId)
+                ? await GetMeetingDetailsAsync(existingSlot.ReferenceId, cancellationToken)
                 : $"Temporary reservation (expires: {existingSlot.ExpiresAt:HH:mm})";
 
             return new SchedulingConflict
@@ -219,7 +223,7 @@ public class SchedulingService : ISchedulingService
             .Where(t => t.EmployeeId == employeeId && !t.IsDeleted)
             .Where(t => t.Status == TimeOffStatus.Approved)
             .Where(t => t.StartDateTime < bufferedEnd && t.EndDateTime > bufferedStart)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (timeOffConflict != null)
         {
@@ -257,7 +261,7 @@ public class SchedulingService : ISchedulingService
             .Where(m => m.ScheduledStart >= serviceDate && m.ScheduledStart < nextDate)
             .Where(m => m.Status != MeetStatus.Cancelled && m.Status != MeetStatus.NoShow)
             .Where(m => excludeMeetingId == null || m.Id != excludeMeetingId)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         if (employee.MaxDailyServices > 0 && dailyMeetings.Count >= employee.MaxDailyServices)
         {
@@ -289,8 +293,12 @@ public class SchedulingService : ISchedulingService
         return null; // No conflicts
     }
 
-    public async Task AcquireSlotsAsync(int employeeId, DateTime start, DateTime end, OccupancyType type, int referenceId, DateTime? expiresAt = null)
+    public async Task AcquireSlotsAsync(int employeeId, DateTime start, DateTime end, OccupancyType type, int referenceId, DateTime? expiresAt = null, CancellationToken cancellationToken = default)
     {
+        // Normalize DateTimeKind — frontend may omit the Z suffix, producing Unspecified
+        start = NormalizeUtc(start);
+        end = NormalizeUtc(end);
+
         _logger.LogInformation(
             "Acquiring slots for employee {EmployeeId}, range {Start} - {End}, type {Type}, ref {ReferenceId}",
             employeeId, start, end, type, referenceId);
@@ -314,13 +322,13 @@ public class SchedulingService : ISchedulingService
         _logger.LogInformation("Prepared {Count} slots for insertion", slotOccupancies.Count);
     }
 
-    public async Task ReleaseSlotsAsync(int referenceId, OccupancyType type)
+    public async Task ReleaseSlotsAsync(int referenceId, OccupancyType type, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Releasing slots for reference {ReferenceId}, type {Type}", referenceId, type);
+        _logger.LogInformation("Releasing slots for reference {ReferenceId}, type {Type}",referenceId, type);
 
         var slotsToRemove = await _context.SlotOccupancies
             .Where(s => s.ReferenceId == referenceId && s.OccupancyType == type && !s.IsDeleted)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         if (slotsToRemove.Any())
         {
@@ -333,7 +341,7 @@ public class SchedulingService : ISchedulingService
         }
     }
 
-    public async Task<SchedulingConflict?> TransferSlotsAsync(int referenceId, OccupancyType type, int newEmployeeId)
+    public async Task<SchedulingConflict?> TransferSlotsAsync(int referenceId, OccupancyType type, int newEmployeeId, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation(
             "Transferring slots for reference {ReferenceId} to employee {NewEmployeeId}",
@@ -341,7 +349,7 @@ public class SchedulingService : ISchedulingService
 
         var slotsToTransfer = await _context.SlotOccupancies
             .Where(s => s.ReferenceId == referenceId && s.OccupancyType == type && !s.IsDeleted)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         if (!slotsToTransfer.Any())
         {
@@ -352,7 +360,7 @@ public class SchedulingService : ISchedulingService
         // Verify new employee has no conflicts in the slot time range
         var earliest = slotsToTransfer.Min(s => s.SlotStart);
         var latest = slotsToTransfer.Max(s => s.SlotEnd);
-        var conflict = await CheckConflictsAsync(newEmployeeId, earliest, latest);
+        var conflict = await CheckConflictsAsync(newEmployeeId, earliest, latest, cancellationToken: cancellationToken);
         if (conflict != null)
         {
             _logger.LogWarning("Transfer blocked: conflict for employee {EmployeeId} in {Start}-{End}",
@@ -372,10 +380,25 @@ public class SchedulingService : ISchedulingService
     }
 
     /// <summary>
+    /// Normalizes a DateTime to UTC regardless of its Kind.
+    /// Unspecified datetimes (e.g. from frontend requests missing the Z suffix) are assumed to be UTC.
+    /// </summary>
+    private static DateTime NormalizeUtc(DateTime dt) => dt.Kind switch
+    {
+        DateTimeKind.Utc => dt,
+        DateTimeKind.Local => dt.ToUniversalTime(),
+        _ => DateTime.SpecifyKind(dt, DateTimeKind.Utc) // Unspecified — treat as UTC
+    };
+
+    /// <summary>
     /// Calculates the 30-minute slots for a time range.
     /// </summary>
     private static List<(DateTime Start, DateTime End)> CalculateSlots(DateTime start, DateTime end)
     {
+        // Normalize DateTimeKind before computing slots
+        start = NormalizeUtc(start);
+        end = NormalizeUtc(end);
+
         var slots = new List<(DateTime Start, DateTime End)>();
         var currentSlot = NormalizeToSlotBoundary(start);
 
@@ -390,22 +413,23 @@ public class SchedulingService : ISchedulingService
     }
 
     /// <summary>
-    /// Normalizes a date/time down to the nearest slot boundary.
+    /// Normalizes a date/time down to the nearest slot boundary (30-min granularity).
+    /// Input is normalized to UTC first to guard against Unspecified kind.
     /// </summary>
     private static DateTime NormalizeToSlotBoundary(DateTime dateTime)
     {
-        var minutes = dateTime.Minute;
-        var normalizedMinutes = (minutes / SlotGranularityMinutes) * SlotGranularityMinutes;
-        return new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, 
+        dateTime = NormalizeUtc(dateTime);
+        var normalizedMinutes = (dateTime.Minute / SlotGranularityMinutes) * SlotGranularityMinutes;
+        return new DateTime(dateTime.Year, dateTime.Month, dateTime.Day,
             dateTime.Hour, normalizedMinutes, 0, dateTime.Kind);
     }
 
-    private async Task<string> GetMeetingDetailsAsync(int meetingId)
+    private async Task<string> GetMeetingDetailsAsync(int meetingId, CancellationToken cancellationToken = default)
     {
         var meeting = await _context.ServiceMeets
             .AsNoTracking()
             .Include(m => m.ServiceOrder)
-            .FirstOrDefaultAsync(m => m.Id == meetingId);
+            .FirstOrDefaultAsync(m => m.Id == meetingId, cancellationToken);
 
         if (meeting == null)
             return "Meeting not found";

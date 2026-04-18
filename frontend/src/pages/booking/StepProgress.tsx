@@ -13,8 +13,18 @@ export const StepProgress = React.memo(function StepProgress({ currentStep }: St
 
   return (
     <nav aria-label="Booking progress" className="mb-8">
-      <p className="mb-3 text-center text-sm font-medium text-text-secondary sm:hidden">
+      {/* Visible mobile label + SR-only live announcement so assistive tech
+       * users hear the step change (WCAG 4.1.3 Status Messages). */}
+      <p
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="mb-3 text-center text-sm font-medium text-text-secondary sm:hidden"
+      >
         Step {currentIndex + 1} of {steps.length} &mdash; {steps[currentIndex].title}
+      </p>
+      <p role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+        Step {currentIndex + 1} of {steps.length}: {steps[currentIndex].title}
       </p>
 
       <ol className="flex items-center justify-between">

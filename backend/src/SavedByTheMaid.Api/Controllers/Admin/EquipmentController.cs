@@ -1,7 +1,9 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SavedByTheMaid.Api.Auth;
+using SavedByTheMaid.Api.Extensions;
 using SavedByTheMaid.Infrastructure.Data;
 using SavedByTheMaid.Domain.Entities;
 
@@ -13,21 +15,37 @@ namespace SavedByTheMaid.Api.Controllers;
 public class EquipmentController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly IValidator<CreateEquipmentRequest> _createValidator;
+    private readonly IValidator<UpdateEquipmentRequest> _updateValidator;
 
-    public EquipmentController(ApplicationDbContext context) => _context = context;
+    public EquipmentController(
+        ApplicationDbContext context,
+        IValidator<CreateEquipmentRequest> createValidator,
+        IValidator<UpdateEquipmentRequest> updateValidator)
+    {
+        _context = context;
+        _createValidator = createValidator;
+        _updateValidator = updateValidator;
+    }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Equipment>>> GetAll()
+    [ProducesResponseType(typeof(IEnumerable<EquipmentDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IEnumerable<EquipmentDto>>> GetAll(CancellationToken cancellationToken = default)
     {
         return await _context.Equipment
             .AsNoTracking()
             .Where(e => !e.IsDeleted)
             .OrderBy(e => e.Name)
-            .ToListAsync();
+            .Select(e => new EquipmentDto { Id = e.Id, Name = e.Name, Description = e.Description, IsActive = e.IsActive })
+            .ToListAsync(cancellationToken);
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<Equipment>> GetById(int id)
+    [ProducesResponseType(typeof(EquipmentDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<EquipmentDetailDto>> GetById(int id, CancellationToken cancellationToken = default)
     {
         var equipment = await _context.Equipment
             .AsNoTracking()
@@ -35,14 +53,39 @@ public class EquipmentController : ControllerBase
                 .ThenInclude(st => st.ServiceType)
             .Include(e => e.Employees)
                 .ThenInclude(ee => ee.Employee)
-            .FirstOrDefaultAsync(e => e.Id == id && !e.IsDeleted);
+            .FirstOrDefaultAsync(e => e.Id == id && !e.IsDeleted, cancellationToken);
 
-        return equipment == null ? NotFound() : equipment;
+        if (equipment == null) return NotFound();
+
+        return new EquipmentDetailDto
+        {
+            Id = equipment.Id,
+            Name = equipment.Name,
+            Description = equipment.Description,
+            IsActive = equipment.IsActive,
+            ServiceTypes = equipment.ServiceTypes.Select(st => new EquipmentServiceTypeDto
+            {
+                ServiceTypeId = st.ServiceTypeId,
+                ServiceTypeName = st.ServiceType?.Name ?? "",
+                IsRequired = st.IsRequired
+            }).ToList(),
+            Employees = equipment.Employees.Select(ee => new EquipmentEmployeeDto
+            {
+                EmployeeId = ee.EmployeeId,
+                EmployeeName = ee.Employee != null ? $"{ee.Employee.FirstName} {ee.Employee.LastName}" : "",
+                IsAvailable = ee.IsAvailable
+            }).ToList()
+        };
     }
 
     [HttpPost]
-    public async Task<ActionResult<Equipment>> Create(CreateEquipmentRequest request)
+    [ProducesResponseType(typeof(EquipmentDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<EquipmentDto>> Create(CreateEquipmentRequest request, CancellationToken cancellationToken = default)
     {
+        var validationError = await _createValidator.ValidateAndReturnErrors(request);
+        if (validationError != null) return validationError;
+
         var equipment = new Equipment
         {
             Name = request.Name,
@@ -51,36 +94,73 @@ public class EquipmentController : ControllerBase
         };
 
         _context.Equipment.Add(equipment);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
 
-        return CreatedAtAction(nameof(GetById), new { id = equipment.Id }, equipment);
+        var dto = new EquipmentDto { Id = equipment.Id, Name = equipment.Name, Description = equipment.Description, IsActive = equipment.IsActive };
+        return CreatedAtAction(nameof(GetById), new { id = equipment.Id }, dto);
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, UpdateEquipmentRequest request)
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Update(int id, UpdateEquipmentRequest request, CancellationToken cancellationToken = default)
     {
-        var equipment = await _context.Equipment.FindAsync(id);
+        var validationError = await _updateValidator.ValidateAndReturnErrors(request);
+        if (validationError != null) return validationError;
+
+        var equipment = await _context.Equipment.FindAsync(new object[] { id }, cancellationToken);
         if (equipment == null || equipment.IsDeleted) return NotFound();
 
         equipment.Name = request.Name;
         equipment.Description = request.Description;
         equipment.IsActive = request.IsActive;
 
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken = default)
     {
-        var equipment = await _context.Equipment.FindAsync(id);
-        if (equipment == null) return NotFound();
+        var equipment = await _context.Equipment.FindAsync(new object[] { id }, cancellationToken);
+        if (equipment == null || equipment.IsDeleted)
+            return NoContent(); // Idempotent
 
         equipment.IsDeleted = true;
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
         return NoContent();
     }
 }
 
 public record CreateEquipmentRequest(string Name, string? Description);
 public record UpdateEquipmentRequest(string Name, string? Description, bool IsActive);
+
+public record EquipmentDto
+{
+    public int Id { get; init; }
+    public string Name { get; init; } = "";
+    public string? Description { get; init; }
+    public bool IsActive { get; init; }
+}
+
+public record EquipmentDetailDto : EquipmentDto
+{
+    public List<EquipmentServiceTypeDto> ServiceTypes { get; init; } = new();
+    public List<EquipmentEmployeeDto> Employees { get; init; } = new();
+}
+
+public record EquipmentServiceTypeDto
+{
+    public int ServiceTypeId { get; init; }
+    public string ServiceTypeName { get; init; } = "";
+    public bool IsRequired { get; init; }
+}
+
+public record EquipmentEmployeeDto
+{
+    public int EmployeeId { get; init; }
+    public string EmployeeName { get; init; } = "";
+    public bool IsAvailable { get; init; }
+}

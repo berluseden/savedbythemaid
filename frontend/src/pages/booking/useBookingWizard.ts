@@ -1,4 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useShallow } from 'zustand/react/shallow';
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { MapPin, Sparkles, Home, Calendar, User, CreditCard } from 'lucide-react';
 import type { BookingStep, BookingData, StepDefinition } from './types';
 import { initialBookingData } from './types';
@@ -12,93 +14,117 @@ export const steps: StepDefinition[] = [
   { id: 'confirm', title: 'Confirm', icon: CreditCard },
 ];
 
-const WIZARD_STORAGE_KEY = 'booking-wizard-state';
+const STORAGE_KEY = 'booking-wizard-state';
 
-function loadWizardState(): { step: BookingStep; data: BookingData } | null {
-  try {
-    const raw = sessionStorage.getItem(WIZARD_STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (parsed?.step && parsed?.data) return parsed;
-  } catch { /* ignore corrupt data */ }
-  return null;
+interface BookingState {
+  currentStep: BookingStep;
+  data: BookingData;
+  // Actions
+  updateData: (patch: Partial<BookingData>) => void;
+  goNext: () => void;
+  goBack: () => void;
+  goToStep: (step: BookingStep) => void;
+  reset: () => void;
 }
 
-function saveWizardState(step: BookingStep, data: BookingData) {
-  try {
-    // Never persist password to storage - strip it before saving
-    const { password: _, ...safeData } = data;
-    sessionStorage.setItem(WIZARD_STORAGE_KEY, JSON.stringify({ step, data: { ...safeData, password: '' } }));
-  } catch { /* storage full - ignore */ }
-}
+/**
+ * Zustand store for the booking wizard.
+ *
+ * Persisted in sessionStorage so the user can refresh the tab without losing
+ * progress, but the data is scoped to the tab (multiple booking flows in
+ * different tabs do not collide).
+ *
+ * `partialize` excludes:
+ *   - `password` (never persist credentials)
+ *   - `softReserveId` / `sessionId` / `expiresAt` (server-issued, expire fast)
+ *
+ * Following the 2026 slice/persist pattern from the Zustand docs.
+ */
+export const useBookingStore = create<BookingState>()(
+  persist(
+    (set, get) => ({
+      currentStep: 'zipcode',
+      data: initialBookingData,
 
+      updateData: (patch) =>
+        set((state) => ({ data: { ...state.data, ...patch } })),
+
+      goNext: () => {
+        const idx = steps.findIndex((s) => s.id === get().currentStep);
+        const next = steps[idx + 1];
+        if (next) set({ currentStep: next.id });
+      },
+
+      goBack: () => {
+        const idx = steps.findIndex((s) => s.id === get().currentStep);
+        const prev = steps[idx - 1];
+        if (prev) set({ currentStep: prev.id });
+      },
+
+      goToStep: (step) => set({ currentStep: step }),
+
+      reset: () => set({ currentStep: 'zipcode', data: initialBookingData }),
+    }),
+    {
+      name: STORAGE_KEY,
+      storage: createJSONStorage(() => sessionStorage),
+      version: 2,
+      partialize: (state) => ({
+        currentStep: state.currentStep,
+        data: {
+          ...state.data,
+          // Strip volatile / sensitive fields from the snapshot.
+          password: '',
+          softReserveId: undefined,
+          sessionId: undefined,
+          expiresAt: undefined,
+        },
+      }),
+    }
+  )
+);
+
+/** Wipes the wizard state — call after a successful booking confirm. */
 export function clearWizardState() {
-  sessionStorage.removeItem(WIZARD_STORAGE_KEY);
+  useBookingStore.getState().reset();
+  // Belt + suspenders: also drop the persisted snapshot.
+  try {
+    sessionStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* storage disabled — ignore */
+  }
 }
 
+/**
+ * Compatibility hook — keeps the existing call sites working.
+ * Components stay shielded from the underlying store implementation.
+ *
+ * Uses `useShallow` so consumers re-render only when one of the picked
+ * fields changes (Zustand 2026 best practice for multi-field selectors).
+ */
 export function useBookingWizard() {
-  const saved = loadWizardState();
-  const [currentStep, setCurrentStep] = useState<BookingStep>(saved?.step ?? 'zipcode');
-  const [bookingData, setBookingData] = useState<BookingData>(saved?.data ?? initialBookingData);
+  const { currentStep, data, updateData, goNext, goBack, goToStep } =
+    useBookingStore(
+      useShallow((s) => ({
+        currentStep: s.currentStep,
+        data: s.data,
+        updateData: s.updateData,
+        goNext: s.goNext,
+        goBack: s.goBack,
+        goToStep: s.goToStep,
+      }))
+    );
 
   const currentStepIndex = steps.findIndex((s) => s.id === currentStep);
-
-  const updateData = useCallback((data: Partial<BookingData>) => {
-    setBookingData((prev) => {
-      const updated = { ...prev, ...data };
-      saveWizardState(currentStep, updated);
-      return updated;
-    });
-  }, [currentStep]);
-
-  const goNext = useCallback(() => {
-    const idx = steps.findIndex((s) => s.id === currentStep);
-    const nextIndex = idx + 1;
-    if (nextIndex < steps.length) {
-      const nextStep = steps[nextIndex].id;
-      setCurrentStep(nextStep);
-      setBookingData((prev) => {
-        saveWizardState(nextStep, prev);
-        return prev;
-      });
-    }
-  }, [currentStep]);
-
-  const goBack = useCallback(() => {
-    const idx = steps.findIndex((s) => s.id === currentStep);
-    const prevIndex = idx - 1;
-    if (prevIndex >= 0) {
-      const prevStep = steps[prevIndex].id;
-      setCurrentStep(prevStep);
-      setBookingData((prev) => {
-        saveWizardState(prevStep, prev);
-        return prev;
-      });
-    }
-  }, [currentStep]);
-
-  const goToStep = useCallback((step: BookingStep) => {
-    setCurrentStep(step);
-    setBookingData((prev) => {
-      saveWizardState(step, prev);
-      return prev;
-    });
-  }, []);
-
-  const resetWizard = useCallback(() => {
-    clearWizardState();
-    setCurrentStep('zipcode');
-    setBookingData(initialBookingData);
-  }, []);
 
   return {
     currentStep,
     currentStepIndex,
-    data: bookingData,
+    data,
     updateData,
     goNext,
     goBack,
     goToStep,
-    resetWizard,
+    resetWizard: clearWizardState,
   };
 }

@@ -56,4 +56,9 @@ public class ServiceMeet : BaseAuditableEntity
     // Customer rating
     public int? CustomerRating { get; set; } // 1-5
     public string? CustomerFeedback { get; set; }
+
+    // Optimistic concurrency token — incremented by the caller on every update.
+    // Uses ConcurrencyCheck because MySql.EntityFrameworkCore does not support rowversion/timestamp columns.
+    [System.ComponentModel.DataAnnotations.ConcurrencyCheck]
+    public int Version { get; set; } = 0;
 }

@@ -16,8 +16,6 @@ public record BookingConfirmationResponse
 
 public record AuthTokenDto
 {
-    public string AccessToken { get; init; } = "";
-    public string RefreshToken { get; init; } = "";
     public DateTime ExpiresAt { get; init; }
     public bool IsNewUser { get; init; }
 }

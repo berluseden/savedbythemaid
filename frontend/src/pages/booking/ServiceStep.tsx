@@ -61,9 +61,9 @@ export const ServiceStep = React.memo(function ServiceStep({
         ))}
       </div>
 
-      <div className="flex justify-between mt-8">
-        <Button variant="outline" onClick={onBack} aria-label="Go back">Back</Button>
-        <Button onClick={onNext} disabled={!selectedId} aria-label="Continue to next step">Continue</Button>
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between sm:gap-0 mt-8">
+        <Button variant="outline" onClick={onBack} aria-label="Go back" className="w-full sm:w-auto">Back</Button>
+        <Button onClick={onNext} disabled={!selectedId} aria-label="Continue to next step" className="w-full sm:w-auto">Continue</Button>
       </div>
     </div>
   );

@@ -1,10 +1,14 @@
 using System.Security.Claims;
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SavedByTheMaid.Api.Extensions;
 using SavedByTheMaid.Api.Services;
-using SavedByTheMaid.Infrastructure.Data;
+using SavedByTheMaid.Application.DTOs.Orders;
 using SavedByTheMaid.Domain.Enums;
+using SavedByTheMaid.Domain.Services;
+using SavedByTheMaid.Infrastructure.Data;
 
 namespace SavedByTheMaid.Api.Controllers;
 
@@ -20,17 +24,29 @@ public class CustomerController : ControllerBase
     private readonly ILogger<CustomerController> _logger;
     private readonly ISchedulingService _schedulingService;
     private readonly IOrderCancellationService _orderCancellationService;
+    private readonly IStatusHistoryService _statusHistoryService;
+    private readonly IValidator<UpdateProfileRequest> _updateProfileValidator;
+    private readonly IValidator<CancelOrderRequest> _cancelValidator;
+    private readonly IValidator<RescheduleOrderRequest> _rescheduleValidator;
 
     public CustomerController(
         ApplicationDbContext context,
         ILogger<CustomerController> logger,
         ISchedulingService schedulingService,
-        IOrderCancellationService orderCancellationService)
+        IOrderCancellationService orderCancellationService,
+        IStatusHistoryService statusHistoryService,
+        IValidator<UpdateProfileRequest> updateProfileValidator,
+        IValidator<CancelOrderRequest> cancelValidator,
+        IValidator<RescheduleOrderRequest> rescheduleValidator)
     {
         _context = context;
         _logger = logger;
         _schedulingService = schedulingService;
         _orderCancellationService = orderCancellationService;
+        _statusHistoryService = statusHistoryService;
+        _updateProfileValidator = updateProfileValidator;
+        _cancelValidator = cancelValidator;
+        _rescheduleValidator = rescheduleValidator;
     }
 
     private string? GetUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -39,11 +55,15 @@ public class CustomerController : ControllerBase
     /// Gets the current customer's orders
     /// </summary>
     [HttpGet("my-orders")]
+    [ProducesResponseType(typeof(CustomerOrdersResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<CustomerOrdersResponse>> GetMyOrders(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10,
-        [FromQuery] string? status = null)
+        [FromQuery] string? status = null,
+        CancellationToken cancellationToken = default)
     {
+        pageSize = Math.Clamp(pageSize, 1, 100);
         var userId = GetUserId();
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
@@ -62,13 +82,13 @@ public class CustomerController : ControllerBase
             query = query.Where(o => o.OrderStatus == orderStatus);
         }
 
-        var totalItems = await query.CountAsync();
+        var totalItems = await query.CountAsync(cancellationToken);
 
         var orders = await query
             .OrderByDescending(o => o.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         var orderDtos = orders.Select(o => {
             var firstMeeting = o.Meetings.OrderBy(m => m.ScheduledStart).FirstOrDefault();
@@ -106,7 +126,10 @@ public class CustomerController : ControllerBase
     /// Gets a specific customer order
     /// </summary>
     [HttpGet("my-orders/{id}")]
-    public async Task<ActionResult<CustomerOrderDetailDto>> GetOrderDetail(int id)
+    [ProducesResponseType(typeof(CustomerOrderDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CustomerOrderDetailDto>> GetOrderDetail(int id, CancellationToken cancellationToken = default)
     {
         var userId = GetUserId();
         if (string.IsNullOrEmpty(userId))
@@ -122,7 +145,7 @@ public class CustomerController : ControllerBase
             .Include(o => o.Rooms)
                 .ThenInclude(r => r.CleaningPlaceRoom)
             .Include(o => o.Meetings)
-            .FirstOrDefaultAsync(o => o.Id == id && o.CustomerId == userId && !o.IsDeleted);
+            .FirstOrDefaultAsync(o => o.Id == id && o.CustomerId == userId && !o.IsDeleted, cancellationToken);
 
         if (order == null)
             return NotFound();
@@ -168,7 +191,9 @@ public class CustomerController : ControllerBase
     /// Gets customer statistics
     /// </summary>
     [HttpGet("stats")]
-    public async Task<ActionResult<CustomerStatsDto>> GetStats()
+    [ProducesResponseType(typeof(CustomerStatsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<CustomerStatsDto>> GetStats(CancellationToken cancellationToken = default)
     {
         var userId = GetUserId();
         if (string.IsNullOrEmpty(userId))
@@ -178,21 +203,20 @@ public class CustomerController : ControllerBase
             .AsNoTracking()
             .Where(o => o.CustomerId == userId && !o.IsDeleted);
 
-        var completedOrders = await orders.CountAsync(o => o.OrderStatus == OrderStatus.Completed);
-        var totalSpent = await orders.Where(o => o.OrderStatus == OrderStatus.Completed).SumAsync(o => o.Total);
-        
-        // Find next upcoming meeting
+        var completedOrders = await orders.CountAsync(o => o.OrderStatus == OrderStatus.Completed, cancellationToken);
+        var totalSpent = await orders.Where(o => o.OrderStatus == OrderStatus.Completed).SumAsync(o => o.Total, cancellationToken);
+
         var now = DateTime.UtcNow;
         var nextMeeting = await _context.ServiceMeets
             .AsNoTracking()
-            .Where(m => m.ServiceOrder != null 
-                && m.ServiceOrder.CustomerId == userId 
+            .Where(m => m.ServiceOrder != null
+                && m.ServiceOrder.CustomerId == userId
                 && !m.ServiceOrder.IsDeleted
                 && (m.ServiceOrder.OrderStatus == OrderStatus.PendingReview || m.ServiceOrder.OrderStatus == OrderStatus.Confirmed)
                 && m.ScheduledStart >= now)
             .OrderBy(m => m.ScheduledStart)
             .Select(m => (DateTime?)m.ScheduledStart)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         string? nextBookingDate = null;
         if (nextMeeting.HasValue)
@@ -210,25 +234,30 @@ public class CustomerController : ControllerBase
     }
 
     /// <summary>
-    /// Cancels a customer order (only if pending or confirmed)
+    /// Cancels a customer order (only if pending or confirmed).
+    /// IDOR check only — full status validation lives in the service.
     /// </summary>
     [HttpPost("my-orders/{id}/cancel")]
-    public async Task<IActionResult> CancelOrder(int id, [FromBody] CustomerCancelRequest request)
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CancelOrder(int id, [FromBody] CancelOrderRequest request, CancellationToken cancellationToken = default)
     {
+        var validationError = await _cancelValidator.ValidateAndReturnErrors(request);
+        if (validationError != null) return validationError;
+
         var userId = GetUserId();
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
-        // Verify the order belongs to this customer
-        var order = await _context.ServiceOrders
+        // IDOR check: ensure the order belongs to this customer
+        var exists = await _context.ServiceOrders
             .AsNoTracking()
-            .FirstOrDefaultAsync(o => o.Id == id && o.CustomerId == userId && !o.IsDeleted);
+            .AnyAsync(o => o.Id == id && o.CustomerId == userId && !o.IsDeleted, cancellationToken);
 
-        if (order == null)
+        if (!exists)
             return NotFound();
-
-        if (order.OrderStatus != OrderStatus.PendingReview && order.OrderStatus != OrderStatus.Confirmed)
-            return BadRequest("Only pending or confirmed orders can be cancelled");
 
         var reason = $"Cancelled by customer: {request.Reason}";
         var (success, error) = await _orderCancellationService.CancelOrderAsync(id, reason, userId);
@@ -240,18 +269,28 @@ public class CustomerController : ControllerBase
     }
 
     /// <summary>
-    /// Reschedules an order to a new date/time (only if confirmed)
+    /// Reschedules an order to a new date/time (only if confirmed, meetings must be reschedulable).
+    /// Validates availability via SchedulingService and updates SlotOccupancies atomically.
     /// </summary>
     [HttpPost("my-orders/{id}/reschedule")]
-    public async Task<IActionResult> RescheduleOrder(int id, [FromBody] RescheduleRequest request)
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> RescheduleOrder(int id, [FromBody] RescheduleOrderRequest request, CancellationToken cancellationToken = default)
     {
+        var validationError = await _rescheduleValidator.ValidateAndReturnErrors(request);
+        if (validationError != null) return validationError;
+
         var userId = GetUserId();
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
         var order = await _context.ServiceOrders
             .Include(o => o.Meetings)
-            .FirstOrDefaultAsync(o => o.Id == id && o.CustomerId == userId && !o.IsDeleted);
+            .FirstOrDefaultAsync(o => o.Id == id && o.CustomerId == userId && !o.IsDeleted, cancellationToken);
 
         if (order == null)
             return NotFound();
@@ -267,25 +306,108 @@ public class CustomerController : ControllerBase
             return BadRequest("Invalid time format");
 
         // Check if date is in the future
-        var newDateTime = newDate.ToDateTime(newTime);
+        var newDateTime = newDate.ToDateTime(newTime, DateTimeKind.Utc);
         if (newDateTime <= DateTime.UtcNow)
             return BadRequest("New date/time must be in the future");
 
-        // Update all meetings for this order
+        // Capture previous statuses before mutation for the audit trail
+        var previousMeetStatuses = order.Meetings.ToDictionary(m => m.Id, m => m.Status);
+
+        // Validate each meeting can be rescheduled
+        var reschedulableMeetings = new List<(Domain.Entities.ServiceMeet meeting, DateTime newStart, DateTime newEnd)>();
         foreach (var meeting in order.Meetings)
         {
+            // Reject meetings in terminal or in-progress states
+            if (meeting.Status == MeetStatus.InProgress ||
+                meeting.Status == MeetStatus.Completed ||
+                meeting.Status == MeetStatus.Cancelled ||
+                meeting.Status == MeetStatus.NoShow)
+            {
+                return BadRequest($"Meeting {meeting.Id} cannot be rescheduled because its status is {meeting.Status}");
+            }
+
             var originalDuration = meeting.ScheduledEnd - meeting.ScheduledStart;
-            meeting.ScheduledStart = newDateTime;
-            meeting.ScheduledEnd = newDateTime.Add(originalDuration);
+            var newEnd = newDateTime.Add(originalDuration);
+            reschedulableMeetings.Add((meeting, newDateTime, newEnd));
         }
 
-        order.SpecialInstructions = string.IsNullOrEmpty(order.SpecialInstructions)
-            ? $"Rescheduled by customer to {newDate:MMM d, yyyy} at {newTime:hh:mm tt}"
-            : $"{order.SpecialInstructions}\n\nRescheduled by customer to {newDate:MMM d, yyyy} at {newTime:hh:mm tt}";
+        // Conflict check and slot swap within a transaction
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            foreach (var (meeting, newStart, newEnd) in reschedulableMeetings)
+            {
+                if (!meeting.AssignedEmployeeId.HasValue)
+                {
+                    // No employee assigned yet — just update times
+                    meeting.ScheduledStart = newStart;
+                    meeting.ScheduledEnd = newEnd;
+                    meeting.Status = MeetStatus.Rescheduled;
+                    continue;
+                }
 
-        await _context.SaveChangesAsync();
+                var employeeId = meeting.AssignedEmployeeId.Value;
 
-        _logger.LogInformation("Order {OrderId} rescheduled by customer {UserId} to {NewDate} {NewTime}", 
+                // (a) Release old slots
+                await _schedulingService.ReleaseSlotsAsync(meeting.Id, OccupancyType.Meeting);
+
+                // (b) Check conflicts for the new slot (excluding this meeting)
+                var conflict = await _schedulingService.CheckConflictsAsync(
+                    employeeId, newStart, newEnd, excludeMeetingId: meeting.Id);
+
+                if (conflict != null)
+                {
+                    // Rollback will restore old slots since they were in the same transaction
+                    await transaction.RollbackAsync();
+                    return Conflict(new { message = $"The requested time slot is not available. {conflict.Message}" });
+                }
+
+                // (c) Acquire slots for the new time
+                await _schedulingService.AcquireSlotsAsync(
+                    employeeId, newStart, newEnd, OccupancyType.Meeting, meeting.Id);
+
+                // (d) Update meeting times and status
+                meeting.ScheduledStart = newStart;
+                meeting.ScheduledEnd = newEnd;
+                meeting.Status = MeetStatus.Rescheduled;
+            }
+
+            order.SpecialInstructions = string.IsNullOrEmpty(order.SpecialInstructions)
+                ? $"Rescheduled by customer to {newDate:MMM d, yyyy} at {newTime:hh:mm tt}"
+                : $"{order.SpecialInstructions}\n\nRescheduled by customer to {newDate:MMM d, yyyy} at {newTime:hh:mm tt}";
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            _logger.LogError(ex, "Failed to reschedule order {OrderId}", id);
+            return StatusCode(500, new { message = "An error occurred while rescheduling. Please try again." });
+        }
+
+        // Record audit trail outside the transaction — a failure here must not
+        // roll back the already-committed reschedule or return 500 to the customer.
+        try
+        {
+            foreach (var (meeting, _, _) in reschedulableMeetings)
+            {
+                var previousStatus = previousMeetStatuses.GetValueOrDefault(meeting.Id, MeetStatus.Scheduled);
+                await _statusHistoryService.RecordMeetStatusChangeAsync(
+                    meeting.Id,
+                    previousStatus,
+                    MeetStatus.Rescheduled,
+                    userId,
+                    reasonCode: "CUSTOMER_RESCHEDULE",
+                    notes: $"Rescheduled by customer to {newDate:yyyy-MM-dd} at {newTime:HH:mm}");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to record audit trail for reschedule of order {OrderId}", id);
+        }
+
+        _logger.LogInformation("Order {OrderId} rescheduled by customer {UserId} to {NewDate} {NewTime}",
             id, userId, request.NewDate, request.NewTime);
 
         return Ok(new { message = "Booking rescheduled successfully" });
@@ -295,13 +417,16 @@ public class CustomerController : ControllerBase
     /// Gets the customer's profile
     /// </summary>
     [HttpGet("profile")]
-    public async Task<ActionResult<CustomerProfileDto>> GetProfile()
+    [ProducesResponseType(typeof(CustomerProfileDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CustomerProfileDto>> GetProfile(CancellationToken cancellationToken = default)
     {
         var userId = GetUserId();
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
-        var user = await _context.Users.FindAsync(userId);
+        var user = await _context.Users.FindAsync(new object[] { userId }, cancellationToken);
         if (user == null)
             return NotFound();
 
@@ -322,13 +447,20 @@ public class CustomerController : ControllerBase
     /// Updates the customer's profile
     /// </summary>
     [HttpPut("profile")]
-    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request, CancellationToken cancellationToken = default)
     {
+        var validationError = await _updateProfileValidator.ValidateAndReturnErrors(request);
+        if (validationError != null) return validationError;
+
         var userId = GetUserId();
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
-        var user = await _context.Users.FindAsync(userId);
+        var user = await _context.Users.FindAsync(new object[] { userId }, cancellationToken);
         if (user == null)
             return NotFound();
 
@@ -341,7 +473,7 @@ public class CustomerController : ControllerBase
         user.State = request.State;
         user.ZipCode = request.ZipCode;
 
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Profile updated for user {UserId}", userId);
 
@@ -351,7 +483,7 @@ public class CustomerController : ControllerBase
 
 #region DTOs
 
-public class CustomerOrdersResponse
+public record CustomerOrdersResponse
 {
     public List<CustomerOrderDto> Items { get; set; } = new();
     public int TotalItems { get; set; }
@@ -360,7 +492,7 @@ public class CustomerOrdersResponse
     public int TotalPages { get; set; }
 }
 
-public class CustomerOrderDto
+public record CustomerOrderDto
 {
     public int Id { get; set; }
     public string ServiceTypeName { get; set; } = string.Empty;
@@ -379,7 +511,7 @@ public class CustomerOrderDto
     public string? SpecialInstructions { get; set; }
 }
 
-public class CustomerOrderDetailDto : CustomerOrderDto
+public record CustomerOrderDetailDto : CustomerOrderDto
 {
     public string State { get; set; } = string.Empty;
     public decimal Subtotal { get; set; }
@@ -389,20 +521,20 @@ public class CustomerOrderDetailDto : CustomerOrderDto
     public List<OrderAdditionalServiceDto> AdditionalServices { get; set; } = new();
 }
 
-public class OrderRoomDto
+public record OrderRoomDto
 {
     public string RoomName { get; set; } = string.Empty;
     public int Quantity { get; set; }
     public decimal Price { get; set; }
 }
 
-public class OrderAdditionalServiceDto
+public record OrderAdditionalServiceDto
 {
     public string ServiceName { get; set; } = string.Empty;
     public decimal Price { get; set; }
 }
 
-public class CustomerStatsDto
+public record CustomerStatsDto
 {
     public int CompletedBookings { get; set; }
     public decimal TotalSpent { get; set; }
@@ -410,18 +542,7 @@ public class CustomerStatsDto
     public int LoyaltyPoints { get; set; }
 }
 
-public class CustomerCancelRequest
-{
-    public string Reason { get; set; } = string.Empty;
-}
-
-public class RescheduleRequest
-{
-    public string NewDate { get; set; } = string.Empty;
-    public string NewTime { get; set; } = string.Empty;
-}
-
-public class CustomerProfileDto
+public record CustomerProfileDto
 {
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
@@ -433,7 +554,7 @@ public class CustomerProfileDto
     public string ZipCode { get; set; } = string.Empty;
 }
 
-public class UpdateProfileRequest
+public record UpdateProfileRequest
 {
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;

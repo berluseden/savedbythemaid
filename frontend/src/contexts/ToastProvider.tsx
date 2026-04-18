@@ -1,30 +1,52 @@
-import React, { useEffect, useState } from 'react';
-import { onToast, type ToastMessage } from '@/lib/toast';
+import React from 'react';
+import { X } from 'lucide-react';
+import { useToasts } from '@/lib/toast';
+import { cn } from '@/lib/utils';
 
+const variantStyles = {
+  error: 'bg-red-50 border-red-200 text-red-800',
+  success: 'bg-green-50 border-green-200 text-green-800',
+  warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
+  info: 'bg-blue-50 border-blue-200 text-blue-800',
+} as const;
+
+/**
+ * Renders the toast tray. The store owns state + timers; this component
+ * is just a subscriber that maps `toasts[]` to DOM. Auto-dismiss happens
+ * inside the store (single source of truth).
+ *
+ * Mounted once at the app root via React tree — keeps the `{children}`
+ * wrapping for backwards compatibility with the previous Provider API.
+ */
 export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
-
-  useEffect(() => {
-    const unsub = onToast((t) => {
-      setToasts((s) => [...s, t]);
-      // auto remove after 5s
-      setTimeout(() => setToasts((s) => s.filter((x) => x.id !== t.id)), 5000);
-    });
-    return unsub;
-  }, []);
+  const { toasts, dismiss } = useToasts();
 
   return (
     <>
       {children}
-      <div className="fixed right-4 bottom-4 z-50 flex flex-col gap-3">
+      <div
+        aria-live="polite"
+        aria-atomic="false"
+        className="fixed right-4 bottom-4 z-50 flex flex-col gap-3 pb-safe"
+      >
         {toasts.map((t) => (
-          <div key={t.id} className={`max-w-sm w-full rounded-lg p-3 shadow-md border ${
-            t.variant === 'error' ? 'bg-red-50 border-red-200 text-red-800' :
-            t.variant === 'success' ? 'bg-green-50 border-green-200 text-green-800' :
-            t.variant === 'warning' ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
-            'bg-blue-50 border-blue-200 text-blue-800'
-          }`} role="status">
-            <div className="text-sm">{t.message}</div>
+          <div
+            key={t.id}
+            role={t.variant === 'error' ? 'alert' : 'status'}
+            className={cn(
+              'max-w-sm w-full rounded-lg p-3 shadow-md border flex items-start gap-2',
+              variantStyles[t.variant]
+            )}
+          >
+            <div className="text-sm flex-1">{t.message}</div>
+            <button
+              type="button"
+              onClick={() => dismiss(t.id)}
+              aria-label="Dismiss notification"
+              className="shrink-0 rounded p-0.5 opacity-70 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
           </div>
         ))}
       </div>

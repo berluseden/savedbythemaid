@@ -59,4 +59,82 @@ body {
   color: rgb(17 24 39);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-family: var(--font-sans);
+  text-rendering: optimizeLegibility;
+}
+
+/* Keyboard focus ring — always visible, never removed */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Respect user motion preferences (WCAG 2.3.3) — disable animations
+ * for users who opt into prefers-reduced-motion. Keeps the UI usable
+ * (not just "no pulse") by also neutralising transform/opacity transitions. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Touch target utility (WCAG 2.5.8 — 24x24 AA, 44x44 AAA). Opt-in via
+ * `.touch-target` instead of forcing it globally (icon-dense tables
+ * would break). Apply this class to standalone interactive elements
+ * that might be used on touch devices. */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Safe-area utilities for iOS notch / home indicator and Android gesture
+ * navigation. Use `pb-safe` on any element that sits at the bottom of the
+ * viewport (bottom bars, modals, drawers). `pt-safe` for top (rare). */
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 0px);
+}
+.pt-safe {
+  padding-top: max(env(safe-area-inset-top), 0px);
+}
+.pl-safe {
+  padding-left: max(env(safe-area-inset-left), 0px);
+}
+.pr-safe {
+  padding-right: max(env(safe-area-inset-right), 0px);
+}
+/* Combined padding for full bottom bars — always gives at least 1rem. */
+.pb-safe-or-4 {
+  padding-bottom: max(env(safe-area-inset-bottom), 1rem);
+}
+
+/* Disable iOS text-size boost in landscape and 16px min on inputs to
+ * prevent iOS Safari's auto-zoom on focus (jarring native-feel breaker). */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+input,
+textarea,
+select {
+  font-size: max(16px, 1em);
+}
+
+/* Allow momentum scroll on the few containers that use overflow-y-auto. */
+.overflow-y-auto,
+.overflow-x-auto,
+.overflow-auto {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Kill the iOS blue tap highlight — replaced by our own focus-visible. */
+a,
+button,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
 }
