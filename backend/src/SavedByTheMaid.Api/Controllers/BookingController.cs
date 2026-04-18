@@ -299,7 +299,7 @@ public class BookingController : ControllerBase
 
         var allMeetings = await _context.ServiceMeets
             .AsNoTracking()
-            .Where(m => employeeIds.Contains(m.AssignedEmployeeId)
+            .Where(m => m.AssignedEmployeeId.HasValue && employeeIds.Contains(m.AssignedEmployeeId.Value)
                         && m.ScheduledStart >= date
                         && m.ScheduledStart < datePlusOne
                         && m.Status != MeetStatus.Cancelled
