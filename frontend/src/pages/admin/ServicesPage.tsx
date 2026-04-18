@@ -168,15 +168,15 @@ export function AdminServicesPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        {/* Page header */}
+        <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Service Types</h1>
-            <p className="text-gray-600">Manage cleaning service types</p>
+            <h1 className="text-2xl font-bold text-gray-900">Services</h1>
+            <p className="mt-1 text-sm text-gray-500">Manage service types and pricing</p>
           </div>
           <button
             onClick={() => { form.reset(defaultValues); setShowModal(true); }}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors"
           >
             <Plus className="h-5 w-5" />
             New Service

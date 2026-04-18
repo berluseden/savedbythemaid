@@ -463,11 +463,11 @@ export function AdminEmployeesPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        {/* Page header */}
+        <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Employees</h1>
-            <p className="text-gray-600">Manage the cleaning team</p>
+            <p className="mt-1 text-sm text-gray-500">Manage your cleaning team</p>
           </div>
           <button
             onClick={() => setShowModal(true)}

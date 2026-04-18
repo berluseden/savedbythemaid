@@ -217,16 +217,16 @@ export function AdminPricingPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        {/* Page header */}
+        <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Pricing Configuration</h1>
-            <p className="text-gray-600">Manage price multipliers and recurrence discounts</p>
+            <h1 className="text-2xl font-bold text-gray-900">Pricing</h1>
+            <p className="mt-1 text-sm text-gray-500">Configure pricing multipliers and discounts</p>
           </div>
           {activeTab === 'multipliers' && (
             <button
               onClick={() => setShowModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors"
             >
               <Plus className="h-5 w-5" />
               New Multiplier

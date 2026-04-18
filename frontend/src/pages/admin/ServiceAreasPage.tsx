@@ -186,17 +186,15 @@ export function AdminServiceAreasPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        {/* Page header */}
+        <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Service Areas</h1>
-            <p className="mt-1 text-sm text-gray-500">
-              Manage geographic areas where you offer service
-            </p>
+            <p className="mt-1 text-sm text-gray-500">Manage coverage zones and ZIP codes</p>
           </div>
           <button
             onClick={() => handleOpenModal()}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#2196f3] px-4 py-2 text-sm font-medium text-white hover:bg-[#29338c] transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark transition-colors"
           >
             <Plus className="h-4 w-4" />
             New Zone
@@ -205,38 +203,32 @@ export function AdminServiceAreasPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-[#b8e07c]/20 p-2">
-                <Globe className="h-5 w-5 text-[#2196f3]" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{serviceAreas.length}</p>
-                <p className="text-sm text-gray-500">Total zones</p>
+          <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm text-gray-500">Total zones</p>
+              <div className="h-9 w-9 rounded-lg bg-brand/10 flex items-center justify-center">
+                <Globe className="h-4 w-4 text-brand" />
               </div>
             </div>
+            <p className="text-2xl font-bold text-gray-900">{serviceAreas.length}</p>
           </div>
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-green-100 p-2">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{activeAreas}</p>
-                <p className="text-sm text-gray-500">Active zones</p>
+          <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm text-gray-500">Active zones</p>
+              <div className="h-9 w-9 rounded-lg bg-brand/10 flex items-center justify-center">
+                <CheckCircle className="h-4 w-4 text-brand" />
               </div>
             </div>
+            <p className="text-2xl font-bold text-gray-900">{activeAreas}</p>
           </div>
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-purple-100 p-2">
-                <MapPin className="h-5 w-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{totalZipCodes}</p>
-                <p className="text-sm text-gray-500">Zip Codes</p>
+          <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm text-gray-500">Zip Codes</p>
+              <div className="h-9 w-9 rounded-lg bg-brand/10 flex items-center justify-center">
+                <MapPin className="h-4 w-4 text-brand" />
               </div>
             </div>
+            <p className="text-2xl font-bold text-gray-900">{totalZipCodes}</p>
           </div>
         </div>
 

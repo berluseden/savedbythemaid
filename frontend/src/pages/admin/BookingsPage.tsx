@@ -201,10 +201,10 @@ export function AdminBookingsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div>
+        {/* Page header */}
+        <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900">Bookings</h1>
-          <p className="text-gray-600">Manage all cleaning bookings</p>
+          <p className="mt-1 text-sm text-gray-500">Manage all customer bookings</p>
         </div>
 
         {/* Stats */}
