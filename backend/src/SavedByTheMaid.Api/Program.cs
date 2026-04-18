@@ -325,9 +325,10 @@ builder.Services.AddAntiforgery(options =>
     options.Cookie.Name = "XSRF-TOKEN";
     options.Cookie.HttpOnly = false;   // JS must read this to send it as header
     options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.SecurePolicy = builder.Environment.IsProduction()
-        ? CookieSecurePolicy.Always
-        : CookieSecurePolicy.SameAsRequest;
+    // SameAsRequest: nginx handles SSL termination, backend sees HTTP internally.
+    // The XSRF-TOKEN cookie is readable by JS (HttpOnly=false) so Secure=Always
+    // would block it behind SSL-only checks that fail in the Docker+nginx setup.
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
 });
 
 // Controllers
