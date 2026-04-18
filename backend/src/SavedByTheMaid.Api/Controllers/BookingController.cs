@@ -29,6 +29,8 @@ public class BookingController : ControllerBase
     private readonly ISchedulingService _schedulingService;
     private readonly IBookingService _bookingService;
     private readonly IValidator<EstimateRequest> _estimateValidator;
+    private readonly IValidator<AvailabilityRequest> _availabilityValidator;
+    private readonly IValidator<CreateSoftReserveRequest> _softReserveValidator;
     private readonly IValidator<ConfirmBookingRequest> _confirmBookingValidator;
     private readonly IWebHostEnvironment _env;
     private readonly IAntiforgery _antiforgery;
@@ -40,6 +42,8 @@ public class BookingController : ControllerBase
         ISchedulingService schedulingService,
         IBookingService bookingService,
         IValidator<EstimateRequest> estimateValidator,
+        IValidator<AvailabilityRequest> availabilityValidator,
+        IValidator<CreateSoftReserveRequest> softReserveValidator,
         IValidator<ConfirmBookingRequest> confirmBookingValidator,
         IWebHostEnvironment env,
         IAntiforgery antiforgery)
@@ -50,6 +54,8 @@ public class BookingController : ControllerBase
         _schedulingService = schedulingService;
         _bookingService = bookingService;
         _estimateValidator = estimateValidator;
+        _availabilityValidator = availabilityValidator;
+        _softReserveValidator = softReserveValidator;
         _confirmBookingValidator = confirmBookingValidator;
         _env = env;
         _antiforgery = antiforgery;
@@ -246,6 +252,9 @@ public class BookingController : ControllerBase
     [EnableRateLimiting("booking")]
     public async Task<ActionResult<AvailabilityResponse>> GetAvailability(AvailabilityRequest request, CancellationToken cancellationToken = default)
     {
+        var validationError = await _availabilityValidator.ValidateAndReturnErrors(request);
+        if (validationError != null) return validationError;
+
         // Validate service area
         var serviceAreaZip = await _context.ServiceAreaZips
             .AsNoTracking()
@@ -404,6 +413,9 @@ public class BookingController : ControllerBase
     [EnableRateLimiting("booking")]
     public async Task<ActionResult<SoftReserveResponse>> CreateSoftReserve(CreateSoftReserveRequest request, CancellationToken cancellationToken = default)
     {
+        var validationError = await _softReserveValidator.ValidateAndReturnErrors(request);
+        if (validationError != null) return validationError;
+
         // Get ServiceAreaId from ZipCode
         var serviceAreaZip = await _context.ServiceAreaZips
             .Include(z => z.ServiceArea)
@@ -602,8 +614,9 @@ public class BookingController : ControllerBase
         var validationError = await _confirmBookingValidator.ValidateAndReturnErrors(request);
         if (validationError != null) return validationError;
 
-        using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-
+        // Note: BookingService.ConfirmBookingAsync manages its own transaction.
+        // Do not open an outer transaction here — nested transactions cause
+        // "connection is already in a transaction" errors with MySQL/Pomelo.
         try
         {
             // Security: never trust the CustomerId coming from the request body —
@@ -685,8 +698,6 @@ public class BookingController : ControllerBase
                 if (result.IsExpired || result.IsAlreadyProcessed) return BadRequest(new { message = result.Error });
                 return BadRequest(new { message = result.Error });
             }
-
-            await transaction.CommitAsync(cancellationToken);
 
             // Set auth cookies for newly created users during booking
             if (result.AuthToken != null)

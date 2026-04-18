@@ -3,6 +3,42 @@ using SavedByTheMaid.Application.DTOs.Booking;
 
 namespace SavedByTheMaid.Application.Validators;
 
+public class AvailabilityRequestValidator : AbstractValidator<AvailabilityRequest>
+{
+    public AvailabilityRequestValidator()
+    {
+        RuleFor(x => x.ZipCode)
+            .NotEmpty().WithMessage("ZIP code is required.")
+            .Matches(@"^\d{5}(-\d{4})?$").WithMessage("Invalid ZIP code format.");
+
+        RuleFor(x => x.EstimatedMinutes)
+            .InclusiveBetween(30, 480).WithMessage("Duration must be between 30 and 480 minutes.");
+
+        RuleFor(x => x.Date)
+            .GreaterThanOrEqualTo(DateTime.UtcNow.Date)
+            .WithMessage("Date must be today or in the future.");
+    }
+}
+
+public class CreateSoftReserveRequestValidator : AbstractValidator<CreateSoftReserveRequest>
+{
+    public CreateSoftReserveRequestValidator()
+    {
+        RuleFor(x => x.EmployeeId)
+            .GreaterThan(0).WithMessage("Invalid employee ID.");
+
+        RuleFor(x => x.ZipCode)
+            .NotEmpty().WithMessage("ZIP code is required.");
+
+        RuleFor(x => x.EstimatedMinutes)
+            .InclusiveBetween(30, 480).WithMessage("Duration must be between 30 and 480 minutes.");
+
+        RuleFor(x => x.Date)
+            .GreaterThanOrEqualTo(DateTime.UtcNow.Date)
+            .WithMessage("Date must be today or in the future.");
+    }
+}
+
 public class EstimateRequestValidator : AbstractValidator<EstimateRequest>
 {
     public EstimateRequestValidator()

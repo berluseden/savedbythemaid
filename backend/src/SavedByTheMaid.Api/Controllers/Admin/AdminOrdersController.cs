@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SavedByTheMaid.Api.Auth;
 using SavedByTheMaid.Api.Services;
+using SavedByTheMaid.Application.DTOs.Orders;
 using SavedByTheMaid.Infrastructure.Data;
 using SavedByTheMaid.Domain.Entities;
 using SavedByTheMaid.Domain.Enums;
@@ -798,10 +799,6 @@ public record CalendarMeetingDto
     public MeetStatus Status { get; init; }
 }
 
-public record UpdateOrderStatusRequest(OrderStatus OrderStatus);
-public record CancelOrderRequest(string? Reason);
-public record UpdateMeetingStatusRequest(MeetStatus Status, string? Notes = null);
-public record AssignEmployeeRequest(int EmployeeId);
 public record RescheduleMeetingRequest(DateTime NewStart, int? NewEmployeeId = null);
 public record AdjustmentRequest(decimal Amount, string Reason);
 

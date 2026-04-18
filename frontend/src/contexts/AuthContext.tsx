@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { authApi, type User } from '../lib/api';
-import { ensureCsrfToken } from '@/lib/csrf';
+import { ensureCsrfToken, clearCsrfToken } from '@/lib/csrf';
 import { getErrorMessage } from '@/shared/lib/error-utils';
 
 interface AuthContextType {
@@ -93,8 +93,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setUser(null);
       setIsLoading(false);
-      // Re-seed a CSRF token so the next login POST from this tab works
-      // without a round-trip.
+      // Clear and re-seed the CSRF token — the backend rotates it on logout.
+      clearCsrfToken();
       void ensureCsrfToken();
     }
   };

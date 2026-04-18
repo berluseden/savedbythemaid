@@ -25,6 +25,13 @@ interface OrderSummary {
   scheduledDate?: string | null;
 }
 
+interface PaginatedOrders {
+  items: OrderSummary[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
 interface EmployeeDto {
   id: number;
   firstName: string;
@@ -37,7 +44,7 @@ export function AdminDashboardPage() {
 
   const ordersQuery = useQuery({
     queryKey: ['admin', 'orders'],
-    queryFn: () => api.get<OrderSummary[]>('/admin/orders', { params: { pageSize: '100' } }).then(r => r.data),
+    queryFn: () => api.get<PaginatedOrders>('/admin/orders', { params: { pageSize: '100' } }).then(r => r.data.items),
   });
 
   const employeesQuery = useQuery({

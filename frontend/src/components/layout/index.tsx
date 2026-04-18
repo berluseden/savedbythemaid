@@ -181,7 +181,7 @@ export function Header() {
           />
           {/* Panel */}
           <div
-            className="absolute right-0 top-0 bottom-0 w-[85%] max-w-sm bg-white shadow-xl flex flex-col animate-in slide-in-from-right duration-200"
+            className="absolute right-0 top-0 bottom-0 w-[85%] max-w-sm bg-white shadow-xl flex flex-col animate-in slide-in-from-right duration-200 z-10"
             style={{ paddingTop: 'env(safe-area-inset-top)' }}
           >
             <div className="flex items-center justify-between px-4 h-16 border-b">

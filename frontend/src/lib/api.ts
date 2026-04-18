@@ -5,7 +5,8 @@ import {
   CSRF_METHODS,
   XSRF_HEADER_NAME,
   ensureCsrfToken,
-  getXsrfCookie,
+  getCsrfRequestToken,
+  setCsrfRequestToken,
 } from '@/lib/csrf';
 
 import type {
@@ -63,17 +64,18 @@ const api = axios.create({
   xsrfHeaderName: XSRF_HEADER_NAME,
 });
 
-// Request interceptor — attach CSRF header on mutating requests.
-// If the XSRF cookie is missing (first POST after a cold start) we seed it
-// via GET /api/antiforgery/token first, then retry.
+// Request interceptor — attach CSRF request token on mutating requests.
+// ASP.NET Core antiforgery uses two distinct tokens: the cookie token (set
+// automatically) and the request token (returned by /api/antiforgery/token
+// in the response body). Only the request token is valid as the header value.
 api.interceptors.request.use(async (config) => {
   const method = (config.method || 'get').toUpperCase();
   if (!CSRF_METHODS.has(method)) return config;
 
-  let token = getXsrfCookie();
+  let token = getCsrfRequestToken();
   if (!token) {
     await ensureCsrfToken();
-    token = getXsrfCookie();
+    token = getCsrfRequestToken();
   }
   if (token) {
     config.headers.set(XSRF_HEADER_NAME, token);
@@ -137,12 +139,15 @@ api.interceptors.response.use(
     if (originalRequest && !originalRequest._csrfRetry && isCsrfFailure(error)) {
       originalRequest._csrfRetry = true;
       try {
-        // Force a fresh token regardless of current cookie state.
-        await axios.get('/api/antiforgery/token', { withCredentials: true });
+        // Force a fresh token regardless of current state.
+        const response = await axios.get<{ requestToken: string }>('/api/antiforgery/token', { withCredentials: true });
+        if (response.data?.requestToken) {
+          setCsrfRequestToken(response.data.requestToken);
+        }
       } catch {
         // If we cannot re-seed, fall through to the generic error path.
       }
-      const fresh = getXsrfCookie();
+      const fresh = getCsrfRequestToken();
       if (fresh) {
         originalRequest.headers = originalRequest.headers ?? {};
         originalRequest.headers[XSRF_HEADER_NAME] = fresh;

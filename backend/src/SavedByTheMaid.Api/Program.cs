@@ -466,11 +466,14 @@ app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => fa
 app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = h => h.Tags.Contains("ready") }).AllowAnonymous();
 app.MapHealthChecks("/health").AllowAnonymous();
 
-// CSRF token endpoint — SPA calls this on load to get the XSRF-TOKEN cookie
+// CSRF token endpoint — SPA calls this on load to get the XSRF-TOKEN cookie.
+// Returns the request token in the body so the frontend can send it as the X-XSRF-TOKEN header.
+// The cookie token (set automatically by ASP.NET antiforgery) is a different value — sending
+// the cookie value as the header would always fail validation.
 app.MapGet("/api/antiforgery/token", (Microsoft.AspNetCore.Antiforgery.IAntiforgery antiforgery, HttpContext context) =>
 {
-    antiforgery.GetAndStoreTokens(context);
-    return Results.Ok();
+    var tokens = antiforgery.GetAndStoreTokens(context);
+    return Results.Ok(new { requestToken = tokens.RequestToken });
 }).AllowAnonymous().DisableAntiforgery();
 
 // Fallback for SPA routing - AT THE END, ONLY for routes that DON'T start with /api

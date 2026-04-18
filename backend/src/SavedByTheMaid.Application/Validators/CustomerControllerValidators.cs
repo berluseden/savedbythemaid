@@ -21,7 +21,9 @@ public class RescheduleOrderRequestValidator : AbstractValidator<RescheduleOrder
             .NotEmpty()
             .WithMessage("New date is required.")
             .Must(d => DateOnly.TryParse(d, out _))
-            .WithMessage("New date must be a valid date in format YYYY-MM-DD.");
+            .WithMessage("New date must be a valid date in format YYYY-MM-DD.")
+            .Must(d => !DateOnly.TryParse(d, out var parsed) || parsed >= DateOnly.FromDateTime(DateTime.UtcNow))
+            .WithMessage("New date must be today or in the future.");
 
         RuleFor(x => x.NewTime)
             .NotEmpty()
