@@ -14,10 +14,10 @@ export const adminBookingsQuery = () =>
   queryOptions({
     queryKey: queryKeys.admin.bookings.list({ pageSize: 100 }),
     queryFn: async () => {
-      const res = await api.get<OrderSummary[]>('/admin/orders', {
+      const res = await api.get<{ items: OrderSummary[]; totalCount: number }>('/admin/orders', {
         params: { pageSize: '100' },
       });
-      return res.data;
+      return res.data.items;
     },
   });
 
