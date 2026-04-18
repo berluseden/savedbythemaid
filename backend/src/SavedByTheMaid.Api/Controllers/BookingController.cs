@@ -842,19 +842,6 @@ public record CleaningPlaceRoomDto
     public decimal BasePrice { get; init; }
 }
 
-public record ServiceTypeDto
-{
-    public int Id { get; init; }
-    public string Name { get; init; } = "";
-    public string? Description { get; init; }
-    public decimal Price { get; init; }
-    public decimal PricePerBedroom { get; init; }
-    public decimal PricePerBathroom { get; init; }
-    public int EstimatedMinutes { get; init; }
-    public int MinutesPerBedroom { get; init; }
-    public int MinutesPerBathroom { get; init; }
-}
-
 public record AdditionalServiceDto
 {
     public int Id { get; init; }

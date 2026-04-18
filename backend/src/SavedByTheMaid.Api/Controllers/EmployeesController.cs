@@ -214,14 +214,6 @@ public record EmployeePublicDetailDto
     public List<EmployeeScheduleDto> Schedules { get; init; } = new();
 }
 
-public record EmployeeScheduleDto
-{
-    public DayOfWeek DayOfWeek { get; init; }
-    public TimeSpan StartTime { get; init; }
-    public TimeSpan EndTime { get; init; }
-    public bool IsAvailable { get; init; }
-}
-
 public record CreateScheduleRequest(
     DayOfWeek DayOfWeek,
     TimeSpan StartTime,

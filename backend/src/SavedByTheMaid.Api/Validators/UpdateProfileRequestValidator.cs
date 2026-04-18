@@ -1,4 +1,5 @@
 using FluentValidation;
+using SavedByTheMaid.Api.Controllers;
 using SavedByTheMaid.Application.Validators;
 
 namespace SavedByTheMaid.Api.Validators;
