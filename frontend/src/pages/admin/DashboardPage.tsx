@@ -4,11 +4,9 @@ import {
   Calendar,
   Users,
   DollarSign,
-  TrendingUp,
   Clock,
   CheckCircle,
   AlertCircle,
-  ArrowUpRight,
 } from 'lucide-react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import api from '../../lib/api';
@@ -144,88 +142,58 @@ export function AdminDashboardPage() {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600">Business overview</p>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Dashboard</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Business overview</p>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Total Bookings */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Total Bookings</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalBookings}</p>
-              </div>
-              <div className="w-12 h-12 bg-accent-light/20 rounded-lg flex items-center justify-center">
-                <Calendar className="h-6 w-6 text-brand" />
+          <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm text-gray-500 font-medium">Total Bookings</p>
+              <div className="w-9 h-9 bg-brand/10 rounded-lg flex items-center justify-center">
+                <Calendar className="h-4 w-4 text-brand" aria-hidden="true" />
               </div>
             </div>
-            <div className="mt-4 flex items-center gap-2">
-              <span className="flex items-center text-sm text-green-600">
-                <ArrowUpRight className="h-4 w-4" />
-                Real data
-              </span>
-            </div>
+            <p className="text-3xl font-bold text-gray-900">{stats.totalBookings}</p>
           </div>
 
           {/* Revenue */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Total Revenue</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalRevenue)}</p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <DollarSign className="h-6 w-6 text-green-600" />
+          <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm text-gray-500 font-medium">Total Revenue</p>
+              <div className="w-9 h-9 bg-brand/10 rounded-lg flex items-center justify-center">
+                <DollarSign className="h-4 w-4 text-brand" aria-hidden="true" />
               </div>
             </div>
-            <div className="mt-4 flex items-center gap-2">
-              <span className="flex items-center text-sm text-green-600">
-                <TrendingUp className="h-4 w-4" />
-                All time
-              </span>
-            </div>
+            <p className="text-3xl font-bold text-gray-900">{formatCurrency(stats.totalRevenue)}</p>
           </div>
 
           {/* Employees */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Active Employees</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.activeEmployees}/{stats.totalEmployees}</p>
-              </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Users className="h-6 w-6 text-purple-600" />
+          <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm text-gray-500 font-medium">Active Employees</p>
+              <div className="w-9 h-9 bg-brand/10 rounded-lg flex items-center justify-center">
+                <Users className="h-4 w-4 text-brand" aria-hidden="true" />
               </div>
             </div>
-            <div className="mt-4">
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-purple-600 h-2 rounded-full"
-                  style={{ width: stats.totalEmployees > 0 ? `${(stats.activeEmployees / stats.totalEmployees) * 100}%` : '0%' }}
-                />
-              </div>
-            </div>
+            <p className="text-3xl font-bold text-gray-900">{stats.activeEmployees}<span className="text-lg font-medium text-gray-400">/{stats.totalEmployees}</span></p>
           </div>
 
           {/* Pending */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">Pending</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.pendingBookings}</p>
-              </div>
-              <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                <Clock className="h-6 w-6 text-yellow-600" />
+          <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm text-gray-500 font-medium">Pending</p>
+              <div className="w-9 h-9 bg-brand/10 rounded-lg flex items-center justify-center">
+                <Clock className="h-4 w-4 text-brand" aria-hidden="true" />
               </div>
             </div>
-            <div className="mt-4 flex items-center gap-4">
-              <span className="flex items-center gap-1 text-sm text-green-600">
-                <CheckCircle className="h-4 w-4" />
-                {stats.completedBookings} completed
-              </span>
-            </div>
+            <p className="text-3xl font-bold text-gray-900">{stats.pendingBookings}</p>
+            <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1">
+              <CheckCircle className="h-3.5 w-3.5 text-success" aria-hidden="true" />
+              {stats.completedBookings} completed
+            </p>
           </div>
         </div>
 
