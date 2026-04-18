@@ -21,7 +21,7 @@ services:
 
   api:
     build:
-      context: ./SavedByTheMaid.New
+      context: ./backend
       dockerfile: Dockerfile.api
     restart: unless-stopped
     depends_on:
@@ -38,7 +38,7 @@ services:
 
   frontend:
     build:
-      context: ./SavedByTheMaid.New
+      context: ./frontend
       dockerfile: Dockerfile.frontend
     restart: unless-stopped
     depends_on:

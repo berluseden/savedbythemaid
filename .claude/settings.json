@@ -1,0 +1,26 @@
+{
+  "model": "sonnet",
+  "autoMemoryEnabled": true,
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(dotnet *)",
+      "Bash(npm *)",
+      "Bash(docker *)",
+      "Bash(ssh *)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/post-edit-validate.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

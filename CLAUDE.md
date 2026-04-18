@@ -2,6 +2,11 @@
 
 Cleaning service booking platform. Monorepo with .NET backend + React frontend.
 
+## Workflow (always follow this)
+1. **Before coding**: `WebSearch` for latest 2026 docs of the library/API being used
+2. **After coding**: use the `validator` subagent to run build + type check + convention review
+3. **After fixing**: commit and push — never leave changes only on the VM
+
 ## Tech Stack
 
 - **Backend**: .NET 10, ASP.NET Core Web API, Clean Architecture
@@ -13,28 +18,32 @@ Cleaning service booking platform. Monorepo with .NET backend + React frontend.
 ## Project Structure
 
 ```
-SavedByTheMaid.New/
+backend/
 ├── src/
 │   ├── SavedByTheMaid.Api/          # Controllers, middleware, auth, Program.cs
-│   │   └── ClientApp/               # React frontend (Vite)
 │   ├── SavedByTheMaid.Application/  # DTOs, validators (FluentValidation), service interfaces
 │   ├── SavedByTheMaid.Domain/       # Entities, enums, domain services
 │   └── SavedByTheMaid.Infrastructure/ # EF Core DbContext, data seeder, migrations
 ├── tests/
 │   └── SavedByTheMaid.Api.Tests/    # xUnit + FluentAssertions + Moq
-├── Dockerfile.api                   # .NET API container
-├── Dockerfile.frontend              # React build + nginx container
-└── nginx-frontend.conf              # Frontend nginx with /api/ proxy
+├── SavedByTheMaid.sln
+└── Dockerfile.api
+frontend/
+├── src/                             # React app source
+├── public/
+├── nginx-frontend.conf              # nginx with /api/ proxy
+└── Dockerfile.frontend
+docker-compose.yml                   # Orchestrates mysql + api + frontend
 ```
 
 ## Build & Test Commands
 
 ```bash
-# Backend
-dotnet build SavedByTheMaid.New
-dotnet test SavedByTheMaid.New --no-build
+# Backend (from repo root)
+dotnet build backend
+dotnet test backend --no-build
 
-# Frontend (from SavedByTheMaid.New/src/SavedByTheMaid.Api/ClientApp/)
+# Frontend (from frontend/)
 npm run dev          # Dev server
 npx tsc --noEmit     # Type check
 npm run build        # Production build
