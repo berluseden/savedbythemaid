@@ -5,6 +5,7 @@ import {
   CSRF_METHODS,
   XSRF_HEADER_NAME,
   ensureCsrfToken,
+  clearCsrfToken,
   getCsrfRequestToken,
   setCsrfRequestToken,
 } from '@/lib/csrf';
@@ -181,6 +182,10 @@ api.interceptors.response.use(
         // The _retry flag on originalRequest prevents the 401 interceptor from
         // triggering a second refresh cycle for this specific call.
         await api.post('/auth/refresh', {});
+        // Re-seed the CSRF token: any auth cookie change can invalidate the
+        // current request token, so fetch a fresh one before retrying.
+        clearCsrfToken();
+        await ensureCsrfToken();
         onTokenRefreshed();
         return api(originalRequest);
       } catch (refreshError) {

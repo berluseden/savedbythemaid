@@ -2,7 +2,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
 using System.Text;
 using FluentValidation;
-using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -35,7 +34,6 @@ public class AuthController : ControllerBase
     private readonly IValidator<ForgotPasswordRequest> _forgotPasswordValidator;
     private readonly IValidator<ResetPasswordWithTokenRequest> _resetPasswordValidator;
     private readonly IWebHostEnvironment _env;
-    private readonly IAntiforgery _antiforgery;
 
     public AuthController(
         ApplicationDbContext context,
@@ -49,8 +47,7 @@ public class AuthController : ControllerBase
         IValidator<ChangePasswordRequest> changePasswordValidator,
         IValidator<ForgotPasswordRequest> forgotPasswordValidator,
         IValidator<ResetPasswordWithTokenRequest> resetPasswordValidator,
-        IWebHostEnvironment env,
-        IAntiforgery antiforgery)
+        IWebHostEnvironment env)
     {
         _context = context;
         _jwtService = jwtService;
@@ -64,7 +61,6 @@ public class AuthController : ControllerBase
         _forgotPasswordValidator = forgotPasswordValidator;
         _resetPasswordValidator = resetPasswordValidator;
         _env = env;
-        _antiforgery = antiforgery;
     }
 
     /// <summary>
@@ -542,9 +538,6 @@ public class AuthController : ControllerBase
 
     private void SetAuthCookies(string accessToken, string refreshToken)
     {
-        // Renew XSRF token so the client gets a fresh one bound to this session
-        _antiforgery.GetAndStoreTokens(HttpContext);
-
         // Secure=false: nginx terminates SSL externally; backend runs on HTTP internally.
         // The browser communicates with nginx over HTTPS, so cookies are transmitted
         // securely at the network level even without the Secure flag on the cookie itself.

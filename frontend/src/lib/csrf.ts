@@ -1,17 +1,3 @@
-/**
- * CSRF token helpers — ASP.NET Core antiforgery two-token pattern.
- *
- * ASP.NET Core antiforgery uses TWO distinct tokens:
- *  - Cookie token: set automatically in the XSRF-TOKEN cookie (not HttpOnly).
- *  - Request token: a separate value that must be sent as the X-XSRF-TOKEN header.
- *
- * Sending the cookie value as the header is WRONG and always fails validation.
- * The backend /api/antiforgery/token endpoint returns { requestToken } in the
- * response body — that value must be stored and sent as the header on mutations.
- *
- * The backend also renews both tokens after login / register / refresh.
- */
-
 import axios from 'axios';
 
 export const XSRF_HEADER_NAME = 'X-XSRF-TOKEN';
@@ -21,6 +7,11 @@ export const CSRF_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 // In-memory storage for the request token (separate from the cookie token).
 let requestToken: string | null = null;
+let seedInFlight: Promise<void> | null = null;
+
+// Generation counter — incremented on clearCsrfToken() so any in-flight
+// seed request from a previous generation does not overwrite the current token.
+let generation = 0;
 
 /** Returns the current CSRF request token, or null if not yet seeded. */
 export function getCsrfRequestToken(): string | null {
@@ -39,29 +30,32 @@ export function setCsrfRequestToken(token: string): void {
 export function clearCsrfToken(): void {
   requestToken = null;
   seedInFlight = null;
+  generation++;
 }
-
-let seedInFlight: Promise<void> | null = null;
 
 /**
  * Ensures a CSRF request token is available. Safe to call multiple times —
  * concurrent callers share a single in-flight request and no-op once the
- * token is present.
+ * token is present. A generation counter ensures that a stale in-flight
+ * request (started before a clearCsrfToken() call) cannot overwrite a
+ * fresher token obtained after the clear.
  */
 export async function ensureCsrfToken(): Promise<void> {
   if (requestToken) return;
   if (seedInFlight) return seedInFlight;
 
+  const gen = generation;
+
   seedInFlight = axios
     .get<{ requestToken: string }>('/api/antiforgery/token', { withCredentials: true })
     .then((response) => {
-      requestToken = response.data.requestToken;
+      if (generation === gen) {
+        requestToken = response.data.requestToken;
+      }
       seedInFlight = null;
     })
     .catch((error) => {
       seedInFlight = null;
-      // Surface in console but don't throw — the next mutation will 403
-      // with a clear backend error if the token truly never arrives.
       console.warn('Failed to seed CSRF token', error);
     });
 
