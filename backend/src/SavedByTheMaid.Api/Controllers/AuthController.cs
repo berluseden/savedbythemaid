@@ -431,7 +431,7 @@ public class AuthController : ControllerBase
     /// </summary>
     [HttpPost("refresh")]
     [AllowAnonymous]
-    [EnableRateLimiting("auth-sensitive")]
+    [EnableRateLimiting("auth-refresh")]
     public async Task<IActionResult> RefreshToken(CancellationToken cancellationToken = default)
     {
         // Tokens are exclusively read from HttpOnly cookies — no JSON body fallback
@@ -542,16 +542,17 @@ public class AuthController : ControllerBase
 
     private void SetAuthCookies(string accessToken, string refreshToken)
     {
-        var isProduction = _env.IsProduction();
-
         // Renew XSRF token so the client gets a fresh one bound to this session
         _antiforgery.GetAndStoreTokens(HttpContext);
 
+        // Secure=false: nginx terminates SSL externally; backend runs on HTTP internally.
+        // The browser communicates with nginx over HTTPS, so cookies are transmitted
+        // securely at the network level even without the Secure flag on the cookie itself.
         Response.Cookies.Append("accessToken", accessToken, new CookieOptions
         {
             HttpOnly = true,
-            Secure = isProduction,
-            SameSite = isProduction ? SameSiteMode.Strict : SameSiteMode.Lax,
+            Secure = false,
+            SameSite = SameSiteMode.Lax,
             Expires = DateTimeOffset.UtcNow.AddMinutes(60),
             IsEssential = true,
             Path = "/api"
@@ -560,8 +561,8 @@ public class AuthController : ControllerBase
         Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
         {
             HttpOnly = true,
-            Secure = isProduction,
-            SameSite = isProduction ? SameSiteMode.Strict : SameSiteMode.Lax,
+            Secure = false,
+            SameSite = SameSiteMode.Lax,
             Expires = DateTimeOffset.UtcNow.AddDays(7),
             IsEssential = true,
             Path = "/api/auth"
@@ -570,8 +571,8 @@ public class AuthController : ControllerBase
 
     private void ClearAuthCookies()
     {
-        Response.Cookies.Delete("accessToken", new CookieOptions { Path = "/api" });
-        Response.Cookies.Delete("refreshToken", new CookieOptions { Path = "/api/auth" });
+        Response.Cookies.Delete("accessToken", new CookieOptions { Path = "/api", Secure = false, SameSite = SameSiteMode.Lax });
+        Response.Cookies.Delete("refreshToken", new CookieOptions { Path = "/api/auth", Secure = false, SameSite = SameSiteMode.Lax });
     }
 
     private async Task<string> RotateRefreshTokenAsync(RefreshToken oldToken, string userId, string newAccessToken, CancellationToken cancellationToken = default)

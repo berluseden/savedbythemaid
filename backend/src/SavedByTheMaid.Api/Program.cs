@@ -265,20 +265,29 @@ builder.Services.AddRateLimiter(options =>
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 AutoReplenishment = true,
-                PermitLimit = 100,
+                PermitLimit = 300,
                 Window = TimeSpan.FromMinutes(1)
             }));
 
     options.AddFixedWindowLimiter("booking", options =>
     {
-        options.PermitLimit = 10;
+        options.PermitLimit = 20;
         options.Window = TimeSpan.FromMinutes(1);
         options.AutoReplenishment = true;
     });
 
+    // login/register/forgot-password — human-driven, 15/min is enough to stop brute-force
     options.AddFixedWindowLimiter("auth-sensitive", options =>
     {
-        options.PermitLimit = 5;
+        options.PermitLimit = 15;
+        options.Window = TimeSpan.FromMinutes(1);
+        options.AutoReplenishment = true;
+    });
+
+    // refresh is called automatically by the frontend interceptor — needs a higher limit
+    options.AddFixedWindowLimiter("auth-refresh", options =>
+    {
+        options.PermitLimit = 30;
         options.Window = TimeSpan.FromMinutes(1);
         options.AutoReplenishment = true;
     });
