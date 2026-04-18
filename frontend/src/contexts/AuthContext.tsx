@@ -60,6 +60,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await authApi.login({ email, password, rememberMe });
       setUser(response.data.user);
+      // Backend rotates the antiforgery tokens on login — refresh so subsequent
+      // mutations use the new paired request token, not the stale pre-login one.
+      clearCsrfToken();
+      await ensureCsrfToken();
       return getRedirectPath(response.data.user.roles);
     } catch (err: unknown) {
       const msg = getErrorMessage(err, 'Invalid email or password');
@@ -74,6 +78,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await authApi.register(data);
       setUser(response.data.user);
+      // Same token rotation happens on register.
+      clearCsrfToken();
+      await ensureCsrfToken();
       return getRedirectPath(response.data.user.roles);
     } catch (err: unknown) {
       const msg = getErrorMessage(err, 'Could not create account');
