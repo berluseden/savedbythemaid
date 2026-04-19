@@ -546,7 +546,7 @@ public class AuthController : ControllerBase
             HttpOnly = true,
             Secure = false,
             SameSite = SameSiteMode.Lax,
-            Expires = DateTimeOffset.UtcNow.AddMinutes(60),
+            Expires = DateTimeOffset.UtcNow.AddMinutes(_configuration.GetValue<int>("Jwt:ExpirationMinutes", 1440)),
             IsEssential = true,
             Path = "/api"
         });
@@ -556,7 +556,7 @@ public class AuthController : ControllerBase
             HttpOnly = true,
             Secure = false,
             SameSite = SameSiteMode.Lax,
-            Expires = DateTimeOffset.UtcNow.AddDays(7),
+            Expires = DateTimeOffset.UtcNow.AddDays(_configuration.GetValue<int>("Jwt:RefreshExpirationDays", 30)),
             IsEssential = true,
             Path = "/api/auth"
         });
@@ -585,7 +585,7 @@ public class AuthController : ControllerBase
             Token = newTokenValue,
             JwtId = jti,
             UserId = userId,
-            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            ExpiresAt = DateTime.UtcNow.AddDays(_configuration.GetValue<int>("Jwt:RefreshExpirationDays", 30)),
             CreatedAt = DateTime.UtcNow
         };
 
@@ -606,7 +606,7 @@ public class AuthController : ControllerBase
             Token = tokenValue,
             JwtId = jti,
             UserId = userId,
-            ExpiresAt = DateTime.UtcNow.AddDays(7),
+            ExpiresAt = DateTime.UtcNow.AddDays(_configuration.GetValue<int>("Jwt:RefreshExpirationDays", 30)),
             CreatedAt = DateTime.UtcNow
         };
 

@@ -802,7 +802,7 @@ public class BookingController : ControllerBase
             HttpOnly = true,
             Secure = isProduction,
             SameSite = isProduction ? SameSiteMode.Strict : SameSiteMode.Lax,
-            Expires = DateTimeOffset.UtcNow.AddDays(7),
+            Expires = DateTimeOffset.UtcNow.AddDays(30),
             IsEssential = true,
             Path = "/api/auth"
         });
