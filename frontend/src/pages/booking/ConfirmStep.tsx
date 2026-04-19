@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Calendar, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui';
@@ -12,6 +12,8 @@ interface ConfirmStepProps {
   estimate: EstimateResponse | null;
   onBack: () => void;
   onSuccess: (confirmation: BookingConfirmation) => void;
+  onGoToSchedule: () => void;
+  onGoToContact: () => void;
 }
 
 export const ConfirmStep = React.memo(function ConfirmStep({
@@ -19,8 +21,19 @@ export const ConfirmStep = React.memo(function ConfirmStep({
   estimate,
   onBack,
   onSuccess,
+  onGoToSchedule,
+  onGoToContact,
 }: ConfirmStepProps) {
   const [error, setError] = useState<string | null>(null);
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimerRef.current !== null) {
+        clearTimeout(redirectTimerRef.current);
+      }
+    };
+  }, []);
 
   const confirmBooking = useMutation({
     mutationFn: () =>
@@ -74,7 +87,10 @@ export const ConfirmStep = React.memo(function ConfirmStep({
         return;
       }
       if (maybe.response?.status === 400) {
-        setError('Your time slot may have expired. Please go back and select a new time.');
+        setError('Your time slot expired. Taking you back to pick a new time…');
+        redirectTimerRef.current = setTimeout(() => {
+          onGoToSchedule();
+        }, 1500);
         return;
       }
       const message = maybe.response?.data?.message || maybe.response?.data?.details || maybe.message || 'Something went wrong. Please try again.';
@@ -84,12 +100,15 @@ export const ConfirmStep = React.memo(function ConfirmStep({
 
   const handleConfirm = useCallback(() => {
     if (!data.softReserveId || !data.sessionId) {
-      setError('Your time slot reservation has expired. Please go back and choose a new time.');
+      setError('Your time slot expired. Taking you back to pick a new time…');
+      redirectTimerRef.current = setTimeout(() => {
+        onGoToSchedule();
+      }, 1500);
       return;
     }
     setError(null);
     confirmBooking.mutate();
-  }, [confirmBooking, data.softReserveId, data.sessionId]);
+  }, [confirmBooking, data.softReserveId, data.sessionId, onGoToSchedule]);
 
   const scheduledDate = new Date(data.date);
 
@@ -107,28 +126,46 @@ export const ConfirmStep = React.memo(function ConfirmStep({
       <div className="space-y-6">
         {/* Schedule Summary */}
         <div className="bg-secondary/10 rounded-xl p-6">
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary/20">
-              <Calendar className="h-7 w-7 text-brand" />
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary/20">
+                <Calendar className="h-7 w-7 text-brand" />
+              </div>
+              <div>
+                <p className="text-lg font-semibold text-gray-900">
+                  {scheduledDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                </p>
+                <p className="text-brand font-medium">
+                  {new Date(`2000-01-01T${data.timeSlot}`).toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true,
+                  })}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-lg font-semibold text-gray-900">
-                {scheduledDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-              </p>
-              <p className="text-brand font-medium">
-                {new Date(`2000-01-01T${data.timeSlot}`).toLocaleTimeString('en-US', {
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  hour12: true,
-                })}
-              </p>
-            </div>
+            <button
+              type="button"
+              onClick={onGoToSchedule}
+              className="text-sm text-brand hover:underline shrink-0"
+            >
+              Edit
+            </button>
           </div>
         </div>
 
         {/* Address */}
         <div className="border rounded-xl p-4">
-          <h3 className="font-semibold text-gray-900 mb-2">Service Address</h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-semibold text-gray-900">Service Address</h3>
+            <button
+              type="button"
+              onClick={onGoToContact}
+              className="text-sm text-brand hover:underline"
+            >
+              Edit
+            </button>
+          </div>
           <p className="text-gray-600">
             {data.address}<br />
             {data.city}, {data.state} {data.zipCode}
