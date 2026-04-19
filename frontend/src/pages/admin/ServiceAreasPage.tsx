@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -12,6 +12,7 @@ import {
   ChevronUp,
   CheckCircle,
   Globe,
+  AlertTriangle,
 } from 'lucide-react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import api from '../../lib/api';
@@ -57,21 +58,65 @@ const defaultValues: ServiceAreaFormData = {
   isActive: true,
 };
 
+function cn(...classes: (string | boolean | undefined | null)[]): string {
+  return classes.filter(Boolean).join(' ');
+}
+
+// Inline toggle switch component
+interface ToggleSwitchProps {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label?: string;
+  disabled?: boolean;
+}
+
+function ToggleSwitch({ checked, onChange, label, disabled }: ToggleSwitchProps) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label ?? (checked ? 'Deactivate zone' : 'Activate zone')}
+      disabled={disabled}
+      onClick={(e) => {
+        e.stopPropagation();
+        onChange(!checked);
+      }}
+      className={cn(
+        'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand',
+        checked ? 'bg-brand' : 'bg-gray-200',
+        disabled && 'cursor-not-allowed opacity-50',
+      )}
+    >
+      <span
+        className={cn(
+          'inline-block h-4 w-4 rounded-full bg-white shadow transition-transform',
+          checked ? 'translate-x-4' : 'translate-x-0',
+        )}
+      />
+    </button>
+  );
+}
+
 export function AdminServiceAreasPage() {
   const [serviceAreas, setServiceAreas] = useState<ServiceArea[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedArea, setExpandedArea] = useState<number | null>(null);
 
+  // Optimistic toggle tracking: areaId -> pending state
+  const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set());
+
   // Modal state
   const [showModal, setShowModal] = useState(false);
   const [editingArea, setEditingArea] = useState<ServiceArea | null>(null);
 
-  // Zip code modal
-  const [showZipModal, setShowZipModal] = useState(false);
-  const [selectedAreaId, setSelectedAreaId] = useState<number | null>(null);
-  const [newZipCode, setNewZipCode] = useState('');
-  const [zipError, setZipError] = useState('');
+  // Inline ZIP input state per area
+  const [zipInputs, setZipInputs] = useState<Record<number, string>>({});
+  const [zipErrors, setZipErrors] = useState<Record<number, string>>({});
+  const [zipAdding, setZipAdding] = useState<Record<number, boolean>>({});
+  const [zipBulkMsg, setZipBulkMsg] = useState<Record<number, string>>({});
+  const zipInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
 
   // Delete confirmation state
   const [deleteAreaId, setDeleteAreaId] = useState<number | null>(null);
@@ -143,37 +188,30 @@ export function AdminServiceAreasPage() {
     }
   };
 
-  const handleOpenZipModal = (areaId: number) => {
-    setSelectedAreaId(areaId);
-    setNewZipCode('');
-    setZipError('');
-    setShowZipModal(true);
-  };
-
-  const handleAddZipCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedAreaId || !newZipCode.trim()) return;
-
-    // Validate zip code format (5 digits)
-    if (!/^\d{5}$/.test(newZipCode.trim())) {
-      setZipError('Zip code must be 5 digits');
-      return;
-    }
+  const handleToggleActive = async (area: ServiceArea, newValue: boolean) => {
+    // Optimistic update
+    setServiceAreas((prev) =>
+      prev.map((a) => (a.id === area.id ? { ...a, isActive: newValue } : a)),
+    );
+    setTogglingIds((prev) => new Set(prev).add(area.id));
 
     try {
-      await api.post(`/serviceareas/${selectedAreaId}/zipcodes`, {
-        zipCode: newZipCode.trim(),
+      await api.put(`/serviceareas/${area.id}`, {
+        name: area.name,
+        description: area.description,
+        isActive: newValue,
       });
-      setShowZipModal(false);
-      setNewZipCode('');
-      fetchServiceAreas();
-    } catch (error: unknown) {
-      const maybe = error as { response?: { status?: number } };
-      if (maybe.response?.status === 409) {
-        setZipError('This zip code is already assigned to another zone');
-      } else {
-        setZipError('Error adding zip code');
-      }
+    } catch {
+      // Rollback on error
+      setServiceAreas((prev) =>
+        prev.map((a) => (a.id === area.id ? { ...a, isActive: area.isActive } : a)),
+      );
+    } finally {
+      setTogglingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(area.id);
+        return next;
+      });
     }
   };
 
@@ -187,16 +225,112 @@ export function AdminServiceAreasPage() {
     }
   };
 
+  const handleZipInputChange = (areaId: number, value: string) => {
+    // Allow only digits
+    const digits = value.replace(/\D/g, '').slice(0, 5);
+    setZipInputs((prev) => ({ ...prev, [areaId]: digits }));
+    setZipErrors((prev) => ({ ...prev, [areaId]: '' }));
+    setZipBulkMsg((prev) => ({ ...prev, [areaId]: '' }));
+  };
+
+  const addSingleZip = async (areaId: number, zip: string): Promise<boolean> => {
+    try {
+      await api.post(`/serviceareas/${areaId}/zipcodes`, { zipCode: zip });
+      return true;
+    } catch (error: unknown) {
+      const maybe = error as { response?: { status?: number } };
+      if (maybe.response?.status === 409) {
+        setZipErrors((prev) => ({
+          ...prev,
+          [areaId]: `${zip} is already assigned to another zone`,
+        }));
+      } else {
+        setZipErrors((prev) => ({ ...prev, [areaId]: 'Error adding zip code' }));
+      }
+      return false;
+    }
+  };
+
+  const handleZipKeyDown = async (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    areaId: number,
+  ) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+
+    const zip = (zipInputs[areaId] ?? '').trim();
+    if (!zip) return;
+
+    if (!/^\d{5}$/.test(zip)) {
+      setZipErrors((prev) => ({ ...prev, [areaId]: 'ZIP must be exactly 5 digits' }));
+      return;
+    }
+
+    setZipAdding((prev) => ({ ...prev, [areaId]: true }));
+    const ok = await addSingleZip(areaId, zip);
+    setZipAdding((prev) => ({ ...prev, [areaId]: false }));
+
+    if (ok) {
+      setZipInputs((prev) => ({ ...prev, [areaId]: '' }));
+      fetchServiceAreas();
+    }
+  };
+
+  const handleZipPaste = async (
+    e: React.ClipboardEvent<HTMLInputElement>,
+    areaId: number,
+  ) => {
+    const text = e.clipboardData.getData('text');
+    if (!text.includes(',') && !text.includes('\n') && !text.includes(' ')) return;
+
+    e.preventDefault();
+    const zips = text
+      .split(/[,\n\s]+/)
+      .map((z) => z.trim())
+      .filter((z) => /^\d{5}$/.test(z));
+
+    if (zips.length === 0) {
+      setZipErrors((prev) => ({
+        ...prev,
+        [areaId]: 'No valid 5-digit ZIP codes found in pasted text',
+      }));
+      return;
+    }
+
+    setZipAdding((prev) => ({ ...prev, [areaId]: true }));
+    setZipErrors((prev) => ({ ...prev, [areaId]: '' }));
+    setZipBulkMsg((prev) => ({ ...prev, [areaId]: '' }));
+
+    const results = await Promise.all(zips.map((z) => addSingleZip(areaId, z)));
+    const addedCount = results.filter(Boolean).length;
+
+    setZipAdding((prev) => ({ ...prev, [areaId]: false }));
+
+    if (addedCount > 0) {
+      setZipBulkMsg((prev) => ({
+        ...prev,
+        [areaId]: `Added ${addedCount} ZIP${addedCount !== 1 ? 's' : ''}`,
+      }));
+      fetchServiceAreas();
+    }
+  };
+
   const toggleExpand = (areaId: number) => {
     setExpandedArea(expandedArea === areaId ? null : areaId);
   };
 
-  const filteredAreas = serviceAreas.filter(
-    (area) =>
-      area.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      area.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      area.zipCodes.some((z) => z.zipCode.includes(searchTerm))
-  );
+  const filteredAreas = serviceAreas
+    .filter(
+      (area) =>
+        area.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        area.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        area.zipCodes.some((z) => z.zipCode.includes(searchTerm)),
+    )
+    // Active zones first, then inactive; each group alphabetical
+    .sort((a, b) => {
+      if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
 
   const totalZipCodes = serviceAreas.reduce((sum, area) => sum + area.zipCodes.length, 0);
   const activeAreas = serviceAreas.filter((a) => a.isActive).length;
@@ -241,7 +375,7 @@ export function AdminServiceAreasPage() {
           </div>
           <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <p className="text-sm text-gray-500">Zip Codes</p>
+              <p className="text-sm text-gray-500">ZIP Codes</p>
               <div className="h-9 w-9 rounded-lg bg-brand/10 flex items-center justify-center">
                 <MapPin className="h-4 w-4 text-brand" />
               </div>
@@ -255,7 +389,7 @@ export function AdminServiceAreasPage() {
           <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search by name, description or zip code..."
+            placeholder="Search by name, description or ZIP code..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
@@ -287,116 +421,204 @@ export function AdminServiceAreasPage() {
             )}
           </div>
         ) : (
-          <div className="space-y-4">
-            {filteredAreas.map((area) => (
-              <div
-                key={area.id}
-                className="rounded-lg border border-gray-200 bg-white overflow-hidden"
-              >
-                {/* Area Header */}
-                <div className="flex items-center justify-between p-4">
-                  <div className="flex items-center gap-4">
-                    <button
-                      onClick={() => toggleExpand(area.id)}
-                      className="rounded-lg p-1 hover:bg-gray-100"
-                    >
-                      {expandedArea === area.id ? (
-                        <ChevronUp className="h-5 w-5 text-gray-500" />
-                      ) : (
-                        <ChevronDown className="h-5 w-5 text-gray-500" />
-                      )}
-                    </button>
-                    <div>
+          <div className="space-y-3">
+            {filteredAreas.map((area) => {
+              const isExpanded = expandedArea === area.id;
+              const isEmpty = area.zipCodes.length === 0;
+              const isToggling = togglingIds.has(area.id);
+
+              return (
+                <div
+                  key={area.id}
+                  className={cn(
+                    'rounded-xl border bg-white overflow-hidden shadow-sm transition-opacity',
+                    area.isActive ? 'border-gray-200' : 'border-gray-200 opacity-60',
+                  )}
+                >
+                  {/* Area Header */}
+                  <div className="flex items-center justify-between p-4">
+                    {/* Left: expand chevron + info */}
+                    <div className="flex items-center gap-3 min-w-0">
+                      <button
+                        onClick={() => toggleExpand(area.id)}
+                        className="shrink-0 rounded-lg p-1 hover:bg-gray-100 transition-colors"
+                        aria-label={isExpanded ? 'Collapse' : 'Expand'}
+                      >
+                        {isExpanded ? (
+                          <ChevronUp className="h-5 w-5 text-gray-400" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-gray-400" />
+                        )}
+                      </button>
+
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3
+                            className={cn(
+                              'font-medium truncate',
+                              area.isActive ? 'text-gray-900' : 'text-gray-500',
+                            )}
+                          >
+                            {area.name}
+                          </h3>
+
+                          {/* ZIP count badge */}
+                          {!isExpanded && (
+                            <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500 font-medium whitespace-nowrap">
+                              {area.zipCodes.length} ZIP{area.zipCodes.length !== 1 ? 's' : ''}
+                            </span>
+                          )}
+
+                          {/* Empty zone warning */}
+                          {isEmpty && (
+                            <span
+                              className="inline-flex items-center gap-1 text-xs text-warning font-medium"
+                              title="No ZIP codes configured"
+                            >
+                              <AlertTriangle className="h-3 w-3" />
+                              no ZIPs
+                            </span>
+                          )}
+                        </div>
+
+                        {area.description && (
+                          <p className="mt-0.5 text-xs text-gray-400 truncate max-w-sm">
+                            {area.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Right: toggle + actions */}
+                    <div className="flex items-center gap-3 shrink-0 ml-4">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-medium text-gray-900">{area.name}</h3>
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                            area.isActive
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-gray-100 text-gray-700'
-                          }`}
-                        >
+                        <span className="text-xs text-gray-400 hidden sm:inline">
                           {area.isActive ? 'Active' : 'Inactive'}
                         </span>
+                        <ToggleSwitch
+                          checked={area.isActive}
+                          onChange={(val) => handleToggleActive(area, val)}
+                          disabled={isToggling}
+                        />
                       </div>
-                      {area.description && (
-                        <p className="mt-1 text-sm text-gray-500">{area.description}</p>
-                      )}
-                      <p className="mt-1 text-xs text-gray-400">
-                        {area.zipCodes.length} zip code{area.zipCodes.length !== 1 ? 's' : ''}
-                        {''}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleOpenModal(area)}
-                      className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                      title="Edit zone"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => setDeleteAreaId(area.id)}
-                      className="rounded-lg p-2 text-gray-500 hover:bg-red-50 hover:text-red-600"
-                      title="Delete zone"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
 
-                {/* Expanded: Zip Codes */}
-                {expandedArea === area.id && (
-                  <div className="border-t border-gray-200 bg-gray-50 p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-sm font-medium text-gray-700">Zip Codes</h4>
                       <button
-                        onClick={() => handleOpenZipModal(area.id)}
-                        className="inline-flex items-center gap-1 rounded-md bg-brand px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-dark"
+                        onClick={() => handleOpenModal(area)}
+                        className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+                        title="Edit zone"
                       >
-                        <Plus className="h-3 w-3" />
-                        Add ZIP
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteAreaId(area.id)}
+                        className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-danger transition-colors"
+                        title="Delete zone"
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
-                    {area.zipCodes.length === 0 ? (
-                      <p className="text-sm text-gray-500 italic">
-                        No zip codes configured
-                      </p>
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
-                        {area.zipCodes.map((zip) => (
-                          <div
-                            key={zip.id}
-                            className="group flex items-center gap-1 rounded-full bg-white border border-gray-200 px-3 py-1 text-sm"
-                          >
-                            <MapPin className="h-3 w-3 text-gray-400" />
-                            <span className="font-mono">{zip.zipCode}</span>
-                            <button
-                              onClick={() => setDeleteZip({ areaId: area.id, zipId: zip.id, zipCode: zip.zipCode })}
-                              className="ml-1 rounded-full p-0.5 text-gray-400 hover:bg-red-100 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
-                )}
-              </div>
-            ))}
+
+                  {/* Expanded: ZIP codes + inline add input */}
+                  {isExpanded && (
+                    <div className="border-t border-gray-100 bg-gray-50 px-4 py-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">
+                        ZIP Codes
+                      </p>
+
+                      {/* ZIP chips */}
+                      {area.zipCodes.length === 0 ? (
+                        <p className="text-sm text-gray-400 italic mb-3">
+                          No ZIP codes configured yet
+                        </p>
+                      ) : (
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {area.zipCodes.map((zip) => (
+                            <div
+                              key={zip.id}
+                              className="group flex items-center gap-1 rounded-full bg-white border border-gray-200 px-3 py-1 text-sm shadow-sm"
+                            >
+                              <MapPin className="h-3 w-3 text-gray-300" />
+                              <span className="font-mono text-gray-700">{zip.zipCode}</span>
+                              <button
+                                onClick={() =>
+                                  setDeleteZip({
+                                    areaId: area.id,
+                                    zipId: zip.id,
+                                    zipCode: zip.zipCode,
+                                  })
+                                }
+                                className="ml-1 rounded-full p-0.5 text-gray-300 hover:bg-red-50 hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity"
+                                aria-label={`Remove ZIP ${zip.zipCode}`}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Inline ZIP add input */}
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <div className="relative flex-1 max-w-xs">
+                            <input
+                              ref={(el) => { zipInputRefs.current[area.id] = el; }}
+                              type="text"
+                              inputMode="numeric"
+                              placeholder="Add ZIP (e.g. 33101) or paste multiple"
+                              value={zipInputs[area.id] ?? ''}
+                              onChange={(e) => handleZipInputChange(area.id, e.target.value)}
+                              onKeyDown={(e) => handleZipKeyDown(e, area.id)}
+                              onPaste={(e) => handleZipPaste(e, area.id)}
+                              maxLength={5}
+                              className={cn(
+                                'w-full rounded-lg border px-3 py-1.5 text-sm font-mono placeholder:font-sans placeholder:text-gray-400 focus:outline-none focus:ring-1',
+                                zipErrors[area.id]
+                                  ? 'border-danger focus:border-danger focus:ring-danger/30'
+                                  : 'border-gray-200 focus:border-brand focus:ring-brand/30',
+                              )}
+                            />
+                            {zipAdding[area.id] && (
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2">
+                                <Spinner size="sm" />
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-xs text-gray-400 hidden sm:inline">
+                            Press Enter to add
+                          </span>
+                        </div>
+
+                        {/* Inline error */}
+                        {zipErrors[area.id] && (
+                          <p className="text-xs text-danger">{zipErrors[area.id]}</p>
+                        )}
+
+                        {/* Bulk add success */}
+                        {zipBulkMsg[area.id] && (
+                          <p className="text-xs text-success font-medium">{zipBulkMsg[area.id]}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
 
       {/* Delete Area Confirmation */}
-      <AlertDialog open={deleteAreaId !== null} onOpenChange={(open) => !open && setDeleteAreaId(null)}>
+      <AlertDialog
+        open={deleteAreaId !== null}
+        onOpenChange={(open) => !open && setDeleteAreaId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete service area?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will also delete all associated zip codes. This action cannot be undone.
+              This will also delete all associated ZIP codes. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -410,11 +632,14 @@ export function AdminServiceAreasPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Delete Zip Code Confirmation */}
-      <AlertDialog open={deleteZip !== null} onOpenChange={(open) => !open && setDeleteZip(null)}>
+      {/* Delete ZIP Code Confirmation */}
+      <AlertDialog
+        open={deleteZip !== null}
+        onOpenChange={(open) => !open && setDeleteZip(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete zip code {deleteZip?.zipCode}?</AlertDialogTitle>
+            <AlertDialogTitle>Remove ZIP {deleteZip?.zipCode}?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone.
             </AlertDialogDescription>
@@ -422,26 +647,27 @@ export function AdminServiceAreasPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteZip && handleDeleteZipCode(deleteZip.areaId, deleteZip.zipId)}
+              onClick={() =>
+                deleteZip &&
+                handleDeleteZipCode(deleteZip.areaId, deleteZip.zipId)
+              }
             >
-              Delete
+              Remove
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Create/Edit Area Modal */}
+      {/* Create / Edit Area Modal */}
       <Dialog open={showModal} onOpenChange={(open) => !open && handleCloseModal()}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              {editingArea ? 'Edit Zone' : 'New Service Area'}
-            </DialogTitle>
+            <DialogTitle>{editingArea ? 'Edit Zone' : 'New Service Area'}</DialogTitle>
           </DialogHeader>
 
           <form onSubmit={onSubmit} className="space-y-4">
             {form.formState.errors.root && (
-              <p className="text-sm text-red-500">{form.formState.errors.root.message}</p>
+              <p className="text-sm text-danger">{form.formState.errors.root.message}</p>
             )}
 
             <div>
@@ -455,7 +681,9 @@ export function AdminServiceAreasPage() {
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
               />
               {form.formState.errors.name && (
-                <p className="mt-1 text-sm text-red-500">{form.formState.errors.name.message}</p>
+                <p className="mt-1 text-sm text-danger">
+                  {form.formState.errors.name.message}
+                </p>
               )}
             </div>
 
@@ -470,12 +698,14 @@ export function AdminServiceAreasPage() {
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
               />
               {form.formState.errors.description && (
-                <p className="mt-1 text-sm text-red-500">{form.formState.errors.description.message}</p>
+                <p className="mt-1 text-sm text-danger">
+                  {form.formState.errors.description.message}
+                </p>
               )}
             </div>
 
             {editingArea && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <input
                   type="checkbox"
                   id="isActive"
@@ -501,56 +731,6 @@ export function AdminServiceAreasPage() {
                 className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
               >
                 {editingArea ? 'Save Changes' : 'Create Zone'}
-              </button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Zip Code Modal */}
-      <Dialog open={showZipModal} onOpenChange={(open) => !open && setShowZipModal(false)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Add Zip Code</DialogTitle>
-          </DialogHeader>
-
-          <form onSubmit={handleAddZipCode} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Zip Code (5 digits) *
-              </label>
-              <input
-                type="text"
-                required
-                maxLength={5}
-                value={newZipCode}
-                onChange={(e) => {
-                  setNewZipCode(e.target.value.replace(/\D/g, ''));
-                  setZipError('');
-                }}
-                placeholder="E.g.: 33101"
-                className={`w-full rounded-lg border px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 ${
-                  zipError
-                    ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                    : 'border-gray-300 focus:border-brand focus:ring-brand'
-                }`}
-              />
-              {zipError && <p className="mt-1 text-xs text-red-600">{zipError}</p>}
-            </div>
-
-            <div className="flex justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowZipModal(false)}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
-              >
-                Add
               </button>
             </div>
           </form>

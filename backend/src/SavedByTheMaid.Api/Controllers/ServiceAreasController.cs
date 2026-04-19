@@ -45,7 +45,10 @@ public class ServiceAreasController : ControllerBase
                 Name = s.Name,
                 Description = s.Description,
                 IsActive = s.IsActive,
-                ZipCodes = s.ZipCodes.Where(z => !z.IsDeleted).Select(z => z.ZipCode).ToList()
+                ZipCodes = s.ZipCodes
+                    .Where(z => !z.IsDeleted)
+                    .Select(z => new ServiceAreaZipDto { Id = z.Id, ZipCode = z.ZipCode, ServiceAreaId = s.Id })
+                    .ToList()
             })
             .ToListAsync(cancellationToken);
     }
@@ -68,7 +71,10 @@ public class ServiceAreasController : ControllerBase
             Name = serviceArea.Name,
             Description = serviceArea.Description,
             IsActive = serviceArea.IsActive,
-            ZipCodes = serviceArea.ZipCodes.Where(z => !z.IsDeleted).Select(z => z.ZipCode).ToList()
+            ZipCodes = serviceArea.ZipCodes
+                .Where(z => !z.IsDeleted)
+                .Select(z => new ServiceAreaZipDto { Id = z.Id, ZipCode = z.ZipCode, ServiceAreaId = serviceArea.Id })
+                .ToList()
         };
     }
 
@@ -231,7 +237,7 @@ public record ServiceAreaDto
     public string Name { get; init; } = "";
     public string? Description { get; init; }
     public bool IsActive { get; init; }
-    public List<string> ZipCodes { get; init; } = new();
+    public List<ServiceAreaZipDto> ZipCodes { get; init; } = new();
 }
 
 public record ServiceAreaZipDto
