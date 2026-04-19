@@ -327,6 +327,13 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Persist Data Protection keys to a Docker volume so CSRF tokens and auth cookies
+// survive container restarts and redeployments. Without this, every restart
+// regenerates keys and invalidates all existing tokens.
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo("/app/dataprotection-keys"))
+    .SetApplicationName("SavedByTheMaid");
+
 // Antiforgery (CSRF double-submit cookie pattern for SPA + HttpOnly JWT cookies)
 builder.Services.AddAntiforgery(options =>
 {

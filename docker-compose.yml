@@ -31,6 +31,10 @@ services:
       ConnectionStrings__DefaultConnection: Server=mysql;Port=3306;Database=${MYSQL_DATABASE:-savedbythemaid};User=${MYSQL_USER:-app_user};Password=${MYSQL_PASSWORD};
       Jwt__Secret: ${JWT_SECRET}
       ASPNETCORE_ENVIRONMENT: Production
+      Email__Provider: ${EMAIL_PROVIDER:-Resend}
+      Email__Resend__ApiKey: ${RESEND_API_KEY:-}
+    volumes:
+      - dp_keys:/app/dataprotection-keys
     ports:
       - "${API_PORT:-5000}:5000"
     networks:
@@ -50,6 +54,7 @@ services:
 
 volumes:
   mysql_data:
+  dp_keys:
 
 networks:
   savedbythemaid-network:
