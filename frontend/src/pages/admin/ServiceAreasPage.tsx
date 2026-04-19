@@ -1169,16 +1169,10 @@ export function AdminServiceAreasPage() {
           </DialogHeader>
 
           <div className="space-y-5">
-            {/* City autocomplete + Fetch */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                City &amp; State *
-              </label>
-              <CityFetchForm
-                value={createFetch}
-                onChange={setCreateFetch}
-              />
-            </div>
+            <CityFetchForm
+              value={createFetch}
+              onChange={setCreateFetch}
+            />
 
             {/* Description */}
             <div>
