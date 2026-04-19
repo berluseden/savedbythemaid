@@ -65,14 +65,16 @@ export const ConfirmStep = React.memo(function ConfirmStep({
       onSuccess(response.data);
     },
     onError: (err: unknown) => {
-      // Try to extract detailed error message; recognize the email-first 409
-      // and surface the login prompt explicitly.
       const maybe = err as {
-        response?: { status?: number; data?: { code?: string; message?: string; details?: string } };
+        response?: { status?: number; data?: { code?: string; message?: string; details?: string; errors?: Record<string, string[]> } };
         message?: string;
       };
       if (maybe.response?.status === 409 && maybe.response?.data?.code === 'login_required') {
         setError('An account with this email already exists. Please go back and sign in to continue.');
+        return;
+      }
+      if (maybe.response?.status === 400) {
+        setError('Your time slot may have expired. Please go back and select a new time.');
         return;
       }
       const message = maybe.response?.data?.message || maybe.response?.data?.details || maybe.message || 'Something went wrong. Please try again.';
@@ -81,9 +83,13 @@ export const ConfirmStep = React.memo(function ConfirmStep({
   });
 
   const handleConfirm = useCallback(() => {
+    if (!data.softReserveId || !data.sessionId) {
+      setError('Your time slot reservation has expired. Please go back and choose a new time.');
+      return;
+    }
     setError(null);
     confirmBooking.mutate();
-  }, [confirmBooking]);
+  }, [confirmBooking, data.softReserveId, data.sessionId]);
 
   const scheduledDate = new Date(data.date);
 
@@ -100,16 +106,16 @@ export const ConfirmStep = React.memo(function ConfirmStep({
 
       <div className="space-y-6">
         {/* Schedule Summary */}
-        <div className="bg-[#b8e07c]/10 rounded-xl p-6">
+        <div className="bg-secondary/10 rounded-xl p-6">
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#b8e07c]/20">
-              <Calendar className="h-7 w-7 text-[#2196f3]" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary/20">
+              <Calendar className="h-7 w-7 text-brand" />
             </div>
             <div>
               <p className="text-lg font-semibold text-gray-900">
                 {scheduledDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
               </p>
-              <p className="text-[#2196f3] font-medium">
+              <p className="text-brand font-medium">
                 {new Date(`2000-01-01T${data.timeSlot}`).toLocaleTimeString('en-US', {
                   hour: 'numeric',
                   minute: '2-digit',
@@ -150,7 +156,7 @@ export const ConfirmStep = React.memo(function ConfirmStep({
               </div>
               <div className="border-t pt-2 mt-2 flex justify-between">
                 <span className="font-semibold text-gray-900">Total</span>
-                <span className="text-xl font-bold text-[#2196f3]">{formatCurrency(estimate.total)}</span>
+                <span className="text-xl font-bold text-brand">{formatCurrency(estimate.total)}</span>
               </div>
             </div>
           </div>
