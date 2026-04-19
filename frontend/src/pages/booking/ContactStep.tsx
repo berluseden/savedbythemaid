@@ -1,8 +1,21 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import emailSpellChecker from '@zootools/email-spell-checker';
 import { Button, Input, Modal } from '@/components/ui';
 import api from '@/lib/api';
+import { customerApi } from '@/lib/api-endpoints';
 import { useAuth } from '@/contexts/AuthContext';
+import { queryKeys } from '@/shared/lib/query-keys';
 import type { BookingData } from './types';
+
+function useLastBookingAddress(enabled: boolean) {
+  return useQuery({
+    queryKey: queryKeys.customer.orders.list({ page: 1, pageSize: 1 }),
+    queryFn: () => customerApi.getOrders({ page: 1, pageSize: 1 }),
+    enabled,
+    staleTime: 5 * 60 * 1000,
+  });
+}
 
 interface ContactStepProps {
   data: BookingData;
@@ -19,6 +32,8 @@ export const ContactStep = React.memo(function ContactStep({
 }: ContactStepProps) {
   const { login, user, isAuthenticated } = useAuth();
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
+  const { data: ordersData } = useLastBookingAddress(isAuthenticated);
 
   // Pre-fill contact fields from the logged-in user's profile.
   // Only fills empty fields — never overwrites something the user already typed.
@@ -32,6 +47,21 @@ export const ContactStep = React.memo(function ContactStep({
     if (Object.keys(updates).length > 0) onChange(updates);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  // Pre-fill address fields from the most recent order.
+  // Only fills empty fields — never overwrites something the user already typed.
+  useEffect(() => {
+    const lastOrder = ordersData?.data?.items?.[0];
+    if (!lastOrder) return;
+    const updates: Partial<BookingData> = {};
+    if (!data.address && lastOrder.address) updates.address = lastOrder.address;
+    if (!data.city && lastOrder.city) updates.city = lastOrder.city;
+    if (!data.state && lastOrder.state) updates.state = lastOrder.state;
+    if (!data.zipCode && lastOrder.zipCode) updates.zipCode = lastOrder.zipCode;
+    if (Object.keys(updates).length > 0) onChange(updates);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ordersData]);
+
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [password, setPassword] = useState('');
@@ -301,6 +331,8 @@ export const ContactStep = React.memo(function ContactStep({
             onChange={(e) => {
               onChange({ email: e.target.value, password: undefined });
               setErrors(prev => ({ ...prev, email: '' }));
+              const result = emailSpellChecker.run({ email: e.target.value });
+              setEmailSuggestion(result ? result.full : null);
             }}
             error={errors.email}
           />
@@ -308,6 +340,11 @@ export const ContactStep = React.memo(function ContactStep({
             {checkingEmail && <p className="text-sm text-gray-500 mt-1">Checking email…</p>}
             {data.password && (
               <p className="text-sm text-green-600 mt-1">✓ Account will be created with this email</p>
+            )}
+            {emailSuggestion && (
+              <p className="text-sm text-amber-600 mt-1">
+                Did you mean <button type="button" className="font-medium underline" onClick={() => { onChange({ email: emailSuggestion, password: undefined }); setEmailSuggestion(null); }}>{emailSuggestion}</button>?
+              </p>
             )}
           </div>
         </div>

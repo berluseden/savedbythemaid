@@ -11,6 +11,7 @@
  */
 
 import { api } from './api';
+import { type CustomerOrdersResponse } from '@/shared/types/api.types';
 
 // ==========================================
 // Shared types
@@ -82,8 +83,8 @@ export interface ChangePasswordRequest {
 }
 
 export const customerApi = {
-  getOrders: (params?: { status?: string; page?: number }) =>
-    api.get<CustomerBooking[]>('/customer/my-orders', { params }),
+  getOrders: (params?: { status?: string; page?: number; pageSize?: number }) =>
+    api.get<CustomerOrdersResponse>('/customer/my-orders', { params }),
 
   getStats: () => api.get<CustomerStats>('/customer/stats'),
 

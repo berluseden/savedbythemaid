@@ -22,6 +22,7 @@ export const DetailsStep = React.memo(function DetailsStep({
   onBack,
 }: DetailsStepProps) {
   const [estimateError, setEstimateError] = useState('');
+  const [endDateError, setEndDateError] = useState('');
 
   const { data: cleaningPlaces, isLoading: loadingPlaces } = useQuery({
     queryKey: ['cleaningPlaces'],
@@ -105,8 +106,16 @@ export const DetailsStep = React.memo(function DetailsStep({
   }, [data.bathrooms, onChange]);
 
   const handleContinue = useCallback(() => {
+    if (data.recurrenceType !== 'None' && data.recurrenceEndDate) {
+      const today = new Date().toISOString().split('T')[0];
+      if (data.recurrenceEndDate < today) {
+        setEndDateError('End date must be in the future');
+        return;
+      }
+    }
+    setEndDateError('');
     fetchEstimate.mutate();
-  }, [fetchEstimate]);
+  }, [fetchEstimate, data.recurrenceType, data.recurrenceEndDate]);
 
   if (loadingPlaces) {
     return (
@@ -373,9 +382,16 @@ export const DetailsStep = React.memo(function DetailsStep({
                 id="recurrence-end-date"
                 type="date"
                 value={data.recurrenceEndDate ?? ''}
-                onChange={(e) => onChange({ recurrenceEndDate: e.target.value || undefined })}
+                min={new Date().toISOString().split('T')[0]}
+                onChange={(e) => {
+                  onChange({ recurrenceEndDate: e.target.value || undefined });
+                  setEndDateError('');
+                }}
                 className="w-full sm:w-auto rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
               />
+              {endDateError && (
+                <p className="text-xs text-red-500 mt-1">{endDateError}</p>
+              )}
             </div>
           )}
         </fieldset>

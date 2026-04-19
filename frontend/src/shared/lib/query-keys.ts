@@ -45,7 +45,8 @@ export const queryKeys = {
   customer: {
     orders: {
       all: ['customer', 'orders'] as const,
-      list: () => [...queryKeys.customer.orders.all, 'list'] as const,
+      list: (filters?: Record<string, unknown>) =>
+        [...queryKeys.customer.orders.all, 'list', filters ?? {}] as const,
       detail: (id: number) =>
         [...queryKeys.customer.orders.all, 'detail', id] as const,
     },

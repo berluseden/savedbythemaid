@@ -18,15 +18,15 @@ export const ZipCodeStep = React.memo(function ZipCodeStep({
   const [zipCode, setZipCode] = useState(value);
   const [error, setError] = useState('');
   const [coverageInfo, setCoverageInfo] = useState<{ city?: string; state?: string } | null>(null);
+  const [coverageConfirmed, setCoverageConfirmed] = useState(false);
 
   const checkCoverage = useMutation({
     mutationFn: (zip: string) => bookingApi.checkCoverage(zip),
     onSuccess: (response) => {
       if (response.data.isCovered) {
         setCoverageInfo({ city: response.data.city, state: response.data.state });
+        setCoverageConfirmed(true);
         onChange(zipCode);
-        // Auto-advance after showing success message
-        setTimeout(() => onNext(), 1500);
       } else {
         setError(response.data.message || 'Sorry, we do not service this area yet.');
       }
@@ -76,13 +76,18 @@ export const ZipCodeStep = React.memo(function ZipCodeStep({
               ✓ Great news! We service {coverageInfo.city || 'your area'}
               {coverageInfo.state ? `, ${coverageInfo.state}` : ''}.
             </p>
-            <p className="text-green-600 text-sm mt-1">Continuing to next step...</p>
           </div>
         )}
 
-        {!coverageInfo && (
+        {!coverageConfirmed && (
           <Button type="submit" className="w-full" loading={checkCoverage.isPending} aria-label="Check availability">
             Check Availability
+          </Button>
+        )}
+
+        {coverageConfirmed && (
+          <Button type="button" className="w-full" onClick={onNext} aria-label="Continue to next step">
+            Continue
           </Button>
         )}
       </form>

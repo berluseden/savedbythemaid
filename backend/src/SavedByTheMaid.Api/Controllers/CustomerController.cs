@@ -100,6 +100,7 @@ public class CustomerController : ControllerBase
                 CleaningPlaceName = o.CleaningPlace?.Name ?? "N/A",
                 Address = o.Address,
                 City = o.City ?? "",
+                State = o.State ?? "",
                 ZipCode = o.ZipCode,
                 ScheduledDate = firstMeeting != null ? DateOnly.FromDateTime(firstMeeting.ScheduledStart) : null,
                 ScheduledTime = firstMeeting != null ? TimeOnly.FromDateTime(firstMeeting.ScheduledStart) : null,
@@ -500,6 +501,7 @@ public record CustomerOrderDto
     public string CleaningPlaceName { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
     public string City { get; set; } = string.Empty;
+    public string State { get; set; } = string.Empty;
     public string ZipCode { get; set; } = string.Empty;
     public DateOnly? ScheduledDate { get; set; }
     public TimeOnly? ScheduledTime { get; set; }
@@ -513,7 +515,6 @@ public record CustomerOrderDto
 
 public record CustomerOrderDetailDto : CustomerOrderDto
 {
-    public string State { get; set; } = string.Empty;
     public decimal Subtotal { get; set; }
     public decimal Discount { get; set; }
     public decimal Tax { get; set; }

@@ -180,7 +180,7 @@ export const PriceSummaryBar = React.memo(function PriceSummaryBar({
       </div>
 
       {/* Spacer so mobile content is not hidden behind sticky bar */}
-      <div className="h-16 lg:hidden" />
+      <div className="h-24 lg:hidden" />
     </>
   );
 });

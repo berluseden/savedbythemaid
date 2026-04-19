@@ -258,3 +258,34 @@ export interface UserInfo {
 
 // Alias for backward compatibility
 export type User = UserInfo;
+
+// ==========================================
+// Customer order types
+// ==========================================
+
+export interface CustomerOrderDto {
+  id: number;
+  serviceTypeName: string;
+  serviceAreaName: string;
+  cleaningPlaceName: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  scheduledDate: string | null;
+  scheduledTime: string | null;
+  estimatedDuration: number;
+  totalAmount: number;
+  status: string;
+  recurrenceType: string;
+  createdAt: string;
+  specialInstructions?: string | null;
+}
+
+export interface CustomerOrdersResponse {
+  items: CustomerOrderDto[];
+  totalItems: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}

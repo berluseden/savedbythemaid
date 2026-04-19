@@ -97,6 +97,10 @@ export default function BookingPage() {
     }
   };
 
+  const missingReserve =
+    (currentStep === 'contact' || currentStep === 'confirm') &&
+    !data.softReserveId;
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <ExpiryModal
@@ -109,6 +113,19 @@ export default function BookingPage() {
 
       <div className="mx-auto max-w-4xl px-4">
         <StepProgress currentStep={currentStep} />
+
+        {missingReserve && (
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <span>Your time slot reservation was lost. Please go back and pick a new time.</span>
+            <button
+              type="button"
+              onClick={() => goToStep('schedule')}
+              className="shrink-0 font-medium underline hover:no-underline"
+            >
+              Pick a time
+            </button>
+          </div>
+        )}
 
         {/* Show the timer only when both fields are present — softReserveId
             confirms the hold is server-acknowledged, and expiresAt provides
