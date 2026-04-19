@@ -15,6 +15,17 @@ import {
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import api from '../../lib/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/shared/components/ui/alert-dialog';
+import { Spinner } from '@/shared/components/ui/spinner';
 
 interface UserDto {
   id: string;
@@ -60,11 +71,17 @@ export function AdminUsersPage() {
   const [passwordUserId, setPasswordUserId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   // Role modal
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [newRoleName, setNewRoleName] = useState('');
   const [roleError, setRoleError] = useState('');
+
+  // Delete confirmations
+  const [deleteUserTarget, setDeleteUserTarget] = useState<UserDto | null>(null);
+  const [deleteRoleTarget, setDeleteRoleTarget] = useState<RoleDto | null>(null);
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -147,16 +164,17 @@ export function AdminUsersPage() {
     }
   };
 
-  const handleDeleteUser = async (user: UserDto) => {
-    if (!confirm(`Are you sure you want to deactivate user ${user.email}?`)) {
-      return;
-    }
+  const handleConfirmDeleteUser = async () => {
+    if (!deleteUserTarget) return;
     try {
-      await api.delete(`/admin/users/${user.id}`);
+      await api.delete(`/admin/users/${deleteUserTarget.id}`);
+      setDeleteUserTarget(null);
+      setDeleteError('');
       fetchData();
     } catch (error: unknown) {
       const maybe = error as { response?: { data?: { message?: string } } };
-      alert(maybe.response?.data?.message || 'Error deleting user');
+      setDeleteError(maybe.response?.data?.message || 'Error deleting user');
+      setDeleteUserTarget(null);
     }
   };
 
@@ -164,6 +182,7 @@ export function AdminUsersPage() {
     setPasswordUserId(userId);
     setNewPassword('');
     setPasswordError('');
+    setPasswordSuccess(false);
     setShowPasswordModal(true);
   };
 
@@ -175,8 +194,8 @@ export function AdminUsersPage() {
       await api.put(`/admin/users/${passwordUserId}/password`, {
         newPassword,
       });
-      setShowPasswordModal(false);
-      alert('Password updated successfully');
+      setPasswordSuccess(true);
+      setPasswordError('');
     } catch (error: unknown) {
       const maybe = error as { response?: { data?: { message?: string } } };
       setPasswordError(maybe.response?.data?.message || 'Error changing password');
@@ -207,15 +226,16 @@ export function AdminUsersPage() {
     }
   };
 
-  const handleDeleteRole = async (role: RoleDto) => {
-    if (!confirm(`Delete role "${role.name}"?`)) return;
-
+  const handleConfirmDeleteRole = async () => {
+    if (!deleteRoleTarget) return;
     try {
-      await api.delete(`/admin/users/roles/${role.id}`);
+      await api.delete(`/admin/users/roles/${deleteRoleTarget.id}`);
+      setDeleteRoleTarget(null);
       fetchData();
     } catch (error: unknown) {
       const maybe = error as { response?: { data?: { message?: string } } };
-      alert(maybe.response?.data?.message || 'Error deleting role');
+      setDeleteError(maybe.response?.data?.message || 'Error deleting role');
+      setDeleteRoleTarget(null);
     }
   };
 
@@ -276,12 +296,19 @@ export function AdminUsersPage() {
           </div>
         </div>
 
+        {deleteError && (
+          <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg">
+            {deleteError}
+            <button onClick={() => setDeleteError('')} className="ml-2 underline">Close</button>
+          </div>
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
           <div className="rounded-lg border border-gray-200 bg-white p-4">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-[#b8e07c]/20 p-2">
-                <User className="h-5 w-5 text-[#2196f3]" />
+              <div className="rounded-lg bg-brand/10 p-2">
+                <User className="h-5 w-5 text-brand" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-gray-900">{users.length}</p>
@@ -337,13 +364,13 @@ export function AdminUsersPage() {
               placeholder="Search by name or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
+              className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             />
           </div>
           <select
             value={filterRole}
             onChange={(e) => setFilterRole(e.target.value)}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
           >
             <option value="all">All roles</option>
             {roles.map((role) => (
@@ -355,7 +382,7 @@ export function AdminUsersPage() {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
           >
             <option value="all">All statuses</option>
             <option value="active">Active</option>
@@ -366,7 +393,7 @@ export function AdminUsersPage() {
         {/* Users Table */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#2196f3] border-t-transparent" />
+            <Spinner size="md" />
           </div>
         ) : filteredUsers.length === 0 ? (
           <div className="rounded-lg border border-gray-200 bg-white p-12 text-center">
@@ -407,7 +434,7 @@ export function AdminUsersPage() {
                   <tr key={user.id} className="hover:bg-gray-50">
                     <td className="whitespace-nowrap px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#b8e07c]/20 text-[#2196f3] font-semibold">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand/10 text-brand font-semibold">
                           {(user.firstName?.[0] || user.email[0]).toUpperCase()}
                         </div>
                         <div>
@@ -495,7 +522,7 @@ export function AdminUsersPage() {
                           <Edit2 className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => handleDeleteUser(user)}
+                          onClick={() => setDeleteUserTarget(user)}
                           className="rounded-lg p-2 text-gray-500 hover:bg-red-50 hover:text-red-600"
                           title="Deactivate user"
                         >
@@ -538,7 +565,7 @@ export function AdminUsersPage() {
                           firstName: e.target.value,
                         })
                       }
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                     />
                   </div>
                   <div>
@@ -554,7 +581,7 @@ export function AdminUsersPage() {
                           lastName: e.target.value,
                         })
                       }
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                     />
                   </div>
                 </div>
@@ -574,7 +601,7 @@ export function AdminUsersPage() {
                       })
                     }
                     disabled={!!editingUser}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3] disabled:bg-gray-100"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:bg-gray-100"
                   />
                 </div>
 
@@ -593,7 +620,7 @@ export function AdminUsersPage() {
                         })
                       }
                       placeholder="Minimum 8 characters"
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                     />
                     <p className="mt-1 text-xs text-gray-500">
                       Must contain uppercase, lowercase, number and symbol
@@ -614,7 +641,7 @@ export function AdminUsersPage() {
                         phoneNumber: e.target.value,
                       })
                     }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                   />
                 </div>
 
@@ -652,7 +679,7 @@ export function AdminUsersPage() {
                           isActive: e.target.checked,
                         })
                       }
-                      className="h-4 w-4 rounded border-gray-300 text-[#2196f3] focus:ring-[#2196f3]"
+                      className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
                     />
                     <label htmlFor="isActive" className="text-sm text-gray-700">
                       User active
@@ -670,7 +697,7 @@ export function AdminUsersPage() {
                   </button>
                   <button
                     type="submit"
-                    className="rounded-lg bg-[#2196f3] px-4 py-2 text-sm font-medium text-white hover:bg-[#29338c]"
+                    className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
                   >
                     {editingUser ? 'Save Changes' : 'Create User'}
                   </button>
@@ -686,46 +713,65 @@ export function AdminUsersPage() {
               <DialogTitle>Change Password</DialogTitle>
             </DialogHeader>
 
-              {passwordError && (
-                <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
-                  {passwordError}
+              {passwordSuccess ? (
+                <div className="space-y-4">
+                  <div className="rounded-lg bg-green-50 p-3 text-sm text-green-700">
+                    Password updated successfully.
+                  </div>
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswordModal(false)}
+                      className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
+                    >
+                      Close
+                    </button>
+                  </div>
                 </div>
+              ) : (
+                <>
+                  {passwordError && (
+                    <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
+                      {passwordError}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleResetPassword} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        New Password *
+                      </label>
+                      <input
+                        type="password"
+                        required
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Minimum 8 characters"
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        Must contain uppercase, lowercase, number and symbol
+                      </p>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswordModal(false)}
+                        className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
+                      >
+                        Change
+                      </button>
+                    </div>
+                  </form>
+                </>
               )}
-
-              <form onSubmit={handleResetPassword} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    New Password *
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Minimum 8 characters"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
-                  />
-                  <p className="mt-1 text-xs text-gray-500">
-                    Must contain uppercase, lowercase, number and symbol
-                  </p>
-                </div>
-
-                <div className="flex justify-end gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowPasswordModal(false)}
-                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="rounded-lg bg-[#2196f3] px-4 py-2 text-sm font-medium text-white hover:bg-[#29338c]"
-                  >
-                    Change
-                  </button>
-                </div>
-              </form>
           </DialogContent>
         </Dialog>
 
@@ -753,7 +799,7 @@ export function AdminUsersPage() {
                       </div>
                       {!['Admin', 'Employee', 'Customer'].includes(role.name) && (
                         <button
-                          onClick={() => handleDeleteRole(role)}
+                          onClick={() => setDeleteRoleTarget(role)}
                           className="rounded-lg p-1 text-gray-400 hover:bg-red-50 hover:text-red-600"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -784,11 +830,11 @@ export function AdminUsersPage() {
                       setRoleError('');
                     }}
                     placeholder="Role name"
-                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
+                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
                   />
                   <button
                     type="submit"
-                    className="rounded-lg bg-[#2196f3] px-4 py-2 text-sm font-medium text-white hover:bg-[#29338c]"
+                    className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
                   >
                     Create
                   </button>
@@ -807,6 +853,42 @@ export function AdminUsersPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Delete User Confirmation */}
+      <AlertDialog open={!!deleteUserTarget} onOpenChange={(open) => !open && setDeleteUserTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deactivate user?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to deactivate user {deleteUserTarget?.email}? This action can be reversed by editing the user.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDeleteUser}>
+              Deactivate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Role Confirmation */}
+      <AlertDialog open={!!deleteRoleTarget} onOpenChange={(open) => !open && setDeleteRoleTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete role "{deleteRoleTarget?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDeleteRole}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   );
 }

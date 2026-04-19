@@ -9,7 +9,6 @@ import {
   MoreVertical,
   DollarSign,
   Clock,
-  X,
 } from 'lucide-react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import api from '../../lib/api';
@@ -17,6 +16,13 @@ import {
   serviceTypeSchema,
   type ServiceTypeFormData,
 } from '@/shared/schemas/admin.schema';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/shared/components/ui/dialog';
+import { Spinner } from '@/shared/components/ui/spinner';
 
 interface ServiceType {
   id: number;
@@ -159,7 +165,7 @@ export function AdminServicesPage() {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-[#2196f3] border-t-transparent rounded-full animate-spin" />
+          <Spinner size="md" />
         </div>
       </AdminLayout>
     );
@@ -198,7 +204,7 @@ export function AdminServicesPage() {
             placeholder="Search services..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
           />
         </div>
 
@@ -216,7 +222,7 @@ export function AdminServicesPage() {
           </div>
           <div className="bg-white rounded-lg p-4 border">
             <p className="text-sm text-gray-500">Average price</p>
-            <p className="text-2xl font-bold text-[#2196f3]">
+            <p className="text-2xl font-bold text-brand">
               {services.length > 0
                 ? formatCurrency(services.reduce((acc, s) => acc + s.price, 0) / services.length)
                 : '$0'}
@@ -327,205 +333,200 @@ export function AdminServicesPage() {
       </div>
 
       {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-semibold text-gray-900">
-                {editingService ? 'Edit Service' : 'New Service'}
-              </h2>
-              <button onClick={closeModal} className="p-2 text-gray-400 hover:text-gray-600">
-                <X className="h-5 w-5" />
-              </button>
+      <Dialog open={showModal} onOpenChange={(open) => !open && closeModal()}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {editingService ? 'Edit Service' : 'New Service'}
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={onSubmit} className="space-y-4">
+            {form.formState.errors.root && (
+              <p className="text-sm text-red-500">{form.formState.errors.root.message}</p>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Service name *
+              </label>
+              <input
+                type="text"
+                {...form.register('name')}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+              />
+              {form.formState.errors.name && (
+                <p className="text-sm text-red-500 mt-1">{form.formState.errors.name.message}</p>
+              )}
             </div>
 
-            <form onSubmit={onSubmit} className="p-6 space-y-4">
-              {form.formState.errors.root && (
-                <p className="text-sm text-red-500">{form.formState.errors.root.message}</p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Description
+              </label>
+              <textarea
+                {...form.register('description')}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                rows={3}
+              />
+              {form.formState.errors.description && (
+                <p className="text-sm text-red-500 mt-1">{form.formState.errors.description.message}</p>
               )}
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Service name *
-                </label>
-                <input
-                  type="text"
-                  {...form.register('name')}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
-                />
-                {form.formState.errors.name && (
-                  <p className="text-sm text-red-500 mt-1">{form.formState.errors.name.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description
-                </label>
-                <textarea
-                  {...form.register('description')}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
-                  rows={3}
-                />
-                {form.formState.errors.description && (
-                  <p className="text-sm text-red-500 mt-1">{form.formState.errors.description.message}</p>
-                )}
-              </div>
-
-              <div className="bg-gray-50 p-4 rounded-lg space-y-4">
-                <h3 className="font-medium text-gray-900">Pricing</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Base Price ($) *
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      {...form.register('price', { valueAsNumber: true })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
-                    />
-                    {form.formState.errors.price && (
-                      <p className="text-sm text-red-500 mt-1">{form.formState.errors.price.message}</p>
-                    )}
-                    <p className="text-xs text-gray-500 mt-1">Includes 1 bedroom + 1 bathroom</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Per Extra Bedroom ($)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      {...form.register('pricePerBedroom', { valueAsNumber: true })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
-                    />
-                    {form.formState.errors.pricePerBedroom && (
-                      <p className="text-sm text-red-500 mt-1">{form.formState.errors.pricePerBedroom.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Per Extra Bathroom ($)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      {...form.register('pricePerBathroom', { valueAsNumber: true })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
-                    />
-                    {form.formState.errors.pricePerBathroom && (
-                      <p className="text-sm text-red-500 mt-1">{form.formState.errors.pricePerBathroom.message}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 p-4 rounded-lg space-y-4">
-                <h3 className="font-medium text-gray-900">Estimated Duration</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Base (minutes)
-                    </label>
-                    <input
-                      type="number"
-                      min="15"
-                      step="15"
-                      {...form.register('estimatedMinutes', { valueAsNumber: true })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
-                    />
-                    {form.formState.errors.estimatedMinutes && (
-                      <p className="text-sm text-red-500 mt-1">{form.formState.errors.estimatedMinutes.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Per Bedroom (min)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="5"
-                      {...form.register('minutesPerBedroom', { valueAsNumber: true })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
-                    />
-                    {form.formState.errors.minutesPerBedroom && (
-                      <p className="text-sm text-red-500 mt-1">{form.formState.errors.minutesPerBedroom.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Per Bathroom (min)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="5"
-                      {...form.register('minutesPerBathroom', { valueAsNumber: true })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
-                    />
-                    {form.formState.errors.minutesPerBathroom && (
-                      <p className="text-sm text-red-500 mt-1">{form.formState.errors.minutesPerBathroom.message}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+            <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+              <h3 className="font-medium text-gray-900">Pricing</h3>
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Display order
+                    Base Price ($) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    {...form.register('price', { valueAsNumber: true })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                  />
+                  {form.formState.errors.price && (
+                    <p className="text-sm text-red-500 mt-1">{form.formState.errors.price.message}</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">Includes 1 bedroom + 1 bathroom</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Per Extra Bedroom ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    {...form.register('pricePerBedroom', { valueAsNumber: true })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                  />
+                  {form.formState.errors.pricePerBedroom && (
+                    <p className="text-sm text-red-500 mt-1">{form.formState.errors.pricePerBedroom.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Per Extra Bathroom ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    {...form.register('pricePerBathroom', { valueAsNumber: true })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                  />
+                  {form.formState.errors.pricePerBathroom && (
+                    <p className="text-sm text-red-500 mt-1">{form.formState.errors.pricePerBathroom.message}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+              <h3 className="font-medium text-gray-900">Estimated Duration</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Base (minutes)
+                  </label>
+                  <input
+                    type="number"
+                    min="15"
+                    step="15"
+                    {...form.register('estimatedMinutes', { valueAsNumber: true })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                  />
+                  {form.formState.errors.estimatedMinutes && (
+                    <p className="text-sm text-red-500 mt-1">{form.formState.errors.estimatedMinutes.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Per Bedroom (min)
                   </label>
                   <input
                     type="number"
                     min="0"
-                    {...form.register('displayOrder', { valueAsNumber: true })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                    step="5"
+                    {...form.register('minutesPerBedroom', { valueAsNumber: true })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                   />
-                  {form.formState.errors.displayOrder && (
-                    <p className="text-sm text-red-500 mt-1">{form.formState.errors.displayOrder.message}</p>
+                  {form.formState.errors.minutesPerBedroom && (
+                    <p className="text-sm text-red-500 mt-1">{form.formState.errors.minutesPerBedroom.message}</p>
                   )}
                 </div>
-                <div className="flex items-end">
-                  <label className="flex items-center gap-2 cursor-pointer pb-2">
-                    <input
-                      type="checkbox"
-                      {...form.register('isActive')}
-                      className="w-4 h-4 text-[#2196f3] border-gray-300 rounded focus:ring-[#2196f3]"
-                    />
-                    <span className="text-sm text-gray-700">Service active</span>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Per Bathroom (min)
                   </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="5"
+                    {...form.register('minutesPerBathroom', { valueAsNumber: true })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                  />
+                  {form.formState.errors.minutesPerBathroom && (
+                    <p className="text-sm text-red-500 mt-1">{form.formState.errors.minutesPerBathroom.message}</p>
+                  )}
                 </div>
               </div>
+            </div>
 
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] transition-colors disabled:opacity-50"
-                >
-                  {saving ? 'Saving...' : editingService ? 'Save Changes' : 'Create Service'}
-                </button>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Display order
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  {...form.register('displayOrder', { valueAsNumber: true })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                />
+                {form.formState.errors.displayOrder && (
+                  <p className="text-sm text-red-500 mt-1">{form.formState.errors.displayOrder.message}</p>
+                )}
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+              <div className="flex items-end">
+                <label className="flex items-center gap-2 cursor-pointer pb-2">
+                  <input
+                    type="checkbox"
+                    {...form.register('isActive')}
+                    className="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand"
+                  />
+                  <span className="text-sm text-gray-700">Service active</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={closeModal}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="flex-1 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors disabled:opacity-50"
+              >
+                {saving ? 'Saving...' : editingService ? 'Save Changes' : 'Create Service'}
+              </button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }

@@ -11,6 +11,7 @@ import {
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import api from '../../lib/api';
 import { getOrderStatusConfig } from '@/shared/lib/status-config';
+import { Spinner } from '@/shared/components/ui/spinner';
 
 interface OrderSummary {
   id: number;
@@ -131,7 +132,7 @@ export function AdminDashboardPage() {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin" />
+          <Spinner size="md" />
         </div>
       </AdminLayout>
     );

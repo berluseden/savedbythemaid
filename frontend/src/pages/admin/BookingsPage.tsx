@@ -215,7 +215,7 @@ export function AdminBookingsPage() {
               onClick={() => setFilterStatus(filterStatus === status ? 'all' : status)}
               className={`p-4 rounded-lg border transition-all ${
                 filterStatus === status
-                  ? 'ring-2 ring-[#2196f3] border-[#2196f3]'
+                  ? 'ring-2 ring-brand border-brand'
                   : 'hover:border-gray-300'
               } bg-white`}
             >
@@ -336,7 +336,7 @@ export function AdminBookingsPage() {
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => setSelectedBooking(booking)}
-                          className="p-2 text-gray-400 hover:text-[#2196f3] hover:bg-[#b8e07c]/10 rounded-lg"
+                          className="p-2 text-gray-400 hover:text-brand hover:bg-brand/10 rounded-lg"
                           title="View details"
                         >
                           <Eye className="h-4 w-4" />
@@ -562,7 +562,7 @@ export function AdminBookingsPage() {
                               <div className="flex gap-2">
                                 <select
                                   onChange={(e) => assignEmployee(meeting.id, parseInt(e.target.value))}
-                                  className="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-[#2196f3]"
+                                  className="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-brand"
                                   defaultValue=""
                                 >
                                   <option value="" disabled>Select employee...</option>
@@ -589,7 +589,7 @@ export function AdminBookingsPage() {
                                 </div>
                                 <button
                                   onClick={() => setAssigningMeetingId(meeting.id)}
-                                  className="text-sm text-[#2196f3] hover:text-[#29338c] font-medium"
+                                  className="text-sm text-brand hover:text-brand-dark font-medium"
                                 >
                                   {meeting.employeeId ? 'Change' : 'Assign'}
                                 </button>

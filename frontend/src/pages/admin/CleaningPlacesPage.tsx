@@ -9,7 +9,6 @@ import {
   Home,
   ChevronDown,
   ChevronRight,
-  X,
   DollarSign,
   Clock,
 } from 'lucide-react';
@@ -21,6 +20,23 @@ import {
   type CleaningPlaceFormData,
   type CleaningPlaceRoomFormData,
 } from '@/shared/schemas/admin.schema';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/shared/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/shared/components/ui/alert-dialog';
+import { Spinner } from '@/shared/components/ui/spinner';
 
 interface CleaningPlaceRoom {
   id: number;
@@ -220,7 +236,7 @@ export function AdminCleaningPlacesPage() {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-[#2196f3] border-t-transparent rounded-full animate-spin" />
+          <Spinner size="md" />
         </div>
       </AdminLayout>
     );
@@ -259,7 +275,7 @@ export function AdminCleaningPlacesPage() {
             placeholder="Search property types..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
           />
         </div>
 
@@ -277,7 +293,7 @@ export function AdminCleaningPlacesPage() {
           </div>
           <div className="bg-white rounded-lg p-4 border">
             <p className="text-sm text-gray-500">Total Rooms</p>
-            <p className="text-2xl font-bold text-[#2196f3]">
+            <p className="text-2xl font-bold text-brand">
               {places.reduce((acc, p) => acc + p.rooms.length, 0)}
             </p>
           </div>
@@ -306,8 +322,8 @@ export function AdminCleaningPlacesPage() {
                       <ChevronRight className="h-5 w-5" />
                     )}
                   </button>
-                  <div className="w-10 h-10 bg-[#b8e07c]/20 rounded-lg flex items-center justify-center">
-                    <Home className="h-5 w-5 text-[#2196f3]" />
+                  <div className="w-10 h-10 bg-brand/10 rounded-lg flex items-center justify-center">
+                    <Home className="h-5 w-5 text-brand" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">{place.name}</h3>
@@ -324,14 +340,14 @@ export function AdminCleaningPlacesPage() {
                   </span>
                   <button
                     onClick={() => handleAddRoom(place.id)}
-                    className="p-2 text-gray-400 hover:text-[#2196f3] hover:bg-[#b8e07c]/10 rounded-lg"
+                    className="p-2 text-gray-400 hover:text-brand hover:bg-brand/10 rounded-lg"
                     title="Add room"
                   >
                     <Plus className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleEditPlace(place)}
-                    className="p-2 text-gray-400 hover:text-[#2196f3] hover:bg-[#b8e07c]/10 rounded-lg"
+                    className="p-2 text-gray-400 hover:text-brand hover:bg-brand/10 rounded-lg"
                     title="Edit"
                   >
                     <Edit2 className="h-4 w-4" />
@@ -381,7 +397,7 @@ export function AdminCleaningPlacesPage() {
                           </span>
                           <button
                             onClick={() => handleEditRoom(place.id, room)}
-                            className="p-1 text-gray-400 hover:text-[#2196f3]"
+                            className="p-1 text-gray-400 hover:text-brand"
                           >
                             <Edit2 className="h-4 w-4" />
                           </button>
@@ -403,7 +419,7 @@ export function AdminCleaningPlacesPage() {
                   No rooms configured.{' '}
                   <button
                     onClick={() => handleAddRoom(place.id)}
-                    className="text-[#2196f3] hover:underline"
+                    className="text-brand hover:underline"
                   >
                     Add one
                   </button>
@@ -415,231 +431,216 @@ export function AdminCleaningPlacesPage() {
 
         {filteredPlaces.length === 0 && (
           <div className="text-center py-12">
+            <Home className="mx-auto h-12 w-12 text-gray-300 mb-4" />
             <p className="text-gray-500">No property types found</p>
           </div>
         )}
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Delete {deleteConfirm.type === 'place' ? 'property type' : 'room'}?
-            </h3>
-            <p className="text-gray-600 mb-6">This action cannot be undone.</p>
-            <div className="flex gap-3">
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete {deleteConfirm?.type === 'place' ? 'property type' : 'room'}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteConfirm?.type === 'place') {
+                  handleDeletePlace(deleteConfirm.placeId);
+                } else if (deleteConfirm?.roomId) {
+                  handleDeleteRoom(deleteConfirm.placeId, deleteConfirm.roomId);
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Place Modal */}
+      <Dialog open={showModal} onOpenChange={(open) => !open && closePlaceModal()}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {editingPlace ? 'Edit Property Type' : 'New Property Type'}
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={onPlaceSubmit} className="space-y-4">
+            {placeForm.formState.errors.root && (
+              <p className="text-sm text-red-500">{placeForm.formState.errors.root.message}</p>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
+              <input
+                type="text"
+                {...placeForm.register('name')}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+              />
+              {placeForm.formState.errors.name && (
+                <p className="text-sm text-red-500 mt-1">{placeForm.formState.errors.name.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+              <textarea
+                {...placeForm.register('description')}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                rows={3}
+              />
+              {placeForm.formState.errors.description && (
+                <p className="text-sm text-red-500 mt-1">{placeForm.formState.errors.description.message}</p>
+              )}
+            </div>
+
+            {editingPlace && (
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  {...placeForm.register('isActive')}
+                  className="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand"
+                />
+                <span className="text-sm text-gray-700">Active</span>
+              </label>
+            )}
+
+            <div className="flex gap-3 pt-4">
               <button
-                onClick={() => setDeleteConfirm(null)}
+                type="button"
+                onClick={closePlaceModal}
                 className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
               >
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  if (deleteConfirm.type === 'place') {
-                    handleDeletePlace(deleteConfirm.placeId);
-                  } else if (deleteConfirm.roomId) {
-                    handleDeleteRoom(deleteConfirm.placeId, deleteConfirm.roomId);
-                  }
-                }}
-                className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                type="submit"
+                disabled={saving}
+                className="flex-1 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark disabled:opacity-50"
               >
-                Delete
+                {saving ? 'Saving...' : editingPlace ? 'Save' : 'Create'}
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Place Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
-            <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-semibold text-gray-900">
-                {editingPlace ? 'Edit Property Type' : 'New Property Type'}
-              </h2>
-              <button onClick={closePlaceModal} className="p-2 text-gray-400 hover:text-gray-600">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <form onSubmit={onPlaceSubmit} className="p-6 space-y-4">
-              {placeForm.formState.errors.root && (
-                <p className="text-sm text-red-500">{placeForm.formState.errors.root.message}</p>
-              )}
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
-                <input
-                  type="text"
-                  {...placeForm.register('name')}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
-                />
-                {placeForm.formState.errors.name && (
-                  <p className="text-sm text-red-500 mt-1">{placeForm.formState.errors.name.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                <textarea
-                  {...placeForm.register('description')}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
-                  rows={3}
-                />
-                {placeForm.formState.errors.description && (
-                  <p className="text-sm text-red-500 mt-1">{placeForm.formState.errors.description.message}</p>
-                )}
-              </div>
-
-              {editingPlace && (
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    {...placeForm.register('isActive')}
-                    className="w-4 h-4 text-[#2196f3] border-gray-300 rounded focus:ring-[#2196f3]"
-                  />
-                  <span className="text-sm text-gray-700">Active</span>
-                </label>
-              )}
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={closePlaceModal}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] disabled:opacity-50"
-                >
-                  {saving ? 'Saving...' : editingPlace ? 'Save' : 'Create'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Room Modal */}
-      {showRoomModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
-            <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-semibold text-gray-900">
-                {editingRoom ? 'Edit Room' : 'New Room'}
-              </h2>
-              <button onClick={closeRoomModal} className="p-2 text-gray-400 hover:text-gray-600">
-                <X className="h-5 w-5" />
-              </button>
+      <Dialog open={showRoomModal} onOpenChange={(open) => !open && closeRoomModal()}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {editingRoom ? 'Edit Room' : 'New Room'}
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={onRoomSubmit} className="space-y-4">
+            {roomForm.formState.errors.root && (
+              <p className="text-sm text-red-500">{roomForm.formState.errors.root.message}</p>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
+              <input
+                type="text"
+                {...roomForm.register('name')}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+              />
+              {roomForm.formState.errors.name && (
+                <p className="text-sm text-red-500 mt-1">{roomForm.formState.errors.name.message}</p>
+              )}
             </div>
 
-            <form onSubmit={onRoomSubmit} className="p-6 space-y-4">
-              {roomForm.formState.errors.root && (
-                <p className="text-sm text-red-500">{roomForm.formState.errors.root.message}</p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+              <textarea
+                {...roomForm.register('description')}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                rows={2}
+              />
+              {roomForm.formState.errors.description && (
+                <p className="text-sm text-red-500 mt-1">{roomForm.formState.errors.description.message}</p>
               )}
+            </div>
 
+            <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Base minutes</label>
                 <input
-                  type="text"
-                  {...roomForm.register('name')}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
+                  type="number"
+                  min="5"
+                  step="5"
+                  {...roomForm.register('baseMinutes', { valueAsNumber: true })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                 />
-                {roomForm.formState.errors.name && (
-                  <p className="text-sm text-red-500 mt-1">{roomForm.formState.errors.name.message}</p>
+                {roomForm.formState.errors.baseMinutes && (
+                  <p className="text-sm text-red-500 mt-1">{roomForm.formState.errors.baseMinutes.message}</p>
                 )}
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                <textarea
-                  {...roomForm.register('description')}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
-                  rows={2}
+                <label className="block text-sm font-medium text-gray-700 mb-2">Base price ($)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  {...roomForm.register('basePrice', { valueAsNumber: true })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
                 />
-                {roomForm.formState.errors.description && (
-                  <p className="text-sm text-red-500 mt-1">{roomForm.formState.errors.description.message}</p>
+                {roomForm.formState.errors.basePrice && (
+                  <p className="text-sm text-red-500 mt-1">{roomForm.formState.errors.basePrice.message}</p>
                 )}
               </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Base minutes</label>
-                  <input
-                    type="number"
-                    min="5"
-                    step="5"
-                    {...roomForm.register('baseMinutes', { valueAsNumber: true })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
-                  />
-                  {roomForm.formState.errors.baseMinutes && (
-                    <p className="text-sm text-red-500 mt-1">{roomForm.formState.errors.baseMinutes.message}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Base price ($)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    {...roomForm.register('basePrice', { valueAsNumber: true })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
-                  />
-                  {roomForm.formState.errors.basePrice && (
-                    <p className="text-sm text-red-500 mt-1">{roomForm.formState.errors.basePrice.message}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Order</label>
-                  <input
-                    type="number"
-                    min="0"
-                    {...roomForm.register('displayOrder', { valueAsNumber: true })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2196f3] focus:border-transparent"
-                  />
-                  {roomForm.formState.errors.displayOrder && (
-                    <p className="text-sm text-red-500 mt-1">{roomForm.formState.errors.displayOrder.message}</p>
-                  )}
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Order</label>
+                <input
+                  type="number"
+                  min="0"
+                  {...roomForm.register('displayOrder', { valueAsNumber: true })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                />
+                {roomForm.formState.errors.displayOrder && (
+                  <p className="text-sm text-red-500 mt-1">{roomForm.formState.errors.displayOrder.message}</p>
+                )}
               </div>
+            </div>
 
-              {editingRoom && (
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    {...roomForm.register('isActive')}
-                    className="w-4 h-4 text-[#2196f3] border-gray-300 rounded focus:ring-[#2196f3]"
-                  />
-                  <span className="text-sm text-gray-700">Active</span>
-                </label>
-              )}
+            {editingRoom && (
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  {...roomForm.register('isActive')}
+                  className="w-4 h-4 text-brand border-gray-300 rounded focus:ring-brand"
+                />
+                <span className="text-sm text-gray-700">Active</span>
+              </label>
+            )}
 
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={closeRoomModal}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 px-4 py-2 bg-[#2196f3] text-white rounded-lg hover:bg-[#29338c] disabled:opacity-50"
-                >
-                  {saving ? 'Saving...' : editingRoom ? 'Save' : 'Create'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={closeRoomModal}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="flex-1 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark disabled:opacity-50"
+              >
+                {saving ? 'Saving...' : editingRoom ? 'Save' : 'Create'}
+              </button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }

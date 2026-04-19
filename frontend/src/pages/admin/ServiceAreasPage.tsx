@@ -19,6 +19,23 @@ import {
   serviceAreaSchema,
   type ServiceAreaFormData,
 } from '@/shared/schemas/admin.schema';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/shared/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/shared/components/ui/dialog';
+import { Spinner } from '@/shared/components/ui/spinner';
 
 interface ServiceAreaZip {
   id: number;
@@ -55,6 +72,10 @@ export function AdminServiceAreasPage() {
   const [selectedAreaId, setSelectedAreaId] = useState<number | null>(null);
   const [newZipCode, setNewZipCode] = useState('');
   const [zipError, setZipError] = useState('');
+
+  // Delete confirmation state
+  const [deleteAreaId, setDeleteAreaId] = useState<number | null>(null);
+  const [deleteZip, setDeleteZip] = useState<{ areaId: number; zipId: number; zipCode: string } | null>(null);
 
   const form = useForm<ServiceAreaFormData>({
     resolver: zodResolver(serviceAreaSchema),
@@ -113,11 +134,9 @@ export function AdminServiceAreasPage() {
   });
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this service area? This will also delete all associated zip codes.')) {
-      return;
-    }
     try {
       await api.delete(`/serviceareas/${id}`);
+      setDeleteAreaId(null);
       fetchServiceAreas();
     } catch {
       // Error handled by API interceptor
@@ -158,11 +177,10 @@ export function AdminServiceAreasPage() {
     }
   };
 
-  const handleDeleteZipCode = async (areaId: number, zipId: number, zipCode: string) => {
-    if (!confirm(`Delete zip code ${zipCode}?`)) return;
-
+  const handleDeleteZipCode = async (areaId: number, zipId: number) => {
     try {
       await api.delete(`/serviceareas/${areaId}/zipcodes/${zipId}`);
+      setDeleteZip(null);
       fetchServiceAreas();
     } catch {
       // Error handled by API interceptor
@@ -240,14 +258,14 @@ export function AdminServiceAreasPage() {
             placeholder="Search by name, description or zip code..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
+            className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
           />
         </div>
 
         {/* Service Areas List */}
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#2196f3] border-t-transparent" />
+            <Spinner size="md" />
           </div>
         ) : filteredAreas.length === 0 ? (
           <div className="rounded-lg border border-gray-200 bg-white p-12 text-center">
@@ -261,7 +279,7 @@ export function AdminServiceAreasPage() {
             {!searchTerm && (
               <button
                 onClick={() => handleOpenModal()}
-                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#2196f3] px-4 py-2 text-sm font-medium text-white hover:bg-[#29338c]"
+                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
               >
                 <Plus className="h-4 w-4" />
                 New Zone
@@ -319,7 +337,7 @@ export function AdminServiceAreasPage() {
                       <Edit2 className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => handleDelete(area.id)}
+                      onClick={() => setDeleteAreaId(area.id)}
                       className="rounded-lg p-2 text-gray-500 hover:bg-red-50 hover:text-red-600"
                       title="Delete zone"
                     >
@@ -335,7 +353,7 @@ export function AdminServiceAreasPage() {
                       <h4 className="text-sm font-medium text-gray-700">Zip Codes</h4>
                       <button
                         onClick={() => handleOpenZipModal(area.id)}
-                        className="inline-flex items-center gap-1 rounded-md bg-[#2196f3] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#29338c]"
+                        className="inline-flex items-center gap-1 rounded-md bg-brand px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-dark"
                       >
                         <Plus className="h-3 w-3" />
                         Add ZIP
@@ -355,7 +373,7 @@ export function AdminServiceAreasPage() {
                             <MapPin className="h-3 w-3 text-gray-400" />
                             <span className="font-mono">{zip.zipCode}</span>
                             <button
-                              onClick={() => handleDeleteZipCode(area.id, zip.id, zip.zipCode)}
+                              onClick={() => setDeleteZip({ areaId: area.id, zipId: zip.id, zipCode: zip.zipCode })}
                               className="ml-1 rounded-full p-0.5 text-gray-400 hover:bg-red-100 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
                             >
                               <X className="h-3 w-3" />
@@ -370,150 +388,174 @@ export function AdminServiceAreasPage() {
             ))}
           </div>
         )}
-
-        {/* Create/Edit Area Modal */}
-        {showModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  {editingArea ? 'Edit Zone' : 'New Service Area'}
-                </h2>
-                <button
-                  onClick={handleCloseModal}
-                  className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <form onSubmit={onSubmit} className="space-y-4">
-                {form.formState.errors.root && (
-                  <p className="text-sm text-red-500">{form.formState.errors.root.message}</p>
-                )}
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name *
-                  </label>
-                  <input
-                    type="text"
-                    {...form.register('name')}
-                    placeholder="E.g.: North Miami Zone"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
-                  />
-                  {form.formState.errors.name && (
-                    <p className="mt-1 text-sm text-red-500">{form.formState.errors.name.message}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    {...form.register('description')}
-                    placeholder="Optional zone description"
-                    rows={3}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#2196f3] focus:outline-none focus:ring-1 focus:ring-[#2196f3]"
-                  />
-                  {form.formState.errors.description && (
-                    <p className="mt-1 text-sm text-red-500">{form.formState.errors.description.message}</p>
-                  )}
-                </div>
-
-                {editingArea && (
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="isActive"
-                      {...form.register('isActive')}
-                      className="h-4 w-4 rounded border-gray-300 text-[#2196f3] focus:ring-[#2196f3]"
-                    />
-                    <label htmlFor="isActive" className="text-sm text-gray-700">
-                      Zone active
-                    </label>
-                  </div>
-                )}
-
-                <div className="flex justify-end gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={handleCloseModal}
-                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="rounded-lg bg-[#2196f3] px-4 py-2 text-sm font-medium text-white hover:bg-[#29338c]"
-                  >
-                    {editingArea ? 'Save Changes' : 'Create Zone'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* Add Zip Code Modal */}
-        {showZipModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Add Zip Code</h2>
-                <button
-                  onClick={() => setShowZipModal(false)}
-                  className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <form onSubmit={handleAddZipCode} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Zip Code (5 digits) *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    maxLength={5}
-                    value={newZipCode}
-                    onChange={(e) => {
-                      setNewZipCode(e.target.value.replace(/\D/g, ''));
-                      setZipError('');
-                    }}
-                    placeholder="E.g.: 33101"
-                    className={`w-full rounded-lg border px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 ${
-                      zipError
-                        ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 focus:border-[#2196f3] focus:ring-[#2196f3]'
-                    }`}
-                  />
-                  {zipError && <p className="mt-1 text-xs text-red-600">{zipError}</p>}
-                </div>
-
-                <div className="flex justify-end gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowZipModal(false)}
-                    className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="rounded-lg bg-[#2196f3] px-4 py-2 text-sm font-medium text-white hover:bg-[#29338c]"
-                  >
-                    Add
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Delete Area Confirmation */}
+      <AlertDialog open={deleteAreaId !== null} onOpenChange={(open) => !open && setDeleteAreaId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete service area?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will also delete all associated zip codes. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteAreaId !== null && handleDelete(deleteAreaId)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Zip Code Confirmation */}
+      <AlertDialog open={deleteZip !== null} onOpenChange={(open) => !open && setDeleteZip(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete zip code {deleteZip?.zipCode}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteZip && handleDeleteZipCode(deleteZip.areaId, deleteZip.zipId)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Create/Edit Area Modal */}
+      <Dialog open={showModal} onOpenChange={(open) => !open && handleCloseModal()}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {editingArea ? 'Edit Zone' : 'New Service Area'}
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={onSubmit} className="space-y-4">
+            {form.formState.errors.root && (
+              <p className="text-sm text-red-500">{form.formState.errors.root.message}</p>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Name *
+              </label>
+              <input
+                type="text"
+                {...form.register('name')}
+                placeholder="E.g.: North Miami Zone"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              />
+              {form.formState.errors.name && (
+                <p className="mt-1 text-sm text-red-500">{form.formState.errors.name.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Description
+              </label>
+              <textarea
+                {...form.register('description')}
+                placeholder="Optional zone description"
+                rows={3}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              />
+              {form.formState.errors.description && (
+                <p className="mt-1 text-sm text-red-500">{form.formState.errors.description.message}</p>
+              )}
+            </div>
+
+            {editingArea && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="isActive"
+                  {...form.register('isActive')}
+                  className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
+                />
+                <label htmlFor="isActive" className="text-sm text-gray-700">
+                  Zone active
+                </label>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-4">
+              <button
+                type="button"
+                onClick={handleCloseModal}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
+              >
+                {editingArea ? 'Save Changes' : 'Create Zone'}
+              </button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Zip Code Modal */}
+      <Dialog open={showZipModal} onOpenChange={(open) => !open && setShowZipModal(false)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Add Zip Code</DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleAddZipCode} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Zip Code (5 digits) *
+              </label>
+              <input
+                type="text"
+                required
+                maxLength={5}
+                value={newZipCode}
+                onChange={(e) => {
+                  setNewZipCode(e.target.value.replace(/\D/g, ''));
+                  setZipError('');
+                }}
+                placeholder="E.g.: 33101"
+                className={`w-full rounded-lg border px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 ${
+                  zipError
+                    ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                    : 'border-gray-300 focus:border-brand focus:ring-brand'
+                }`}
+              />
+              {zipError && <p className="mt-1 text-xs text-red-600">{zipError}</p>}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowZipModal(false)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
+              >
+                Add
+              </button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
