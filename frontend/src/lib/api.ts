@@ -204,9 +204,12 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // --- 403: access denied ---
+    // --- 403: access denied or CSRF retry exhausted ---
     if (status === 403) {
-      pushToast('Access denied. You do not have permission for this action.', 'warning');
+      const msg = isCsrfFailure(error)
+        ? 'Session error. Please refresh the page and try again.'
+        : 'Access denied. You do not have permission for this action.';
+      pushToast(msg, 'warning');
       return Promise.reject(error);
     }
 

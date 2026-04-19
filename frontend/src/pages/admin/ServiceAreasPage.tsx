@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useId } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -262,6 +262,7 @@ function CityFetchForm({
   confirmLabel = 'Add ZIPs',
   confirmLoading = false,
 }: CityFetchFormProps) {
+  const formId = useId();
   const [selectedState, setSelectedState] = useState('');
   const [showStateDropdown, setShowStateDropdown] = useState(false);
   const [cityQuery, setCityQuery] = useState('');
@@ -442,12 +443,14 @@ function CityFetchForm({
       {/* Step 2: City combobox — visible only after state is selected */}
       {selectedState && (
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">City</label>
+          <label htmlFor={`${formId}-city`} className="block text-xs font-medium text-gray-500 mb-1">City</label>
           <div className="relative" ref={containerRef}>
             <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
               <Search className="h-4 w-4 text-gray-400" />
             </div>
             <input
+              id={`${formId}-city`}
+              name="city"
               type="text"
               placeholder="Browse or type to filter…"
               value={cityQuery}
@@ -906,6 +909,8 @@ export function AdminServiceAreasPage() {
           <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
+            name="search"
+            aria-label="Search service areas by city, description or ZIP code"
             placeholder="Search by city, description or ZIP code..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -1118,6 +1123,8 @@ export function AdminServiceAreasPage() {
                             <input
                               ref={(el) => { zipInputRefs.current[area.id] = el; }}
                               type="text"
+                              name="zipCode"
+                              aria-label="Add ZIP code"
                               inputMode="numeric"
                               placeholder="Add ZIP (e.g. 33101) or paste multiple"
                               value={zipInputs[area.id] ?? ''}
@@ -1224,10 +1231,12 @@ export function AdminServiceAreasPage() {
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="create-zone-description" className="block text-sm font-medium text-gray-700 mb-1">
                 Description
               </label>
               <textarea
+                id="create-zone-description"
+                name="description"
                 value={createDescription}
                 onChange={(e) => setCreateDescription(e.target.value)}
                 placeholder="Optional zone description"
@@ -1295,10 +1304,11 @@ export function AdminServiceAreasPage() {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="edit-zone-name" className="block text-sm font-medium text-gray-700 mb-1">
                 Name *
               </label>
               <input
+                id="edit-zone-name"
                 type="text"
                 {...editForm.register('name')}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
@@ -1311,10 +1321,11 @@ export function AdminServiceAreasPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="edit-zone-description" className="block text-sm font-medium text-gray-700 mb-1">
                 Description
               </label>
               <textarea
+                id="edit-zone-description"
                 {...editForm.register('description')}
                 rows={3}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
