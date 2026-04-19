@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SavedByTheMaid.Api.Middleware;
 
@@ -37,7 +38,13 @@ public class CsrfValidationMiddleware
             context.User.Identity?.IsAuthenticated == true &&
             !_skipPaths.Contains(context.Request.Path.Value ?? ""))
         {
-            if (!await _antiforgery.IsRequestValidAsync(context))
+            // Skip CSRF for endpoints decorated with [AllowAnonymous] — an authenticated
+            // user hitting a public endpoint should not be blocked by CSRF (the endpoint
+            // does not rely on the user's session to perform sensitive operations).
+            var endpoint = context.GetEndpoint();
+            var isAnonymous = endpoint?.Metadata.GetMetadata<IAllowAnonymous>() != null;
+
+            if (!isAnonymous && !await _antiforgery.IsRequestValidAsync(context))
             {
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
                 await context.Response.WriteAsJsonAsync(new { message = "CSRF token validation failed." });
