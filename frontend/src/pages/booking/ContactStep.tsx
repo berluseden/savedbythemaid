@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Button, Input, Modal } from '@/components/ui';
 import api from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,8 +17,21 @@ export const ContactStep = React.memo(function ContactStep({
   onNext,
   onBack,
 }: ContactStepProps) {
-  const { login } = useAuth();
+  const { login, user, isAuthenticated } = useAuth();
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Pre-fill contact fields from the logged-in user's profile.
+  // Only fills empty fields — never overwrites something the user already typed.
+  useEffect(() => {
+    if (!user) return;
+    const updates: Partial<BookingData> = {};
+    if (!data.firstName && user.firstName) updates.firstName = user.firstName;
+    if (!data.lastName && user.lastName) updates.lastName = user.lastName;
+    if (!data.email && user.email) updates.email = user.email;
+    if (!data.phone && user.phone) updates.phone = user.phone;
+    if (Object.keys(updates).length > 0) onChange(updates);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [password, setPassword] = useState('');
@@ -45,6 +58,12 @@ export const ContactStep = React.memo(function ContactStep({
       return;
     }
     setErrors({});
+
+    // Already authenticated — skip email/password check entirely
+    if (isAuthenticated) {
+      onNext();
+      return;
+    }
 
     // If already has password, continue
     if (data.password) {
@@ -207,7 +226,7 @@ export const ContactStep = React.memo(function ContactStep({
             aria-label="Login password"
           />
 
-          <a href="/forgot-password" className="text-sm text-[#2196f3] hover:text-[#29338c]">
+          <a href="/forgot-password" className="text-sm text-brand hover:text-brand-dark">
             Forgot your password?
           </a>
 
@@ -324,7 +343,7 @@ export const ContactStep = React.memo(function ContactStep({
             value={data.specialInstructions}
             onChange={(e) => onChange({ specialInstructions: e.target.value })}
             rows={3}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2196f3]"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
             placeholder="Gate code, parking instructions, pet info, etc."
           />
         </div>
