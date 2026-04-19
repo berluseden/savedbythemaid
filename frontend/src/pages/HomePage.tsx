@@ -97,13 +97,6 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {/* Stars */}
-          <div className="mt-8 flex items-center justify-center gap-1">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-            ))}
-            <span className="ml-2 text-sm font-medium text-gray-500">4.9/5 (2,000+ reviews)</span>
-          </div>
         </div>
       </section>
 

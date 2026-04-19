@@ -13,6 +13,7 @@ import {
   CheckCircle,
   Globe,
   AlertTriangle,
+  Building2,
 } from 'lucide-react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import api from '../../lib/api';
@@ -52,7 +53,45 @@ interface ServiceArea {
   zipCodes: ServiceAreaZip[];
 }
 
-const defaultValues: ServiceAreaFormData = {
+interface ZippopotamResponse {
+  'country abbreviation': string;
+  places: Array<{
+    'place name': string;
+    'state abbreviation': string;
+    'post code': string;
+  }>;
+}
+
+interface CityZipFetchState {
+  city: string;
+  state: string;
+  status: 'idle' | 'loading' | 'success' | 'error';
+  zips: string[];
+  errorMsg: string;
+}
+
+interface NominatimPlace {
+  display_name: string;
+  address: {
+    city?: string;
+    town?: string;
+    village?: string;
+    suburb?: string;
+    state?: string;
+    state_code?: string;
+    country_code?: string;
+  };
+}
+
+const defaultCityFetch = (): CityZipFetchState => ({
+  city: '',
+  state: '',
+  status: 'idle',
+  zips: [],
+  errorMsg: '',
+});
+
+const editDefaultValues: ServiceAreaFormData = {
   name: '',
   description: '',
   isActive: true,
@@ -98,6 +137,217 @@ function ToggleSwitch({ checked, onChange, label, disabled }: ToggleSwitchProps)
   );
 }
 
+/** Calls zippopotam.us and returns ZIP codes for the given city+state. Throws on 404/error. */
+async function fetchZipsForCity(city: string, state: string): Promise<string[]> {
+  const encodedCity = encodeURIComponent(city.trim());
+  const encodedState = encodeURIComponent(state.trim().toUpperCase());
+  const res = await fetch(`https://api.zippopotam.us/us/${encodedState}/${encodedCity}`);
+  if (res.status === 404) {
+    throw new Error('City not found. Check spelling and state code.');
+  }
+  if (!res.ok) {
+    throw new Error('Failed to fetch ZIP codes. Please try again.');
+  }
+  const data: ZippopotamResponse = await res.json() as ZippopotamResponse;
+  return data.places.map((p) => p['post code']);
+}
+
+/** Preview label: "Found 6 ZIPs: 33139, 33140, 33141... +3 more" */
+function ZipPreviewLabel({ zips }: { zips: string[] }) {
+  const MAX_SHOW = 5;
+  const shown = zips.slice(0, MAX_SHOW);
+  const extra = zips.length - shown.length;
+  return (
+    <p className="text-sm text-success font-medium">
+      Found {zips.length} ZIP{zips.length !== 1 ? 's' : ''}: {shown.join(', ')}
+      {extra > 0 && <span className="text-gray-500"> +{extra} more</span>}
+    </p>
+  );
+}
+
+/** Small reusable city autocomplete + fetch form used in both Create modal and expanded row panel. */
+interface CityFetchFormProps {
+  value: CityZipFetchState;
+  onChange: (next: CityZipFetchState) => void;
+  onConfirm?: () => void;
+  confirmLabel?: string;
+  confirmLoading?: boolean;
+}
+
+function CityFetchForm({
+  value,
+  onChange,
+  onConfirm,
+  confirmLabel = 'Add ZIPs',
+  confirmLoading = false,
+}: CityFetchFormProps) {
+  const [query, setQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<{ city: string; state: string; label: string }[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Close dropdown on outside click or Escape key
+  useEffect(() => {
+    const handleMouseDown = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowDropdown(false);
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setQuery(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (val.length < 2) {
+      setSuggestions([]);
+      setShowDropdown(false);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}+US&countrycodes=us&featureclass=P&format=json&limit=8&addressdetails=1`,
+        );
+        const data = await res.json() as NominatimPlace[];
+        const results = data
+          .filter(
+            (p) =>
+              p.address?.state_code &&
+              (p.address.city || p.address.town || p.address.village),
+          )
+          .map((p) => {
+            const city =
+              p.address.city ?? p.address.town ?? p.address.village ?? '';
+            const state = (p.address.state_code ?? '').toUpperCase();
+            return { city, state, label: `${city}, ${state}` };
+          })
+          .filter(
+            (r, i, arr) => arr.findIndex((x) => x.label === r.label) === i,
+          );
+        setSuggestions(results);
+        setShowDropdown(results.length > 0);
+      } catch {
+        // Ignore network errors
+      }
+    }, 300);
+  };
+
+  const handleFetchForCity = async (city: string, state: string) => {
+    onChange({ ...defaultCityFetch(), city, state, status: 'loading' });
+    try {
+      const zips = await fetchZipsForCity(city, state);
+      onChange({ city, state, status: 'success', zips, errorMsg: '' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      onChange({ city, state, status: 'error', zips: [], errorMsg: msg });
+    }
+  };
+
+  const handleSelect = (suggestion: { city: string; state: string; label: string }) => {
+    setQuery(suggestion.label);
+    setSuggestions([]);
+    setShowDropdown(false);
+    handleFetchForCity(suggestion.city, suggestion.state);
+  };
+
+  const handleFetch = async () => {
+    if (!value.city.trim() || value.state.length !== 2) return;
+    await handleFetchForCity(value.city, value.state);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        {/* Autocomplete search input */}
+        <div className="relative flex-1" ref={containerRef}>
+          <input
+            type="text"
+            placeholder="Search city (e.g. Miami)"
+            value={query}
+            onChange={handleQueryChange}
+            onFocus={() => suggestions.length > 0 && setShowDropdown(true)}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+          />
+          {showDropdown && suggestions.length > 0 && (
+            <ul className="absolute z-50 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg text-sm max-h-48 overflow-y-auto">
+              {suggestions.map((s) => (
+                <li
+                  key={s.label}
+                  onMouseDown={(e) => {
+                    // Use mousedown so it fires before the input blur
+                    e.preventDefault();
+                    handleSelect(s);
+                  }}
+                  className="cursor-pointer px-3 py-2 hover:bg-gray-50"
+                >
+                  {s.label}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Fetch button — shown only when city/state are filled but not yet fetched via autocomplete */}
+        <button
+          type="button"
+          disabled={
+            !value.city.trim() ||
+            value.state.length !== 2 ||
+            value.status === 'loading'
+          }
+          onClick={handleFetch}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-brand px-3 py-2 text-sm font-medium text-brand hover:bg-brand/5 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+        >
+          {value.status === 'loading' ? (
+            <>
+              <Spinner size="sm" />
+              <span>Fetching…</span>
+            </>
+          ) : (
+            'Fetch ZIPs'
+          )}
+        </button>
+      </div>
+
+      {/* Feedback */}
+      {value.status === 'success' && <ZipPreviewLabel zips={value.zips} />}
+      {value.status === 'error' && (
+        <p className="text-sm text-danger">{value.errorMsg}</p>
+      )}
+
+      {/* Confirm button — only shown when caller provides onConfirm */}
+      {onConfirm && value.status === 'success' && value.zips.length > 0 && (
+        <button
+          type="button"
+          disabled={confirmLoading}
+          onClick={onConfirm}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark disabled:opacity-50 transition-colors"
+        >
+          {confirmLoading ? (
+            <>
+              <Spinner size="sm" />
+              <span>Adding…</span>
+            </>
+          ) : (
+            confirmLabel
+          )}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function AdminServiceAreasPage() {
   const [serviceAreas, setServiceAreas] = useState<ServiceArea[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -107,9 +357,19 @@ export function AdminServiceAreasPage() {
   // Optimistic toggle tracking: areaId -> pending state
   const [togglingIds, setTogglingIds] = useState<Set<number>>(new Set());
 
-  // Modal state
-  const [showModal, setShowModal] = useState(false);
-  const [editingArea, setEditingArea] = useState<ServiceArea | null>(null);
+  // Modal state — null = closed, 'create' = create, ServiceArea = edit
+  const [modalMode, setModalMode] = useState<null | 'create' | ServiceArea>(null);
+
+  // Create modal city-fetch state
+  const [createFetch, setCreateFetch] = useState<CityZipFetchState>(defaultCityFetch());
+  const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [createDescription, setCreateDescription] = useState('');
+
+  // Edit modal form (react-hook-form for edit only)
+  const editForm = useForm<ServiceAreaFormData>({
+    resolver: zodResolver(serviceAreaSchema),
+    defaultValues: editDefaultValues,
+  });
 
   // Inline ZIP input state per area
   const [zipInputs, setZipInputs] = useState<Record<number, string>>({});
@@ -118,14 +378,15 @@ export function AdminServiceAreasPage() {
   const [zipBulkMsg, setZipBulkMsg] = useState<Record<number, string>>({});
   const zipInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
 
+  // Expanded "Add city ZIPs" inline panel per area
+  const [cityPanelOpen, setCityPanelOpen] = useState<Record<number, boolean>>({});
+  const [cityPanelFetch, setCityPanelFetch] = useState<Record<number, CityZipFetchState>>({});
+  const [cityPanelAdding, setCityPanelAdding] = useState<Record<number, boolean>>({});
+  const [cityPanelMsg, setCityPanelMsg] = useState<Record<number, string>>({});
+
   // Delete confirmation state
   const [deleteAreaId, setDeleteAreaId] = useState<number | null>(null);
   const [deleteZip, setDeleteZip] = useState<{ areaId: number; zipId: number; zipCode: string } | null>(null);
-
-  const form = useForm<ServiceAreaFormData>({
-    resolver: zodResolver(serviceAreaSchema),
-    defaultValues,
-  });
 
   useEffect(() => {
     fetchServiceAreas();
@@ -143,40 +404,81 @@ export function AdminServiceAreasPage() {
     }
   };
 
-  const handleOpenModal = (area?: ServiceArea) => {
-    if (area) {
-      setEditingArea(area);
-      form.reset({
-        name: area.name,
-        description: area.description || '',
-        isActive: area.isActive,
-      });
-    } else {
-      setEditingArea(null);
-      form.reset(defaultValues);
-    }
-    setShowModal(true);
+  // ── Create modal ──────────────────────────────────────────────────────────
+
+  const openCreateModal = () => {
+    setCreateFetch(defaultCityFetch());
+    setCreateDescription('');
+    setCreateSubmitting(false);
+    setModalMode('create');
   };
 
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setEditingArea(null);
-    form.reset(defaultValues);
-  };
+  const handleCreateSubmit = async () => {
+    const city = createFetch.city.trim();
+    const state = createFetch.state.trim().toUpperCase();
 
-  const onSubmit = form.handleSubmit(async (data) => {
+    if (!city || !state) return;
+    if (createFetch.status !== 'success' || createFetch.zips.length === 0) return;
+
+    setCreateSubmitting(true);
     try {
-      if (editingArea) {
-        await api.put(`/serviceareas/${editingArea.id}`, data);
-      } else {
-        await api.post('/serviceareas', data);
-      }
-      handleCloseModal();
+      const zoneName = `${city}, ${state}`;
+      const res = await api.post<ServiceArea>('/serviceareas', {
+        name: zoneName,
+        description: createDescription || null,
+        isActive: true,
+      });
+      const newAreaId = res.data.id;
+
+      // Bulk-add all ZIPs in parallel — ignore 409s (already assigned)
+      await Promise.all(
+        createFetch.zips.map((zip) =>
+          api
+            .post(`/serviceareas/${newAreaId}/zipcodes`, { zipCode: zip })
+            .catch((err: unknown) => {
+              const maybe = err as { response?: { status?: number } };
+              if (maybe.response?.status !== 409) throw err;
+            }),
+        ),
+      );
+
+      setModalMode(null);
+      fetchServiceAreas();
+    } catch {
+      // Error handled by API interceptor
+    } finally {
+      setCreateSubmitting(false);
+    }
+  };
+
+  // ── Edit modal ────────────────────────────────────────────────────────────
+
+  const openEditModal = (area: ServiceArea) => {
+    editForm.reset({
+      name: area.name,
+      description: area.description || '',
+      isActive: area.isActive,
+    });
+    setModalMode(area);
+  };
+
+  const handleEditSubmit = editForm.handleSubmit(async (data) => {
+    const area = modalMode as ServiceArea;
+    try {
+      await api.put(`/serviceareas/${area.id}`, data);
+      setModalMode(null);
       fetchServiceAreas();
     } catch {
       // Error handled by API interceptor
     }
   });
+
+  const handleCloseModal = () => {
+    setModalMode(null);
+    editForm.reset(editDefaultValues);
+  };
+
+  // ── Delete / toggle ───────────────────────────────────────────────────────
 
   const handleDelete = async (id: number) => {
     try {
@@ -189,12 +491,10 @@ export function AdminServiceAreasPage() {
   };
 
   const handleToggleActive = async (area: ServiceArea, newValue: boolean) => {
-    // Optimistic update
     setServiceAreas((prev) =>
       prev.map((a) => (a.id === area.id ? { ...a, isActive: newValue } : a)),
     );
     setTogglingIds((prev) => new Set(prev).add(area.id));
-
     try {
       await api.put(`/serviceareas/${area.id}`, {
         name: area.name,
@@ -202,7 +502,6 @@ export function AdminServiceAreasPage() {
         isActive: newValue,
       });
     } catch {
-      // Rollback on error
       setServiceAreas((prev) =>
         prev.map((a) => (a.id === area.id ? { ...a, isActive: area.isActive } : a)),
       );
@@ -215,6 +514,8 @@ export function AdminServiceAreasPage() {
     }
   };
 
+  // ── ZIP delete ────────────────────────────────────────────────────────────
+
   const handleDeleteZipCode = async (areaId: number, zipId: number) => {
     try {
       await api.delete(`/serviceareas/${areaId}/zipcodes/${zipId}`);
@@ -225,8 +526,9 @@ export function AdminServiceAreasPage() {
     }
   };
 
+  // ── Inline ZIP input (manual add / paste) ────────────────────────────────
+
   const handleZipInputChange = (areaId: number, value: string) => {
-    // Allow only digits
     const digits = value.replace(/\D/g, '').slice(0, 5);
     setZipInputs((prev) => ({ ...prev, [areaId]: digits }));
     setZipErrors((prev) => ({ ...prev, [areaId]: '' }));
@@ -315,6 +617,53 @@ export function AdminServiceAreasPage() {
     }
   };
 
+  // ── Expanded row "Add city ZIPs" panel ───────────────────────────────────
+
+  const toggleCityPanel = (areaId: number) => {
+    const isNowOpen = !cityPanelOpen[areaId];
+    if (isNowOpen && !cityPanelFetch[areaId]) {
+      setCityPanelFetch((p) => ({ ...p, [areaId]: defaultCityFetch() }));
+    }
+    setCityPanelOpen((prev) => ({ ...prev, [areaId]: !prev[areaId] }));
+    setCityPanelMsg((prev) => ({ ...prev, [areaId]: '' }));
+  };
+
+  const handleCityPanelConfirm = async (areaId: number) => {
+    const fetchState = cityPanelFetch[areaId];
+    if (!fetchState || fetchState.zips.length === 0) return;
+
+    setCityPanelAdding((prev) => ({ ...prev, [areaId]: true }));
+    setCityPanelMsg((prev) => ({ ...prev, [areaId]: '' }));
+
+    const results = await Promise.all(
+      fetchState.zips.map((zip) =>
+        api
+          .post(`/serviceareas/${areaId}/zipcodes`, { zipCode: zip })
+          .then(() => true)
+          .catch((err: unknown) => {
+            const maybe = err as { response?: { status?: number } };
+            if (maybe.response?.status === 409) return false; // already exists — not a new add
+            return false;
+          }),
+      ),
+    );
+
+    const added = results.filter(Boolean).length;
+    setCityPanelAdding((prev) => ({ ...prev, [areaId]: false }));
+    setCityPanelFetch((prev) => ({ ...prev, [areaId]: defaultCityFetch() }));
+    setCityPanelOpen((prev) => ({ ...prev, [areaId]: false }));
+    setCityPanelMsg((prev) => ({
+      ...prev,
+      [areaId]:
+        added === 0
+          ? 'All ZIPs already exist'
+          : `Added ${added} new ZIP${added !== 1 ? 's' : ''}`,
+    }));
+    fetchServiceAreas();
+  };
+
+  // ── Filtering / sorting ───────────────────────────────────────────────────
+
   const toggleExpand = (areaId: number) => {
     setExpandedArea(expandedArea === areaId ? null : areaId);
   };
@@ -326,7 +675,6 @@ export function AdminServiceAreasPage() {
         area.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         area.zipCodes.some((z) => z.zipCode.includes(searchTerm)),
     )
-    // Active zones first, then inactive; each group alphabetical
     .sort((a, b) => {
       if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
       return a.name.localeCompare(b.name);
@@ -335,6 +683,8 @@ export function AdminServiceAreasPage() {
   const totalZipCodes = serviceAreas.reduce((sum, area) => sum + area.zipCodes.length, 0);
   const activeAreas = serviceAreas.filter((a) => a.isActive).length;
 
+  // ── Render ────────────────────────────────────────────────────────────────
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -342,10 +692,10 @@ export function AdminServiceAreasPage() {
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Service Areas</h1>
-            <p className="mt-1 text-sm text-gray-500">Manage coverage zones and ZIP codes</p>
+            <p className="mt-1 text-sm text-gray-500">Manage coverage zones by city</p>
           </div>
           <button
-            onClick={() => handleOpenModal()}
+            onClick={openCreateModal}
             className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark transition-colors"
           >
             <Plus className="h-4 w-4" />
@@ -389,7 +739,7 @@ export function AdminServiceAreasPage() {
           <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search by name, description or ZIP code..."
+            placeholder="Search by city, description or ZIP code..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-4 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
@@ -412,7 +762,7 @@ export function AdminServiceAreasPage() {
             </p>
             {!searchTerm && (
               <button
-                onClick={() => handleOpenModal()}
+                onClick={openCreateModal}
                 className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
               >
                 <Plus className="h-4 w-4" />
@@ -503,7 +853,7 @@ export function AdminServiceAreasPage() {
                       </div>
 
                       <button
-                        onClick={() => handleOpenModal(area)}
+                        onClick={() => openEditModal(area)}
                         className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors"
                         title="Edit zone"
                       >
@@ -519,12 +869,48 @@ export function AdminServiceAreasPage() {
                     </div>
                   </div>
 
-                  {/* Expanded: ZIP codes + inline add input */}
+                  {/* Expanded: ZIP codes + inline add input + city panel */}
                   {isExpanded && (
                     <div className="border-t border-gray-100 bg-gray-50 px-4 py-4">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">
-                        ZIP Codes
-                      </p>
+                      {/* Row header: ZIP Codes label + "Add city ZIPs" button */}
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                          ZIP Codes ({area.zipCodes.length})
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => toggleCityPanel(area.id)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-white hover:border-brand hover:text-brand transition-colors"
+                        >
+                          <Building2 className="h-3.5 w-3.5" />
+                          {cityPanelOpen[area.id] ? 'Cancel' : 'Add city ZIPs'}
+                        </button>
+                      </div>
+
+                      {/* "Add city ZIPs" inline panel */}
+                      {cityPanelOpen[area.id] && (
+                        <div className="mb-4 rounded-lg border border-brand/20 bg-white p-3">
+                          <p className="text-xs font-medium text-gray-600 mb-2">
+                            Bulk-add all ZIPs for a city
+                          </p>
+                          <CityFetchForm
+                            value={cityPanelFetch[area.id] ?? defaultCityFetch()}
+                            onChange={(next) =>
+                              setCityPanelFetch((prev) => ({ ...prev, [area.id]: next }))
+                            }
+                            onConfirm={() => handleCityPanelConfirm(area.id)}
+                            confirmLabel="Add ZIPs to zone"
+                            confirmLoading={cityPanelAdding[area.id] ?? false}
+                          />
+                        </div>
+                      )}
+
+                      {/* City panel success message (shown after panel closes) */}
+                      {cityPanelMsg[area.id] && !cityPanelOpen[area.id] && (
+                        <p className="text-xs text-success font-medium mb-3">
+                          {cityPanelMsg[area.id]}
+                        </p>
+                      )}
 
                       {/* ZIP chips */}
                       {area.zipCodes.length === 0 ? (
@@ -590,12 +976,10 @@ export function AdminServiceAreasPage() {
                           </span>
                         </div>
 
-                        {/* Inline error */}
                         {zipErrors[area.id] && (
                           <p className="text-xs text-danger">{zipErrors[area.id]}</p>
                         )}
 
-                        {/* Bulk add success */}
                         {zipBulkMsg[area.id] && (
                           <p className="text-xs text-success font-medium">{zipBulkMsg[area.id]}</p>
                         )}
@@ -658,16 +1042,95 @@ export function AdminServiceAreasPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Create / Edit Area Modal */}
-      <Dialog open={showModal} onOpenChange={(open) => !open && handleCloseModal()}>
-        <DialogContent className="max-w-md">
+      {/* Create Zone Modal */}
+      <Dialog open={modalMode === 'create'} onOpenChange={(open) => !open && handleCloseModal()}>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingArea ? 'Edit Zone' : 'New Service Area'}</DialogTitle>
+            <DialogTitle>New Service Area</DialogTitle>
           </DialogHeader>
 
-          <form onSubmit={onSubmit} className="space-y-4">
-            {form.formState.errors.root && (
-              <p className="text-sm text-danger">{form.formState.errors.root.message}</p>
+          <div className="space-y-5">
+            {/* City autocomplete + Fetch */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                City &amp; State *
+              </label>
+              <CityFetchForm
+                value={createFetch}
+                onChange={setCreateFetch}
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Description
+              </label>
+              <textarea
+                value={createDescription}
+                onChange={(e) => setCreateDescription(e.target.value)}
+                placeholder="Optional zone description"
+                rows={2}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              />
+            </div>
+
+            {/* Zone name preview */}
+            {createFetch.city.trim() && createFetch.state.trim() && (
+              <p className="text-xs text-gray-400">
+                Zone will be named:{' '}
+                <span className="font-medium text-gray-600">
+                  {createFetch.city.trim()}, {createFetch.state.trim().toUpperCase()}
+                </span>
+              </p>
+            )}
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={handleCloseModal}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={
+                  createSubmitting ||
+                  createFetch.status !== 'success' ||
+                  createFetch.zips.length === 0
+                }
+                onClick={handleCreateSubmit}
+                className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {createSubmitting ? (
+                  <>
+                    <Spinner size="sm" />
+                    Creating…
+                  </>
+                ) : (
+                  'Create Zone'
+                )}
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Zone Modal */}
+      <Dialog
+        open={modalMode !== null && modalMode !== 'create'}
+        onOpenChange={(open) => !open && handleCloseModal()}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Zone</DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            {editForm.formState.errors.root && (
+              <p className="text-sm text-danger">{editForm.formState.errors.root.message}</p>
             )}
 
             <div>
@@ -676,13 +1139,12 @@ export function AdminServiceAreasPage() {
               </label>
               <input
                 type="text"
-                {...form.register('name')}
-                placeholder="E.g.: North Miami Zone"
+                {...editForm.register('name')}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
               />
-              {form.formState.errors.name && (
+              {editForm.formState.errors.name && (
                 <p className="mt-1 text-sm text-danger">
-                  {form.formState.errors.name.message}
+                  {editForm.formState.errors.name.message}
                 </p>
               )}
             </div>
@@ -692,31 +1154,23 @@ export function AdminServiceAreasPage() {
                 Description
               </label>
               <textarea
-                {...form.register('description')}
-                placeholder="Optional zone description"
+                {...editForm.register('description')}
                 rows={3}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
               />
-              {form.formState.errors.description && (
-                <p className="mt-1 text-sm text-danger">
-                  {form.formState.errors.description.message}
-                </p>
-              )}
             </div>
 
-            {editingArea && (
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="isActive"
-                  {...form.register('isActive')}
-                  className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
-                />
-                <label htmlFor="isActive" className="text-sm text-gray-700">
-                  Zone active
-                </label>
-              </div>
-            )}
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="editIsActive"
+                {...editForm.register('isActive')}
+                className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
+              />
+              <label htmlFor="editIsActive" className="text-sm text-gray-700">
+                Zone active
+              </label>
+            </div>
 
             <div className="flex justify-end gap-3 pt-4">
               <button
@@ -730,7 +1184,7 @@ export function AdminServiceAreasPage() {
                 type="submit"
                 className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
               >
-                {editingArea ? 'Save Changes' : 'Create Zone'}
+                Save Changes
               </button>
             </div>
           </form>
