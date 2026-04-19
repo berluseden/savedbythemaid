@@ -263,21 +263,26 @@ function CityFetchForm({
   confirmLoading = false,
 }: CityFetchFormProps) {
   const [selectedState, setSelectedState] = useState('');
+  const [showStateDropdown, setShowStateDropdown] = useState(false);
   const [cityQuery, setCityQuery] = useState('');
   const [suggestions, setSuggestions] = useState<{ city: string; state: string; label: string }[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const stateContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const handleMouseDown = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setShowDropdown(false);
       }
+      if (stateContainerRef.current && !stateContainerRef.current.contains(e.target as Node)) {
+        setShowStateDropdown(false);
+      }
     };
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setShowDropdown(false);
+      if (e.key === 'Escape') { setShowDropdown(false); setShowStateDropdown(false); }
     };
     document.addEventListener('mousedown', handleMouseDown);
     document.addEventListener('keydown', handleKeyDown);
@@ -376,23 +381,62 @@ function CityFetchForm({
     handleFetchForCity(suggestion.city, suggestion.state);
   };
 
+  const selectedStateName = US_STATES.find((s) => s.abbr === selectedState)?.name;
+
   return (
     <div className="space-y-3">
-      {/* Step 1: State dropdown */}
+      {/* Step 1: Custom state dropdown */}
       <div>
         <label className="block text-xs font-medium text-gray-500 mb-1">State</label>
-        <select
-          value={selectedState}
-          onChange={(e) => handleStateChange(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-        >
-          <option value="">Select state…</option>
-          {US_STATES.map((s) => (
-            <option key={s.abbr} value={s.abbr}>
-              {s.name} ({s.abbr})
-            </option>
-          ))}
-        </select>
+        <div className="relative" ref={stateContainerRef}>
+          <button
+            type="button"
+            onClick={() => setShowStateDropdown((v) => !v)}
+            className={cn(
+              'flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-sm transition-colors bg-white',
+              showStateDropdown
+                ? 'border-brand ring-1 ring-brand'
+                : 'border-gray-300 hover:border-gray-400',
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <Globe className="h-4 w-4 text-gray-400 shrink-0" />
+              <span className={selectedState ? 'text-gray-900' : 'text-gray-400'}>
+                {selectedState ? `${selectedStateName} (${selectedState})` : 'Select a state…'}
+              </span>
+            </div>
+            <ChevronDown
+              className={cn(
+                'h-4 w-4 text-gray-400 transition-transform duration-150',
+                showStateDropdown && 'rotate-180',
+              )}
+            />
+          </button>
+
+          {showStateDropdown && (
+            <ul className="absolute z-50 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg text-sm max-h-56 overflow-y-auto">
+              {US_STATES.map((s) => (
+                <li
+                  key={s.abbr}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setShowStateDropdown(false);
+                    handleStateChange(s.abbr);
+                  }}
+                  className={cn(
+                    'cursor-pointer px-3 py-2 transition-colors',
+                    selectedState === s.abbr
+                      ? 'bg-brand/10 text-brand font-medium'
+                      : 'hover:bg-gray-50 text-gray-700',
+                  )}
+                >
+                  {s.name}
+                  <span className="ml-1 text-gray-400 text-xs">({s.abbr})</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
 
       {/* Step 2: City combobox — visible only after state is selected */}
@@ -400,13 +444,16 @@ function CityFetchForm({
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">City</label>
           <div className="relative" ref={containerRef}>
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+              <Search className="h-4 w-4 text-gray-400" />
+            </div>
             <input
               type="text"
-              placeholder={`Click to browse or type to filter…`}
+              placeholder="Browse or type to filter…"
               value={cityQuery}
               onChange={handleCityChange}
               onFocus={handleCityFocus}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+              className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2.5 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
             />
             {loadingSuggestions && (
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -414,7 +461,7 @@ function CityFetchForm({
               </div>
             )}
             {showDropdown && suggestions.length > 0 && (
-              <ul className="absolute z-50 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg text-sm max-h-48 overflow-y-auto">
+              <ul className="absolute z-50 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg text-sm max-h-48 overflow-y-auto">
                 {suggestions.map((s) => (
                   <li
                     key={s.label}
@@ -422,9 +469,10 @@ function CityFetchForm({
                       e.preventDefault();
                       handleSelect(s);
                     }}
-                    className="cursor-pointer px-3 py-2 hover:bg-gray-50"
+                    className="cursor-pointer px-3 py-2 hover:bg-gray-50 text-gray-700"
                   >
-                    {s.label}
+                    {s.city}
+                    <span className="ml-1 text-gray-400 text-xs">{s.state}</span>
                   </li>
                 ))}
               </ul>
