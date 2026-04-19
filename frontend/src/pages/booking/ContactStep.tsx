@@ -99,6 +99,11 @@ export const ContactStep = React.memo(function ContactStep({
     }
   }, [data, onNext]);
 
+  const handleSkipPassword = useCallback(() => {
+    setShowPasswordModal(false);
+    onNext();
+  }, [onNext]);
+
   const handleCreatePassword = useCallback(() => {
     if (password.length < 8) {
       setPasswordError('Password must be at least 8 characters');
@@ -154,18 +159,28 @@ export const ContactStep = React.memo(function ContactStep({
   return (
     <div>
       <h2 className="text-2xl font-bold text-gray-900 mb-2">Contact Information</h2>
-      <p className="text-gray-600 mb-8">Tell us where to send the cleaning crew.</p>
+      <p className="text-gray-600 mb-4">Tell us where to send the cleaning crew.</p>
+
+      {/* Soft-reserve reminder — visible only while the server hold is active.
+          The main countdown lives in the BookingPage header; this banner
+          keeps the context visible while the user fills out the form. */}
+      {data.expiresAt && (
+        <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 mb-4 text-sm text-amber-800">
+          <span>⏱</span>
+          <span>Your time slot is held — please complete this step before your reservation expires.</span>
+        </div>
+      )}
 
       {/* Modal to create password */}
       <Modal
         isOpen={showPasswordModal}
-        onClose={() => setShowPasswordModal(false)}
+        onClose={handleSkipPassword}
         title="Create Your Account"
         showCloseButton={false}
       >
         <div className="space-y-4">
           <p className="text-gray-600 text-sm">
-            Create a password to track your bookings, manage appointments, and get exclusive offers.
+            Create a password to manage your bookings online — or skip and we'll email your confirmation.
           </p>
 
           <Input
@@ -193,8 +208,8 @@ export const ContactStep = React.memo(function ContactStep({
           )}
 
           <div className="flex gap-3 pt-2">
-            <Button variant="outline" onClick={() => setShowPasswordModal(false)} className="flex-1" aria-label="Cancel account creation">
-              Cancel
+            <Button variant="outline" onClick={handleSkipPassword} className="flex-1" aria-label="Skip account creation and continue as guest">
+              Skip, continue as guest
             </Button>
             <Button onClick={handleCreatePassword} className="flex-1" aria-label="Create account and continue">
               Create Account & Continue
@@ -207,12 +222,12 @@ export const ContactStep = React.memo(function ContactStep({
       <Modal
         isOpen={showLoginModal}
         onClose={() => { setShowLoginModal(false); setLoginPassword(''); setLoginError(''); }}
-        title="Welcome Back!"
+        title="Sign In to Your Account"
         showCloseButton={true}
       >
         <div className="space-y-4">
           <p className="text-gray-600">
-            The email <strong>{data.email}</strong> is already registered. Please enter your password to continue.
+            The email <strong>{data.email}</strong> already has an account. Sign in to link this booking to your profile.
           </p>
 
           <Input
@@ -248,15 +263,11 @@ export const ContactStep = React.memo(function ContactStep({
               onClick={handleUseDifferentEmail}
               className="w-full"
               disabled={isLoggingIn}
-              aria-label="Use a different email"
+              aria-label="Continue with a different email"
             >
-              Use a different email
+              Continue with a different email
             </Button>
           </div>
-
-          <p className="text-xs text-gray-500 text-center">
-            If you continue as guest, a confirmation email will be sent to {data.email}
-          </p>
         </div>
       </Modal>
 

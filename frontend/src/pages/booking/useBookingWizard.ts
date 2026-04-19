@@ -75,6 +75,8 @@ export const useBookingStore = create<BookingState>()(
           ...state.data,
           // Strip volatile / sensitive fields from the snapshot.
           password: '',
+          // softReserveId, sessionId, expiresAt excluded from storage intentionally —
+          // these are server-side holds that must be re-acquired if the page is refreshed.
           softReserveId: undefined,
           sessionId: undefined,
           expiresAt: undefined,

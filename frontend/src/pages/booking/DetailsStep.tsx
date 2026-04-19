@@ -134,11 +134,11 @@ export const DetailsStep = React.memo(function DetailsStep({
                 className={cn(
                   'p-4 rounded-lg border-2 text-center transition-all',
                   data.cleaningPlaceId === place.id
-                    ? 'border-[#2196f3] bg-[#b8e07c]/10'
+                    ? 'border-brand bg-secondary/10'
                     : 'border-gray-200 hover:border-gray-300'
                 )}
               >
-                <Home className={cn('h-6 w-6 mx-auto mb-2', data.cleaningPlaceId === place.id ? 'text-[#2196f3]' : 'text-gray-400')} />
+                <Home className={cn('h-6 w-6 mx-auto mb-2', data.cleaningPlaceId === place.id ? 'text-brand' : 'text-gray-400')} />
                 <span className="text-sm font-medium">{place.name}</span>
               </button>
             ))}
@@ -218,7 +218,7 @@ export const DetailsStep = React.memo(function DetailsStep({
                   className={cn(
                     'p-4 rounded-lg border-2 text-left transition-all',
                     data.additionalServiceIds.includes(extra.id)
-                      ? 'border-[#2196f3] bg-[#b8e07c]/10'
+                      ? 'border-brand bg-secondary/10'
                       : 'border-gray-200 hover:border-gray-300'
                   )}
                 >
@@ -229,7 +229,7 @@ export const DetailsStep = React.memo(function DetailsStep({
                         <p className="text-sm text-gray-500 mt-1">{extra.description}</p>
                       )}
                     </div>
-                    <span className="text-[#2196f3] font-semibold">+{formatCurrency(extra.price)}</span>
+                    <span className="text-brand font-semibold">+{formatCurrency(extra.price)}</span>
                   </div>
                 </button>
               ))}
@@ -268,6 +268,7 @@ export const DetailsStep = React.memo(function DetailsStep({
                 );
               })}
             </div>
+            <p className="text-xs text-gray-500 mt-1">Affects final price calculation</p>
           </div>
 
           {/* Floor level + elevator */}
@@ -286,28 +287,34 @@ export const DetailsStep = React.memo(function DetailsStep({
               />
               <p className="text-xs text-gray-400 mt-1">0 = ground floor</p>
             </div>
-            <label className="flex items-center gap-3 self-end pb-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={data.hasElevator}
-                onChange={(e) => onChange({ hasElevator: e.target.checked })}
-                className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
-              />
-              <span className="text-sm text-gray-700">Building has elevator</span>
-            </label>
+            <div className="self-end pb-2">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={data.hasElevator}
+                  onChange={(e) => onChange({ hasElevator: e.target.checked })}
+                  className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
+                />
+                <span className="text-sm text-gray-700">Building has elevator</span>
+              </label>
+              <p className="text-xs text-gray-500 mt-1">Affects final price calculation</p>
+            </div>
           </div>
 
           {/* Pets + first time */}
           <div className="mb-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={data.hasPets}
-                onChange={(e) => onChange({ hasPets: e.target.checked })}
-                className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
-              />
-              <span className="text-sm text-gray-700">Pets at home</span>
-            </label>
+            <div>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={data.hasPets}
+                  onChange={(e) => onChange({ hasPets: e.target.checked })}
+                  className="h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
+                />
+                <span className="text-sm text-gray-700">Pets at home</span>
+              </label>
+              <p className="text-xs text-gray-500 mt-1">Affects final price calculation</p>
+            </div>
             <label className="flex items-center gap-3 cursor-pointer">
               <input
                 type="checkbox"
@@ -353,6 +360,11 @@ export const DetailsStep = React.memo(function DetailsStep({
             })}
           </div>
           {data.recurrenceType !== 'None' && (
+            <p className="text-xs text-gray-500 mt-2">
+              Recurring bookings include a discount — shown in next step.
+            </p>
+          )}
+          {data.recurrenceType !== 'None' && (
             <div className="mt-3">
               <label htmlFor="recurrence-end-date" className="block text-xs text-gray-500 mb-1">
                 End date <span className="text-gray-400">(optional — leave empty for ongoing)</span>
@@ -370,9 +382,9 @@ export const DetailsStep = React.memo(function DetailsStep({
 
         {/* Price Preview */}
         <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-          <h3 className="font-semibold text-gray-900 mb-2">Estimated Total</h3>
-          <p className="text-2xl font-bold text-[#2196f3]">{formatCurrency(previewTotal)}</p>
-          <p className="text-xs text-gray-500 mt-1">Final price calculated on next step</p>
+          <h3 className="font-semibold text-gray-900 mb-2">Estimated Total <span className="font-normal text-gray-400 text-sm">(~)</span></h3>
+          <p className="text-2xl font-bold text-brand">{formatCurrency(previewTotal)}</p>
+          <p className="text-xs text-gray-500 mt-1">Approximation — modifiers (dirt level, pets, elevator) not yet applied. Final price calculated on next step.</p>
         </div>
 
         {estimateError && (
@@ -380,7 +392,11 @@ export const DetailsStep = React.memo(function DetailsStep({
         )}
       </div>
 
-      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between sm:gap-0 mt-8">
+      <p className="text-xs text-gray-500 text-center mt-6">
+        Final price will be calculated based on your selections above.
+      </p>
+
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between sm:gap-0 mt-4">
         <Button variant="outline" onClick={onBack} aria-label="Go back" className="w-full sm:w-auto">Back</Button>
         <Button
           onClick={handleContinue}

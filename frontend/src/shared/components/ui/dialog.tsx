@@ -33,6 +33,7 @@ const DialogContent = React.forwardRef<
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
+      aria-describedby={undefined}
       className={cn(
         // Base (mobile): bottom sheet — full-width, pinned to bottom,
         // safe-area padding, rounded top corners, slide-up animation

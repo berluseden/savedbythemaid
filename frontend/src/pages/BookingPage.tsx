@@ -88,6 +88,8 @@ export default function BookingPage() {
               clearWizardState();
               navigate('/booking/success', { state: { confirmation, bookingData: data, estimate } });
             }}
+            onGoToSchedule={() => goToStep('schedule')}
+            onGoToContact={() => goToStep('contact')}
           />
         );
       default:
@@ -108,6 +110,13 @@ export default function BookingPage() {
       <div className="mx-auto max-w-4xl px-4">
         <StepProgress currentStep={currentStep} />
 
+        {/* Show the timer only when both fields are present — softReserveId
+            confirms the hold is server-acknowledged, and expiresAt provides
+            the deadline. Either field alone is not enough.
+            Both are intentionally excluded from sessionStorage (see
+            useBookingWizard partialize), so the timer is hidden after a
+            refresh and the user must re-acquire the hold from the schedule
+            step. */}
         {data.expiresAt && data.softReserveId && !showExpireModal && (
           <ReservationTimer
             expiresAt={data.expiresAt}

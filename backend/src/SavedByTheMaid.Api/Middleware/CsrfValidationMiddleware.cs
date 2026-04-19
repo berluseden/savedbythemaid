@@ -20,6 +20,7 @@ public class CsrfValidationMiddleware
         "/api/auth/refresh",
         "/api/auth/forgot-password",
         "/api/auth/reset-password",
+        "/api/auth/logout",
         "/api/antiforgery/token",
     };
 

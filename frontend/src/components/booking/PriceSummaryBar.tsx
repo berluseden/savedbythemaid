@@ -70,7 +70,7 @@ export const PriceSummaryBar = React.memo(function PriceSummaryBar({
     tier === 'server'
       ? 'Total'
       : tier === 'preview'
-        ? 'Estimated'
+        ? 'Est. (~)'
         : 'From';
 
   const hasBreakdown = tier === 'preview' || tier === 'server';
@@ -84,7 +84,7 @@ export const PriceSummaryBar = React.memo(function PriceSummaryBar({
             <div className="flex items-baseline justify-between">
               <span className="text-sm font-medium text-gray-500">{label}</span>
               <span
-                className="text-2xl font-bold text-[#2196f3] transition-all duration-300 ease-in-out"
+                className="text-2xl font-bold text-brand transition-all duration-300 ease-in-out"
               >
                 {formatCurrency(displayPrice)}
               </span>
@@ -92,6 +92,11 @@ export const PriceSummaryBar = React.memo(function PriceSummaryBar({
             {tier === 'server' && estimate!.formattedDuration && (
               <p className="text-xs text-gray-500 mt-1 text-right">
                 ~{estimate!.formattedDuration}
+              </p>
+            )}
+            {tier === 'preview' && (
+              <p className="text-xs text-gray-400 mt-1 text-right">
+                Modifiers not yet applied
               </p>
             )}
             {tier === 'base' && (
@@ -162,7 +167,7 @@ export const PriceSummaryBar = React.memo(function PriceSummaryBar({
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-gray-500">{label}</span>
               <span
-                className="text-xl font-bold text-[#2196f3] transition-all duration-300 ease-in-out"
+                className="text-xl font-bold text-brand transition-all duration-300 ease-in-out"
               >
                 {formatCurrency(displayPrice)}
               </span>
@@ -207,7 +212,7 @@ function Breakdown({
         )}
         <div className="flex justify-between border-t border-gray-100 pt-2">
           <span className="font-semibold text-gray-900">Total</span>
-          <span className="font-bold text-[#2196f3]">{formatCurrency(estimate.total)}</span>
+          <span className="font-bold text-brand">{formatCurrency(estimate.total)}</span>
         </div>
       </div>
     );
@@ -240,7 +245,7 @@ function Breakdown({
       )}
       <div className="flex justify-between border-t border-gray-100 pt-2">
         <span className="font-semibold text-gray-900">Estimated</span>
-        <span className="font-bold text-[#2196f3]">{formatCurrency(preview.total)}</span>
+        <span className="font-bold text-brand">{formatCurrency(preview.total)}</span>
       </div>
       <p className="text-xs text-gray-400">Final price may vary</p>
     </div>
