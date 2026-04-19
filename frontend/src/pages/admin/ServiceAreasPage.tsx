@@ -97,6 +97,87 @@ const editDefaultValues: ServiceAreaFormData = {
   isActive: true,
 };
 
+const US_STATES = [
+  { abbr: 'AL', name: 'Alabama' }, { abbr: 'AK', name: 'Alaska' },
+  { abbr: 'AZ', name: 'Arizona' }, { abbr: 'AR', name: 'Arkansas' },
+  { abbr: 'CA', name: 'California' }, { abbr: 'CO', name: 'Colorado' },
+  { abbr: 'CT', name: 'Connecticut' }, { abbr: 'DE', name: 'Delaware' },
+  { abbr: 'FL', name: 'Florida' }, { abbr: 'GA', name: 'Georgia' },
+  { abbr: 'HI', name: 'Hawaii' }, { abbr: 'ID', name: 'Idaho' },
+  { abbr: 'IL', name: 'Illinois' }, { abbr: 'IN', name: 'Indiana' },
+  { abbr: 'IA', name: 'Iowa' }, { abbr: 'KS', name: 'Kansas' },
+  { abbr: 'KY', name: 'Kentucky' }, { abbr: 'LA', name: 'Louisiana' },
+  { abbr: 'ME', name: 'Maine' }, { abbr: 'MD', name: 'Maryland' },
+  { abbr: 'MA', name: 'Massachusetts' }, { abbr: 'MI', name: 'Michigan' },
+  { abbr: 'MN', name: 'Minnesota' }, { abbr: 'MS', name: 'Mississippi' },
+  { abbr: 'MO', name: 'Missouri' }, { abbr: 'MT', name: 'Montana' },
+  { abbr: 'NE', name: 'Nebraska' }, { abbr: 'NV', name: 'Nevada' },
+  { abbr: 'NH', name: 'New Hampshire' }, { abbr: 'NJ', name: 'New Jersey' },
+  { abbr: 'NM', name: 'New Mexico' }, { abbr: 'NY', name: 'New York' },
+  { abbr: 'NC', name: 'North Carolina' }, { abbr: 'ND', name: 'North Dakota' },
+  { abbr: 'OH', name: 'Ohio' }, { abbr: 'OK', name: 'Oklahoma' },
+  { abbr: 'OR', name: 'Oregon' }, { abbr: 'PA', name: 'Pennsylvania' },
+  { abbr: 'RI', name: 'Rhode Island' }, { abbr: 'SC', name: 'South Carolina' },
+  { abbr: 'SD', name: 'South Dakota' }, { abbr: 'TN', name: 'Tennessee' },
+  { abbr: 'TX', name: 'Texas' }, { abbr: 'UT', name: 'Utah' },
+  { abbr: 'VT', name: 'Vermont' }, { abbr: 'VA', name: 'Virginia' },
+  { abbr: 'WA', name: 'Washington' }, { abbr: 'WV', name: 'West Virginia' },
+  { abbr: 'WI', name: 'Wisconsin' }, { abbr: 'WY', name: 'Wyoming' },
+] as const;
+
+const TOP_CITIES_BY_STATE: Record<string, string[]> = {
+  AL: ['Birmingham', 'Montgomery', 'Huntsville', 'Mobile', 'Tuscaloosa'],
+  AK: ['Anchorage', 'Fairbanks', 'Juneau', 'Sitka', 'Ketchikan'],
+  AZ: ['Phoenix', 'Tucson', 'Mesa', 'Chandler', 'Scottsdale', 'Gilbert', 'Tempe', 'Glendale', 'Peoria'],
+  AR: ['Little Rock', 'Fort Smith', 'Fayetteville', 'Springdale', 'Jonesboro'],
+  CA: ['Los Angeles', 'San Diego', 'San Jose', 'San Francisco', 'Fresno', 'Sacramento', 'Long Beach', 'Oakland', 'Bakersfield', 'Anaheim', 'Santa Ana', 'Irvine', 'Riverside'],
+  CO: ['Denver', 'Colorado Springs', 'Aurora', 'Fort Collins', 'Lakewood', 'Boulder', 'Pueblo'],
+  CT: ['Bridgeport', 'New Haven', 'Hartford', 'Stamford', 'Waterbury', 'Norwalk'],
+  DE: ['Wilmington', 'Dover', 'Newark', 'Middletown'],
+  FL: ['Miami', 'Orlando', 'Tampa', 'Jacksonville', 'Fort Lauderdale', 'Naples', 'Sarasota', 'Boca Raton', 'St. Petersburg', 'Hialeah', 'Tallahassee', 'Miami Beach', 'Cape Coral', 'Palm Bay', 'Gainesville'],
+  GA: ['Atlanta', 'Augusta', 'Columbus', 'Savannah', 'Athens', 'Sandy Springs', 'Macon', 'Roswell'],
+  HI: ['Honolulu', 'Hilo', 'Kailua', 'Pearl City', 'Waipahu'],
+  ID: ['Boise', 'Nampa', 'Meridian', 'Idaho Falls', 'Pocatello'],
+  IL: ['Chicago', 'Aurora', 'Naperville', 'Joliet', 'Rockford', 'Springfield', 'Peoria', 'Elgin'],
+  IN: ['Indianapolis', 'Fort Wayne', 'Evansville', 'South Bend', 'Carmel', 'Bloomington'],
+  IA: ['Des Moines', 'Cedar Rapids', 'Davenport', 'Sioux City', 'Iowa City'],
+  KS: ['Wichita', 'Overland Park', 'Kansas City', 'Topeka', 'Olathe'],
+  KY: ['Louisville', 'Lexington', 'Bowling Green', 'Owensboro', 'Covington'],
+  LA: ['New Orleans', 'Baton Rouge', 'Shreveport', 'Lafayette', 'Lake Charles'],
+  ME: ['Portland', 'Lewiston', 'Bangor', 'South Portland', 'Auburn'],
+  MD: ['Baltimore', 'Frederick', 'Rockville', 'Gaithersburg', 'Bowie', 'Annapolis'],
+  MA: ['Boston', 'Worcester', 'Springfield', 'Lowell', 'Cambridge', 'New Bedford', 'Brockton', 'Quincy'],
+  MI: ['Detroit', 'Grand Rapids', 'Warren', 'Sterling Heights', 'Ann Arbor', 'Lansing', 'Flint', 'Dearborn'],
+  MN: ['Minneapolis', 'Saint Paul', 'Rochester', 'Duluth', 'Bloomington', 'Brooklyn Park'],
+  MS: ['Jackson', 'Gulfport', 'Southaven', 'Hattiesburg', 'Biloxi'],
+  MO: ['Kansas City', 'Saint Louis', 'Springfield', 'Columbia', 'Independence'],
+  MT: ['Billings', 'Missoula', 'Great Falls', 'Bozeman', 'Butte'],
+  NE: ['Omaha', 'Lincoln', 'Bellevue', 'Grand Island', 'Kearney'],
+  NV: ['Las Vegas', 'Henderson', 'Reno', 'North Las Vegas', 'Sparks'],
+  NH: ['Manchester', 'Nashua', 'Concord', 'Derry', 'Dover'],
+  NJ: ['Newark', 'Jersey City', 'Paterson', 'Elizabeth', 'Edison', 'Trenton', 'Clifton', 'Camden'],
+  NM: ['Albuquerque', 'Las Cruces', 'Rio Rancho', 'Santa Fe', 'Roswell'],
+  NY: ['New York', 'Buffalo', 'Yonkers', 'Rochester', 'Syracuse', 'Albany', 'New Rochelle'],
+  NC: ['Charlotte', 'Raleigh', 'Greensboro', 'Durham', 'Winston-Salem', 'Fayetteville', 'Cary', 'Wilmington'],
+  ND: ['Fargo', 'Bismarck', 'Grand Forks', 'Minot', 'West Fargo'],
+  OH: ['Columbus', 'Cleveland', 'Cincinnati', 'Toledo', 'Akron', 'Dayton', 'Parma'],
+  OK: ['Oklahoma City', 'Tulsa', 'Norman', 'Broken Arrow', 'Lawton'],
+  OR: ['Portland', 'Salem', 'Eugene', 'Gresham', 'Hillsboro', 'Beaverton'],
+  PA: ['Philadelphia', 'Pittsburgh', 'Allentown', 'Erie', 'Reading', 'Scranton', 'Bethlehem'],
+  RI: ['Providence', 'Cranston', 'Warwick', 'Pawtucket', 'East Providence'],
+  SC: ['Columbia', 'Charleston', 'North Charleston', 'Mount Pleasant', 'Greenville', 'Myrtle Beach'],
+  SD: ['Sioux Falls', 'Rapid City', 'Aberdeen', 'Brookings', 'Watertown'],
+  TN: ['Nashville', 'Memphis', 'Knoxville', 'Chattanooga', 'Clarksville', 'Murfreesboro'],
+  TX: ['Houston', 'San Antonio', 'Dallas', 'Austin', 'Fort Worth', 'El Paso', 'Arlington', 'Corpus Christi', 'Plano', 'Laredo', 'Lubbock', 'Irving', 'Garland'],
+  UT: ['Salt Lake City', 'West Valley City', 'Provo', 'West Jordan', 'Orem', 'Sandy'],
+  VT: ['Burlington', 'South Burlington', 'Rutland', 'Barre', 'Montpelier'],
+  VA: ['Virginia Beach', 'Norfolk', 'Chesapeake', 'Richmond', 'Newport News', 'Alexandria', 'Hampton'],
+  WA: ['Seattle', 'Spokane', 'Tacoma', 'Vancouver', 'Bellevue', 'Kent', 'Everett', 'Renton'],
+  WV: ['Charleston', 'Huntington', 'Parkersburg', 'Morgantown', 'Wheeling'],
+  WI: ['Milwaukee', 'Madison', 'Green Bay', 'Kenosha', 'Racine', 'Appleton'],
+  WY: ['Cheyenne', 'Casper', 'Laramie', 'Gillette', 'Rock Springs'],
+};
+
 function cn(...classes: (string | boolean | undefined | null)[]): string {
   return classes.filter(Boolean).join(' ');
 }
@@ -165,7 +246,7 @@ function ZipPreviewLabel({ zips }: { zips: string[] }) {
   );
 }
 
-/** Small reusable city autocomplete + fetch form used in both Create modal and expanded row panel. */
+/** Small reusable 2-step city selector: pick state → pick city from pre-loaded list. */
 interface CityFetchFormProps {
   value: CityZipFetchState;
   onChange: (next: CityZipFetchState) => void;
@@ -181,13 +262,14 @@ function CityFetchForm({
   confirmLabel = 'Add ZIPs',
   confirmLoading = false,
 }: CityFetchFormProps) {
-  const [query, setQuery] = useState('');
+  const [selectedState, setSelectedState] = useState('');
+  const [cityQuery, setCityQuery] = useState('');
   const [suggestions, setSuggestions] = useState<{ city: string; state: string; label: string }[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Close dropdown on outside click or Escape key
   useEffect(() => {
     const handleMouseDown = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -205,40 +287,73 @@ function CityFetchForm({
     };
   }, []);
 
-  const handleQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const presetForState = (abbr: string) =>
+    (TOP_CITIES_BY_STATE[abbr] ?? []).map((city) => ({
+      city,
+      state: abbr,
+      label: `${city}, ${abbr}`,
+    }));
+
+  const handleStateChange = (abbr: string) => {
+    setSelectedState(abbr);
+    setCityQuery('');
+    onChange(defaultCityFetch());
+    setSuggestions(abbr ? presetForState(abbr) : []);
+    setShowDropdown(false);
+  };
+
+  const handleCityFocus = () => {
+    if (!cityQuery && suggestions.length > 0) setShowDropdown(true);
+  };
+
+  const handleCityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
-    setQuery(val);
+    setCityQuery(val);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (val.length < 2) {
-      setSuggestions([]);
-      setShowDropdown(false);
+
+    if (!val.trim()) {
+      const preset = selectedState ? presetForState(selectedState) : [];
+      setSuggestions(preset);
+      setShowDropdown(preset.length > 0);
       return;
     }
+
+    const lower = val.toLowerCase();
+    const preset = selectedState
+      ? presetForState(selectedState).filter((s) => s.city.toLowerCase().startsWith(lower))
+      : [];
+    setSuggestions(preset);
+    setShowDropdown(preset.length > 0);
+
     debounceRef.current = setTimeout(async () => {
+      setLoadingSuggestions(true);
       try {
+        const stateParam = selectedState ? `+${selectedState}` : '';
         const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}+US&countrycodes=us&featureclass=P&format=json&limit=8&addressdetails=1`,
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val + stateParam)}&countrycodes=us&featureclass=P&format=json&limit=10&addressdetails=1`,
         );
         const data = await res.json() as NominatimPlace[];
-        const results = data
+        const remote = data
           .filter(
             (p) =>
               p.address?.state_code &&
+              (!selectedState || p.address.state_code.toUpperCase() === selectedState) &&
               (p.address.city || p.address.town || p.address.village),
           )
           .map((p) => {
-            const city =
-              p.address.city ?? p.address.town ?? p.address.village ?? '';
+            const city = p.address.city ?? p.address.town ?? p.address.village ?? '';
             const state = (p.address.state_code ?? '').toUpperCase();
             return { city, state, label: `${city}, ${state}` };
           })
-          .filter(
-            (r, i, arr) => arr.findIndex((x) => x.label === r.label) === i,
-          );
-        setSuggestions(results);
-        setShowDropdown(results.length > 0);
+          .filter((r, i, arr) => arr.findIndex((x) => x.label === r.label) === i);
+        const presetLabels = new Set(preset.map((p) => p.label));
+        const merged = [...preset, ...remote.filter((r) => !presetLabels.has(r.label))];
+        setSuggestions(merged);
+        setShowDropdown(merged.length > 0);
       } catch {
-        // Ignore network errors
+        // ignore
+      } finally {
+        setLoadingSuggestions(false);
       }
     }, 300);
   };
@@ -255,78 +370,82 @@ function CityFetchForm({
   };
 
   const handleSelect = (suggestion: { city: string; state: string; label: string }) => {
-    setQuery(suggestion.label);
+    setCityQuery(suggestion.label);
     setSuggestions([]);
     setShowDropdown(false);
     handleFetchForCity(suggestion.city, suggestion.state);
   };
 
-  const handleFetch = async () => {
-    if (!value.city.trim() || value.state.length !== 2) return;
-    await handleFetchForCity(value.city, value.state);
-  };
-
   return (
     <div className="space-y-3">
-      <div className="flex gap-2">
-        {/* Autocomplete search input */}
-        <div className="relative flex-1" ref={containerRef}>
-          <input
-            type="text"
-            placeholder="Search city (e.g. Miami)"
-            value={query}
-            onChange={handleQueryChange}
-            onFocus={() => suggestions.length > 0 && setShowDropdown(true)}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-          />
-          {showDropdown && suggestions.length > 0 && (
-            <ul className="absolute z-50 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg text-sm max-h-48 overflow-y-auto">
-              {suggestions.map((s) => (
-                <li
-                  key={s.label}
-                  onMouseDown={(e) => {
-                    // Use mousedown so it fires before the input blur
-                    e.preventDefault();
-                    handleSelect(s);
-                  }}
-                  className="cursor-pointer px-3 py-2 hover:bg-gray-50"
-                >
-                  {s.label}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        {/* Fetch button — shown only when city/state are filled but not yet fetched via autocomplete */}
-        <button
-          type="button"
-          disabled={
-            !value.city.trim() ||
-            value.state.length !== 2 ||
-            value.status === 'loading'
-          }
-          onClick={handleFetch}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-brand px-3 py-2 text-sm font-medium text-brand hover:bg-brand/5 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+      {/* Step 1: State dropdown */}
+      <div>
+        <label className="block text-xs font-medium text-gray-500 mb-1">State</label>
+        <select
+          value={selectedState}
+          onChange={(e) => handleStateChange(e.target.value)}
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
         >
-          {value.status === 'loading' ? (
-            <>
-              <Spinner size="sm" />
-              <span>Fetching…</span>
-            </>
-          ) : (
-            'Fetch ZIPs'
-          )}
-        </button>
+          <option value="">Select state…</option>
+          {US_STATES.map((s) => (
+            <option key={s.abbr} value={s.abbr}>
+              {s.name} ({s.abbr})
+            </option>
+          ))}
+        </select>
       </div>
 
+      {/* Step 2: City combobox — visible only after state is selected */}
+      {selectedState && (
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1">City</label>
+          <div className="relative" ref={containerRef}>
+            <input
+              type="text"
+              placeholder={`Click to browse or type to filter…`}
+              value={cityQuery}
+              onChange={handleCityChange}
+              onFocus={handleCityFocus}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+            />
+            {loadingSuggestions && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Spinner size="sm" />
+              </div>
+            )}
+            {showDropdown && suggestions.length > 0 && (
+              <ul className="absolute z-50 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg text-sm max-h-48 overflow-y-auto">
+                {suggestions.map((s) => (
+                  <li
+                    key={s.label}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      handleSelect(s);
+                    }}
+                    className="cursor-pointer px-3 py-2 hover:bg-gray-50"
+                  >
+                    {s.label}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Feedback */}
+      {value.status === 'loading' && (
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <Spinner size="sm" />
+          <span>Fetching ZIPs…</span>
+        </div>
+      )}
       {value.status === 'success' && <ZipPreviewLabel zips={value.zips} />}
       {value.status === 'error' && (
         <p className="text-sm text-danger">{value.errorMsg}</p>
       )}
 
-      {/* Confirm button — only shown when caller provides onConfirm */}
+      {/* Confirm button */}
       {onConfirm && value.status === 'success' && value.zips.length > 0 && (
         <button
           type="button"
