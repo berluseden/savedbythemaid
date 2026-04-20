@@ -77,10 +77,6 @@ public record ConfirmBookingRequest
     [Range(0, 100000)]
     public decimal Total { get; init; }
 
-    // Recurrence
-    public RecurrenceType RecurrenceType { get; init; } = RecurrenceType.None;
-    public DateTime? RecurrenceEndDate { get; init; }
-
     // Contact
     [StringLength(100)]
     public string? ContactName { get; init; }

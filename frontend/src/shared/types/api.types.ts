@@ -94,7 +94,6 @@ export interface EstimateRequest {
   hasPets?: boolean;
   hasElevator?: boolean;
   isFirstTime?: boolean;
-  recurrenceType?: string;
 }
 
 export interface EstimateResponse {
@@ -103,7 +102,6 @@ export interface EstimateResponse {
   subtotal: number;
   discount: number;
   total: number;
-  recurrenceType: string;
   discountPercent: number;
 }
 
@@ -175,10 +173,6 @@ export interface ConfirmBookingRequest {
   discount: number;
   total: number;
 
-  // Recurrence
-  recurrenceType?: string;
-  recurrenceEndDate?: string;
-
   // Contact
   contactName?: string;
   contactPhone?: string;
@@ -211,12 +205,6 @@ export interface AdditionalService {
   description?: string;
   price: number;
   additionalMinutes: number;
-}
-
-export interface RecurrenceDiscount {
-  recurrenceType: string;
-  recurrenceTypeName: string;
-  discountPercent: number;
 }
 
 // ==========================================

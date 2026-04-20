@@ -62,9 +62,6 @@ export const ConfirmStep = React.memo(function ConfirmStep({
         tax: 0,
         discount: estimate?.discount || 0,
         total: estimate?.total || 0,
-        // Recurrence — drives discount AND triggers creation of recurring meets
-        recurrenceType: data.recurrenceType,
-        recurrenceEndDate: data.recurrenceEndDate,
         contactName: `${data.firstName} ${data.lastName}`,
         contactPhone: data.phone,
         contactEmail: data.email,

@@ -8,14 +8,12 @@ import {
   LogOut,
   Sparkles,
   ChevronDown,
-  Bell,
   Menu,
   X,
   MapPin,
   Shield,
   Home,
   PlusCircle,
-  DollarSign,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -28,7 +26,6 @@ const navigation = [
   { name: 'Bookings', href: '/admin/bookings', icon: Calendar },
   { name: 'Employees', href: '/admin/employees', icon: Users },
   { name: 'Services', href: '/admin/services', icon: Briefcase },
-  { name: 'Pricing', href: '/admin/pricing', icon: DollarSign },
   { name: 'Property Types', href: '/admin/cleaning-places', icon: Home },
   { name: 'Additional Services', href: '/admin/additional-services', icon: PlusCircle },
   { name: 'Service Areas', href: '/admin/service-areas', icon: MapPin },
@@ -144,12 +141,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
             {/* Right side */}
             <div className="flex items-center gap-2">
-              {/* Notifications */}
-              <button className="relative p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors" aria-label="Notifications">
-                <Bell className="h-5 w-5" aria-hidden="true" />
-                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full" aria-hidden="true" />
-              </button>
-
               {/* User menu */}
               <div className="relative">
                 <button

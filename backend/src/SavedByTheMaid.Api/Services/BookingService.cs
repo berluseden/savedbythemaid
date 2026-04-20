@@ -10,7 +10,7 @@ namespace SavedByTheMaid.Api.Services;
 
 /// <summary>
 /// Core booking business logic extracted from BookingController.
-/// Handles pricing, confirmation, user creation, and recurring meetings.
+/// Handles pricing, confirmation, and user creation.
 /// </summary>
 public interface IBookingService
 {
@@ -22,15 +22,9 @@ public interface IBookingService
 
     /// <summary>
     /// Confirms a booking: validates soft reserve, creates user if needed,
-    /// creates order + meeting, converts slots, and creates recurring meetings.
+    /// creates order + meeting, and converts slots.
     /// </summary>
     Task<BookingConfirmationResult> ConfirmBookingAsync(ConfirmBookingInput input, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Creates recurring meetings with slot acquisition for anti-collision.
-    /// </summary>
-    Task<int> CreateRecurringMeetingsAsync(ServiceOrder order, ServiceMeet firstMeet,
-        RecurrenceType recurrenceType, DateTime? endDate, CancellationToken cancellationToken = default);
 }
 
 #region Service Input/Output Models
@@ -47,7 +41,6 @@ public record PricingInput
     public bool HasPets { get; init; }
     public bool HasElevator { get; init; } = true;
     public bool IsFirstTime { get; init; } = true;
-    public RecurrenceType RecurrenceType { get; init; } = RecurrenceType.None;
 }
 
 public record RoomPricingItem(int RoomId, int Quantity);
@@ -86,8 +79,6 @@ public record ConfirmBookingInput
     public List<int>? AdditionalServiceIds { get; init; }
     public List<RoomPricingItem>? Rooms { get; init; }
     public decimal Total { get; init; }
-    public RecurrenceType RecurrenceType { get; init; }
-    public DateTime? RecurrenceEndDate { get; init; }
     public string? ContactName { get; init; }
     public string? ContactPhone { get; init; }
     public string ContactEmail { get; init; } = "";
@@ -235,18 +226,7 @@ public class BookingService : IBookingService
         totalMinutes = (int)(totalMinutes * timeFactor);
         subtotal *= priceFactor;
 
-        // Apply recurrence discount
         decimal discount = 0;
-        if (input.RecurrenceType != RecurrenceType.None)
-        {
-            var recurrenceDiscount = await _context.RecurrenceDiscounts
-                .FirstOrDefaultAsync(d => d.RecurrenceType == input.RecurrenceType && d.IsActive, cancellationToken);
-            if (recurrenceDiscount != null)
-            {
-                discount = subtotal * recurrenceDiscount.DiscountPercent;
-            }
-        }
-
         decimal total = subtotal - discount;
 
         return new PricingResult
@@ -301,7 +281,6 @@ public class BookingService : IBookingService
             HasPets = input.HasPets,
             HasElevator = input.HasElevator,
             IsFirstTime = input.IsFirstTime,
-            RecurrenceType = input.RecurrenceType
         }, cancellationToken);
 
         if (!pricing.Success)
@@ -341,8 +320,7 @@ public class BookingService : IBookingService
             Discount = pricing.Discount,
             Total = pricing.Total,
             OrderStatus = Domain.Enums.OrderStatus.PendingReview,
-            RecurrenceType = input.RecurrenceType,
-            RecurrenceEndDate = input.RecurrenceEndDate,
+            RecurrenceType = RecurrenceType.None,
             Source = OrderSource.Website,
             ContactName = input.ContactName,
             ContactPhone = input.ContactPhone,
@@ -458,12 +436,6 @@ public class BookingService : IBookingService
         await ConvertSoftReserveToMeetingOccupancyAsync(softReserve.Id, meet.Id, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
 
-        // Create recurring meetings if applicable
-        if (input.RecurrenceType != RecurrenceType.None)
-        {
-            await CreateRecurringMeetingsAsync(order, meet, input.RecurrenceType, input.RecurrenceEndDate, cancellationToken);
-        }
-
         _logger.LogInformation("Order confirmed - OrderId: {OrderId}, MeetId: {MeetId}, Total: {Total}",
             order.Id, meet.Id, order.Total);
 
@@ -495,149 +467,6 @@ public class BookingService : IBookingService
             _logger.LogError(ex, "ConfirmBookingAsync failed and was rolled back - SoftReserve {SoftReserveId}", input.SoftReserveId);
             throw;
         }
-    }
-
-    public async Task<int> CreateRecurringMeetingsAsync(ServiceOrder order, ServiceMeet firstMeet,
-        RecurrenceType recurrenceType, DateTime? endDate, CancellationToken cancellationToken = default)
-    {
-        var maxOccurrences = 8;
-        var isMonthly = recurrenceType == RecurrenceType.Monthly;
-        var dayInterval = recurrenceType switch
-        {
-            RecurrenceType.Weekly => 7,
-            RecurrenceType.BiWeekly => 14,
-            RecurrenceType.Monthly => 0,
-            _ => 0
-        };
-
-        if (dayInterval == 0 && !isMonthly) return 0;
-
-        var count = 0;
-        var duration = firstMeet.EstimatedDurationMinutes;
-        var currentStart = isMonthly
-            ? firstMeet.ScheduledStart.AddMonths(1)
-            : firstMeet.ScheduledStart.AddDays(dayInterval);
-        var horizon = endDate ?? (isMonthly
-            ? firstMeet.ScheduledStart.AddMonths(maxOccurrences)
-            : firstMeet.ScheduledStart.AddDays(maxOccurrences * dayInterval));
-
-        _logger.LogInformation("Creating recurring meetings for Order {OrderId}, type {RecurrenceType}",
-            order.Id, recurrenceType);
-
-        // Batch-load all data needed for the loop to avoid N+1 queries
-        var loopEnd = horizon.AddMinutes(duration);
-
-        var employeeSchedules = await _context.EmployeeSchedules
-            .AsNoTracking()
-            .Where(s => s.EmployeeId == firstMeet.AssignedEmployeeId && s.IsAvailable && !s.IsDeleted)
-            .ToListAsync(cancellationToken);
-
-        var existingMeets = await _context.ServiceMeets
-            .AsNoTracking()
-            .Where(m =>
-                m.AssignedEmployeeId == firstMeet.AssignedEmployeeId &&
-                m.Status != MeetStatus.Cancelled && m.Status != MeetStatus.NoShow &&
-                m.ScheduledStart < loopEnd && m.ScheduledEnd > firstMeet.ScheduledStart)
-            .Select(m => new { m.ScheduledStart, m.ScheduledEnd })
-            .ToListAsync(cancellationToken);
-
-        var timeOffs = await _context.EmployeeTimeOffs
-            .AsNoTracking()
-            .Where(t =>
-                t.EmployeeId == firstMeet.AssignedEmployeeId &&
-                t.Status == TimeOffStatus.Approved &&
-                t.StartDateTime < loopEnd &&
-                t.EndDateTime > firstMeet.ScheduledStart)
-            .Select(t => new { t.StartDateTime, t.EndDateTime })
-            .ToListAsync(cancellationToken);
-
-        // Collect new meets; SaveChanges is called once after the loop
-        var newMeets = new List<ServiceMeet>();
-
-        while (currentStart <= horizon && count < maxOccurrences)
-        {
-            var currentEnd = currentStart.AddMinutes(duration);
-
-            // Validate employee works on that day (in-memory)
-            var recurDayOfWeek = currentStart.DayOfWeek;
-            var empSchedule = employeeSchedules.FirstOrDefault(s => s.DayOfWeek == recurDayOfWeek);
-
-            // Cross-midnight guard: we do not support meetings that span two calendar days.
-            // A meeting crossing midnight would have currentEnd.Date > currentStart.Date,
-            // which makes TimeOfDay comparisons unreliable. Skip with a clear warning.
-            if (currentEnd.Date > currentStart.Date)
-            {
-                _logger.LogWarning(
-                    "Skipping recurring meeting at {Date}: meeting would cross midnight (start={Start}, end={End})",
-                    currentStart, currentStart, currentEnd);
-                currentStart = isMonthly ? currentStart.AddMonths(1) : currentStart.AddDays(dayInterval);
-                continue;
-            }
-
-            if (empSchedule == null ||
-                currentStart.TimeOfDay < empSchedule.StartTime ||
-                currentEnd.TimeOfDay > empSchedule.EndTime)
-            {
-                _logger.LogWarning("Skipping recurring meeting at {Date}: employee not scheduled", currentStart);
-                currentStart = isMonthly ? currentStart.AddMonths(1) : currentStart.AddDays(dayInterval);
-                continue;
-            }
-
-            // Check for conflicts with existing meetings (in-memory)
-            var hasConflict = existingMeets.Any(m =>
-                m.ScheduledStart < currentEnd && m.ScheduledEnd > currentStart);
-
-            // Check for approved time off (in-memory)
-            var hasTimeOff = timeOffs.Any(t =>
-                t.StartDateTime <= currentEnd && t.EndDateTime >= currentStart);
-
-            if (!hasConflict && !hasTimeOff)
-            {
-                var recurringMeet = new ServiceMeet
-                {
-                    ServiceOrderId = order.Id,
-                    AssignedEmployeeId = firstMeet.AssignedEmployeeId,
-                    ServiceAreaId = firstMeet.ServiceAreaId,
-                    ScheduledStart = currentStart,
-                    ScheduledEnd = currentEnd,
-                    EstimatedDurationMinutes = firstMeet.EstimatedDurationMinutes,
-                    Status = MeetStatus.Scheduled
-                };
-                _context.ServiceMeets.Add(recurringMeet);
-                newMeets.Add(recurringMeet);
-                count++;
-            }
-            else
-            {
-                // Accumulate skipped dates and log so ops can detect scheduling gaps
-                _logger.LogWarning(
-                    "Recurring meeting skipped due to conflict: {Date} (conflict={HasConflict}, timeOff={HasTimeOff})",
-                    currentStart, hasConflict, hasTimeOff);
-            }
-
-            currentStart = isMonthly ? currentStart.AddMonths(1) : currentStart.AddDays(dayInterval);
-        }
-
-        // Persist all new meets in a single round-trip
-        await _context.SaveChangesAsync(cancellationToken);
-
-        // Acquire slots for anti-collision (individual calls required per meet)
-        if (firstMeet.AssignedEmployeeId.HasValue)
-        {
-            foreach (var recurringMeet in newMeets)
-            {
-                await _schedulingService.AcquireSlotsAsync(
-                    firstMeet.AssignedEmployeeId.Value,
-                    recurringMeet.ScheduledStart, recurringMeet.ScheduledEnd,
-                    OccupancyType.Meeting, recurringMeet.Id,
-                    cancellationToken: cancellationToken);
-            }
-
-            // Persist slot occupancies within the same transaction as the meets
-            await _context.SaveChangesAsync(cancellationToken);
-        }
-        _logger.LogInformation("Created {Count} recurring meetings with slots for Order {OrderId}", count, order.Id);
-        return count;
     }
 
     /// <summary>

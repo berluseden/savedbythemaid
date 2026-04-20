@@ -22,7 +22,6 @@ export const DetailsStep = React.memo(function DetailsStep({
   onBack,
 }: DetailsStepProps) {
   const [estimateError, setEstimateError] = useState('');
-  const [endDateError, setEndDateError] = useState('');
 
   const { data: cleaningPlaces, isLoading: loadingPlaces } = useQuery({
     queryKey: ['cleaningPlaces'],
@@ -68,7 +67,6 @@ export const DetailsStep = React.memo(function DetailsStep({
         hasPets: data.hasPets,
         hasElevator: data.hasElevator,
         isFirstTime: data.isFirstTime,
-        recurrenceType: data.recurrenceType,
       }),
     onSuccess: (response) => {
       setEstimateError('');
@@ -106,16 +104,8 @@ export const DetailsStep = React.memo(function DetailsStep({
   }, [data.bathrooms, onChange]);
 
   const handleContinue = useCallback(() => {
-    if (data.recurrenceType !== 'None' && data.recurrenceEndDate) {
-      const today = new Date().toISOString().split('T')[0];
-      if (data.recurrenceEndDate < today) {
-        setEndDateError('End date must be in the future');
-        return;
-      }
-    }
-    setEndDateError('');
     fetchEstimate.mutate();
-  }, [fetchEstimate, data.recurrenceType, data.recurrenceEndDate]);
+  }, [fetchEstimate]);
 
   if (loadingPlaces) {
     return (
@@ -334,66 +324,6 @@ export const DetailsStep = React.memo(function DetailsStep({
               <span className="text-sm text-gray-700">First-time cleaning</span>
             </label>
           </div>
-        </fieldset>
-
-        {/* Recurrence — discount for repeat customers */}
-        <fieldset>
-          <legend className="block text-sm font-medium text-gray-700 mb-3">How often?</legend>
-          <div role="radiogroup" aria-label="Recurrence" className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {([
-              { value: 'None' as const, label: 'One-time' },
-              { value: 'Weekly' as const, label: 'Weekly' },
-              { value: 'BiWeekly' as const, label: 'Bi-weekly' },
-              { value: 'Monthly' as const, label: 'Monthly' },
-            ]).map((opt) => {
-              const active = data.recurrenceType === opt.value;
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  role="radio"
-                  aria-checked={active}
-                  onClick={() => onChange({
-                    recurrenceType: opt.value,
-                    // clear end date when going back to one-time
-                    recurrenceEndDate: opt.value === 'None' ? undefined : data.recurrenceEndDate,
-                  })}
-                  className={cn(
-                    'rounded-lg border-2 px-3 py-2 text-sm font-medium transition-all',
-                    active ? 'border-brand bg-accent-light/10 text-brand' : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                  )}
-                >
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
-          {data.recurrenceType !== 'None' && (
-            <p className="text-xs text-gray-500 mt-2">
-              Recurring bookings include a discount — shown in next step.
-            </p>
-          )}
-          {data.recurrenceType !== 'None' && (
-            <div className="mt-3">
-              <label htmlFor="recurrence-end-date" className="block text-xs text-gray-500 mb-1">
-                End date <span className="text-gray-400">(optional — leave empty for ongoing)</span>
-              </label>
-              <input
-                id="recurrence-end-date"
-                type="date"
-                value={data.recurrenceEndDate ?? ''}
-                min={new Date().toISOString().split('T')[0]}
-                onChange={(e) => {
-                  onChange({ recurrenceEndDate: e.target.value || undefined });
-                  setEndDateError('');
-                }}
-                className="w-full sm:w-auto rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
-              />
-              {endDateError && (
-                <p className="text-xs text-red-500 mt-1">{endDateError}</p>
-              )}
-            </div>
-          )}
         </fieldset>
 
         {/* Price Preview */}

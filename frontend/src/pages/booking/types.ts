@@ -7,9 +7,6 @@ export type { EstimateResponse, BookingConfirmation };
 
 export type BookingStep = 'zipcode' | 'service' | 'details' | 'schedule' | 'contact' | 'confirm';
 
-// Recurrence options match the backend RecurrenceType enum (string-serialized).
-export type RecurrenceType = 'None' | 'Weekly' | 'BiWeekly' | 'Monthly';
-
 export interface BookingData {
   zipCode: string;
   serviceTypeId: number;
@@ -26,9 +23,6 @@ export interface BookingData {
   hasElevator: boolean;
   floorLevel: number;          // 0 = ground floor / N/A
   isFirstTime: boolean;        // first-time-customer surcharge flag
-  // Recurrence selection (drives discount + creates future meetings)
-  recurrenceType: RecurrenceType;
-  recurrenceEndDate?: string;  // ISO date, only meaningful when recurrenceType !== 'None'
   date: string;
   timeSlot: string;
   employeeId: number;
@@ -60,8 +54,6 @@ export const initialBookingData: BookingData = {
   hasElevator: true,
   floorLevel: 0,
   isFirstTime: true,   // most bookings are first-time
-  recurrenceType: 'None',
-  recurrenceEndDate: undefined,
   date: '',
   timeSlot: '',
   employeeId: 0,

@@ -177,26 +177,6 @@ public class BookingController : ControllerBase
         return Ok(services);
     }
 
-    /// <summary>
-    /// Gets recurrence discounts
-    /// </summary>
-    [HttpGet("recurrence-discounts")]
-    public async Task<ActionResult<IEnumerable<RecurrenceDiscountDto>>> GetRecurrenceDiscounts(CancellationToken cancellationToken = default)
-    {
-        var discounts = await _context.RecurrenceDiscounts
-            .AsNoTracking()
-            .Where(d => d.IsActive && !d.IsDeleted)
-            .Select(d => new RecurrenceDiscountDto
-            {
-                RecurrenceType = d.RecurrenceType,
-                RecurrenceTypeName = d.RecurrenceType.ToString(),
-                DiscountPercent = d.DiscountPercent
-            })
-            .ToListAsync(cancellationToken);
-
-        return Ok(discounts);
-    }
-
     #endregion
 
     #region Step 3 - Price and Time Estimate
@@ -223,7 +203,6 @@ public class BookingController : ControllerBase
             HasPets = request.HasPets,
             HasElevator = request.HasElevator,
             IsFirstTime = request.IsFirstTime,
-            RecurrenceType = request.RecurrenceType
         }, cancellationToken);
 
         if (!pricing.Success)
@@ -236,7 +215,6 @@ public class BookingController : ControllerBase
             Subtotal = pricing.Subtotal,
             Discount = pricing.Discount,
             Total = pricing.Total,
-            RecurrenceType = request.RecurrenceType,
             DiscountPercent = pricing.DiscountPercent
         });
     }
@@ -683,8 +661,6 @@ public class BookingController : ControllerBase
                 AdditionalServiceIds = request.AdditionalServiceIds,
                 Rooms = request.Rooms?.Select(r => new RoomPricingItem(r.RoomId, r.Quantity)).ToList(),
                 Total = request.Total,
-                RecurrenceType = request.RecurrenceType,
-                RecurrenceEndDate = request.RecurrenceEndDate,
                 ContactName = request.ContactName,
                 ContactPhone = request.ContactPhone,
                 ContactEmail = request.ContactEmail,
@@ -860,13 +836,6 @@ public record AdditionalServiceDto
     public string? Description { get; init; }
     public decimal Price { get; init; }
     public int AdditionalMinutes { get; init; }
-}
-
-public record RecurrenceDiscountDto
-{
-    public RecurrenceType RecurrenceType { get; init; }
-    public string RecurrenceTypeName { get; init; } = "";
-    public decimal DiscountPercent { get; init; }
 }
 
 #endregion

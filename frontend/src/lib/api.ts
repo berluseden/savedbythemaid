@@ -22,7 +22,6 @@ import type {
   ConfirmBookingRequest,
   BookingConfirmation,
   AdditionalService,
-  RecurrenceDiscount,
   LoginRequest,
   RegisterRequest,
   AuthResponse,
@@ -45,7 +44,6 @@ export type {
   ConfirmBookingRequest,
   BookingConfirmation,
   AdditionalService,
-  RecurrenceDiscount,
   LoginRequest,
   RegisterRequest,
   AuthResponse,
@@ -252,8 +250,6 @@ export const bookingApi = {
   getCleaningPlaces: () => api.get<CleaningPlace[]>('/booking/cleaning-places'),
 
   getAdditionalServices: () => api.get<AdditionalService[]>('/booking/additional-services'),
-
-  getRecurrenceDiscounts: () => api.get<RecurrenceDiscount[]>('/booking/recurrence-discounts'),
 
   getEstimate: (request: EstimateRequest) =>
     api.post<EstimateResponse>('/booking/estimate', request),

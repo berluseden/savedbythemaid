@@ -31,8 +31,6 @@ public record EstimateRequest
     public bool HasElevator { get; init; } = true;
 
     public bool IsFirstTime { get; init; } = true;
-
-    public RecurrenceType RecurrenceType { get; init; } = RecurrenceType.None;
 }
 
 public record RoomSelectionDto
