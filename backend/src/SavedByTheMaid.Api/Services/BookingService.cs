@@ -45,6 +45,8 @@ public record PricingInput
 
 public record RoomPricingItem(int RoomId, int Quantity);
 
+public record PriceLineItem(string Label, decimal Amount);
+
 public record PricingResult
 {
     public bool Success { get; init; }
@@ -54,6 +56,7 @@ public record PricingResult
     public decimal Discount { get; init; }
     public decimal Total { get; init; }
     public decimal DiscountPercent { get; init; }
+    public List<PriceLineItem> LineItems { get; init; } = [];
 }
 
 public record ConfirmBookingInput
@@ -146,6 +149,8 @@ public class BookingService : IBookingService
         // Base price and time
         decimal subtotal = serviceType.Price;
         int totalMinutes = serviceType.EstimatedMinutes;
+        var lineItems = new List<PriceLineItem>();
+        lineItems.Add(new PriceLineItem(serviceType.Name, serviceType.Price));
 
         // Room-based pricing (consistent between estimate and confirm)
         if (input.Rooms?.Any() == true)
@@ -161,8 +166,11 @@ public class BookingService : IBookingService
             {
                 if (roomTypes.TryGetValue(room.RoomId, out var roomType))
                 {
+                    var roomAmount = roomType.BasePrice * room.Quantity;
                     totalMinutes += roomType.BaseMinutes * room.Quantity;
-                    subtotal += roomType.BasePrice * room.Quantity;
+                    subtotal += roomAmount;
+                    var roomLabel = room.Quantity > 1 ? $"{roomType.Name} ×{room.Quantity}" : roomType.Name;
+                    lineItems.Add(new PriceLineItem(roomLabel, roomAmount));
                 }
             }
         }
@@ -171,13 +179,21 @@ public class BookingService : IBookingService
             // Fallback: bedroom/bathroom pricing
             if (input.Bedrooms > 1)
             {
-                subtotal += (input.Bedrooms - 1) * serviceType.PricePerBedroom;
-                totalMinutes += (input.Bedrooms - 1) * serviceType.MinutesPerBedroom;
+                var extraBedrooms = input.Bedrooms - 1;
+                var bedroomAmount = extraBedrooms * serviceType.PricePerBedroom;
+                subtotal += bedroomAmount;
+                totalMinutes += extraBedrooms * serviceType.MinutesPerBedroom;
+                var bedroomLabel = extraBedrooms == 1 ? "Extra bedroom" : $"Extra bedrooms ×{extraBedrooms}";
+                lineItems.Add(new PriceLineItem(bedroomLabel, bedroomAmount));
             }
             if (input.Bathrooms > 1)
             {
-                subtotal += (input.Bathrooms - 1) * serviceType.PricePerBathroom;
-                totalMinutes += (input.Bathrooms - 1) * serviceType.MinutesPerBathroom;
+                var extraBathrooms = input.Bathrooms - 1;
+                var bathroomAmount = extraBathrooms * serviceType.PricePerBathroom;
+                subtotal += bathroomAmount;
+                totalMinutes += extraBathrooms * serviceType.MinutesPerBathroom;
+                var bathroomLabel = extraBathrooms == 1 ? "Extra bathroom" : $"Extra bathrooms ×{extraBathrooms}";
+                lineItems.Add(new PriceLineItem(bathroomLabel, bathroomAmount));
             }
         }
 
@@ -188,8 +204,12 @@ public class BookingService : IBookingService
                 .Where(a => input.AdditionalServiceIds.Contains(a.Id))
                 .ToListAsync(cancellationToken);
 
-            subtotal += additionals.Sum(a => a.Price);
-            totalMinutes += additionals.Sum(a => a.AdditionalMinutes);
+            foreach (var addon in additionals)
+            {
+                subtotal += addon.Price;
+                totalMinutes += addon.AdditionalMinutes;
+                lineItems.Add(new PriceLineItem(addon.Name, addon.Price));
+            }
         }
 
         // Apply multipliers
@@ -224,7 +244,14 @@ public class BookingService : IBookingService
         }
 
         totalMinutes = (int)(totalMinutes * timeFactor);
+        var subtotalBeforeMultiplier = subtotal;
         subtotal *= priceFactor;
+
+        if (priceFactor != 1.0m)
+        {
+            var modifierAmount = subtotal - subtotalBeforeMultiplier;
+            lineItems.Add(new PriceLineItem("Adjustments", modifierAmount));
+        }
 
         decimal discount = 0;
         decimal total = subtotal - discount;
@@ -236,7 +263,8 @@ public class BookingService : IBookingService
             Subtotal = subtotal,
             Discount = discount,
             Total = total,
-            DiscountPercent = discount > 0 ? (discount / subtotal) * 100 : 0
+            DiscountPercent = discount > 0 ? (discount / subtotal) * 100 : 0,
+            LineItems = lineItems
         };
     }
 

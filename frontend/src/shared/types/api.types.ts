@@ -96,6 +96,11 @@ export interface EstimateRequest {
   isFirstTime?: boolean;
 }
 
+export interface PriceLineItem {
+  label: string;
+  amount: number;
+}
+
 export interface EstimateResponse {
   estimatedMinutes: number;
   formattedDuration: string;
@@ -103,6 +108,7 @@ export interface EstimateResponse {
   discount: number;
   total: number;
   discountPercent: number;
+  lineItems: PriceLineItem[];
 }
 
 export interface AvailabilityResponse {

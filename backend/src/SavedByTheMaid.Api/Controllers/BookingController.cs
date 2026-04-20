@@ -211,7 +211,8 @@ public class BookingController : ControllerBase
             Subtotal = pricing.Subtotal,
             Discount = pricing.Discount,
             Total = pricing.Total,
-            DiscountPercent = pricing.DiscountPercent
+            DiscountPercent = pricing.DiscountPercent,
+            LineItems = pricing.LineItems.Select(li => new PriceLineItemDto(li.Label, li.Amount)).ToList()
         });
     }
 

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronUp, ChevronDown } from 'lucide-react';
-import { bookingApi, type ServiceType, type EstimateResponse } from '@/lib/api';
+import { bookingApi, type ServiceType, type EstimateResponse, type PriceLineItem } from '@/lib/api';
 import { cn, formatCurrency } from '@/lib/utils';
 import type { BookingData, BookingStep } from '@/pages/booking/types';
 
@@ -198,12 +198,24 @@ function Breakdown({
   serviceName: string;
 }) {
   if (tier === 'server' && estimate) {
+    const hasLineItems = estimate.lineItems && estimate.lineItems.length > 0;
     return (
       <div className="px-5 py-3 space-y-2 text-sm">
-        <div className="flex justify-between">
-          <span className="text-gray-600">Subtotal</span>
-          <span className="font-medium">{formatCurrency(estimate.subtotal)}</span>
-        </div>
+        {hasLineItems ? (
+          estimate.lineItems.map((item: PriceLineItem, i: number) => (
+            <div key={i} className="flex justify-between">
+              <span className="text-gray-600">{item.label}</span>
+              <span className="font-medium">
+                {i > 0 && item.amount >= 0 ? '+' : ''}{formatCurrency(item.amount)}
+              </span>
+            </div>
+          ))
+        ) : (
+          <div className="flex justify-between">
+            <span className="text-gray-600">Subtotal</span>
+            <span className="font-medium">{formatCurrency(estimate.subtotal)}</span>
+          </div>
+        )}
         {estimate.discount > 0 && (
           <div className="flex justify-between text-green-600">
             <span>Discount ({estimate.discountPercent}%)</span>

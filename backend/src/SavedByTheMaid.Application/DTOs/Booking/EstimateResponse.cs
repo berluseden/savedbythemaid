@@ -1,5 +1,7 @@
 namespace SavedByTheMaid.Application.DTOs.Booking;
 
+public record PriceLineItemDto(string Label, decimal Amount);
+
 public record EstimateResponse
 {
     public int EstimatedMinutes { get; init; }
@@ -8,4 +10,5 @@ public record EstimateResponse
     public decimal Discount { get; init; }
     public decimal Total { get; init; }
     public decimal DiscountPercent { get; init; }
+    public List<PriceLineItemDto> LineItems { get; init; } = [];
 }
