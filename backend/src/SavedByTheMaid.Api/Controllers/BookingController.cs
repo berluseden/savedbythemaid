@@ -9,7 +9,6 @@ using SavedByTheMaid.Application.DTOs.Booking;
 using SavedByTheMaid.Infrastructure.Data;
 using SavedByTheMaid.Domain.Entities;
 using SavedByTheMaid.Domain.Enums;
-using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Hosting;
 using System.Security.Claims;
 
@@ -33,7 +32,6 @@ public class BookingController : ControllerBase
     private readonly IValidator<CreateSoftReserveRequest> _softReserveValidator;
     private readonly IValidator<ConfirmBookingRequest> _confirmBookingValidator;
     private readonly IWebHostEnvironment _env;
-    private readonly IAntiforgery _antiforgery;
 
     public BookingController(
         ApplicationDbContext context,
@@ -45,8 +43,7 @@ public class BookingController : ControllerBase
         IValidator<AvailabilityRequest> availabilityValidator,
         IValidator<CreateSoftReserveRequest> softReserveValidator,
         IValidator<ConfirmBookingRequest> confirmBookingValidator,
-        IWebHostEnvironment env,
-        IAntiforgery antiforgery)
+        IWebHostEnvironment env)
     {
         _context = context;
         _logger = logger;
@@ -58,7 +55,6 @@ public class BookingController : ControllerBase
         _softReserveValidator = softReserveValidator;
         _confirmBookingValidator = confirmBookingValidator;
         _env = env;
-        _antiforgery = antiforgery;
     }
 
     #region Step 1 - Address and Coverage
