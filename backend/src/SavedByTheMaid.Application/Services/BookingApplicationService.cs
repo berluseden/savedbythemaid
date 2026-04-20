@@ -94,7 +94,6 @@ public class BookingApplicationService : IBookingApplicationService
                 HasPets = request.HasPets,
                 HasElevator = request.HasElevator,
                 IsFirstTime = request.IsFirstTime,
-                RecurrenceType = request.RecurrenceType
             });
 
             if (!pricing.Success)
@@ -110,7 +109,6 @@ public class BookingApplicationService : IBookingApplicationService
                 Subtotal = pricing.Subtotal,
                 Discount = pricing.Discount,
                 Total = pricing.Total,
-                RecurrenceType = request.RecurrenceType,
                 DiscountPercent = pricing.DiscountPercent
             });
         }
@@ -408,8 +406,6 @@ public class BookingApplicationService : IBookingApplicationService
                 AdditionalServiceIds = request.AdditionalServiceIds,
                 Rooms = request.Rooms?.Select(r => new RoomPricingItemDto(r.RoomId, r.Quantity)).ToList(),
                 Total = request.Total,
-                RecurrenceType = request.RecurrenceType,
-                RecurrenceEndDate = request.RecurrenceEndDate,
                 ContactName = request.ContactName,
                 ContactPhone = request.ContactPhone,
                 ContactEmail = request.ContactEmail,

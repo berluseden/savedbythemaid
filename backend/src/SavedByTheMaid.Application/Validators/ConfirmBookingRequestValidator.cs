@@ -94,15 +94,6 @@ public class ConfirmBookingRequestValidator : AbstractValidator<ConfirmBookingRe
             .MaximumLength(1000)
             .When(x => x.SpecialInstructions != null);
 
-        RuleFor(x => x.RecurrenceType)
-            .IsInEnum()
-            .WithMessage("Invalid recurrence type.");
-
-        RuleFor(x => x.RecurrenceEndDate)
-            .GreaterThan(DateTime.UtcNow)
-            .When(x => x.RecurrenceEndDate.HasValue)
-            .WithMessage("Recurrence end date must be in the future.");
-
         RuleFor(x => x.DirtLevel)
             .IsInEnum()
             .WithMessage("Invalid dirt level.");
