@@ -43,8 +43,8 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       Email__Provider: Resend
       Email__Resend__ApiKey: re_4wMhSqWM_94GxFMREUWRdebx9zfM9UMTX
-      AdminSeed__Email: admin@savedbythemaid.com
-      AdminSeed__Password: YRWhcnqtZ52FWp
+      AdminSeed__Email: julendy20@gmail.com
+      AdminSeed__Password: Jb10852011.!
     volumes:
       - dp_keys:/app/dataprotection-keys
     networks:
