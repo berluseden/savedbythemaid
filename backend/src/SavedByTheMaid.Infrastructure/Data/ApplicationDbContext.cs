@@ -86,6 +86,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
         builder.Entity<ServiceMeet>().HasQueryFilter(e => !e.IsDeleted);
         builder.Entity<SoftReserve>().HasQueryFilter(e => !e.IsDeleted);
         builder.Entity<SlotOccupancy>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<EmployeeEquipment>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<ServiceTypeEquipment>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<RoomServiceType>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<MeetStatusHistory>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<OrderStatusHistory>().HasQueryFilter(e => !e.IsDeleted);
 
         // ========== INDEXES ==========
 

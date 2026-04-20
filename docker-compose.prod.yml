@@ -1,6 +1,6 @@
 services:
   mysql:
-    image: mysql:8.0
+    image: mysql:8.4-lts
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: STPmn4ccf5XnVGz0QExvs15q
@@ -9,6 +9,7 @@ services:
       MYSQL_PASSWORD: rU07izZNgJPnTX0H8AxoCAYA
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./mysql-custom.cnf:/etc/mysql/conf.d/custom.cnf:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s

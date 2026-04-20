@@ -1,0 +1,22 @@
+[mysqld]
+# Buffer pool: 50% of 7.8GB RAM
+innodb_buffer_pool_size         = 4G
+innodb_log_file_size            = 512M
+innodb_flush_method             = O_DIRECT
+# 2 = flush once per second (faster, safe for app workloads)
+innodb_flush_log_at_trx_commit  = 2
+
+# Connections
+max_connections                 = 150
+
+# Character set
+character_set_server            = utf8mb4
+collation_server                = utf8mb4_unicode_ci
+
+# Skip reverse DNS lookups — faster + more secure
+skip_name_resolve               = ON
+
+# Slow query log
+slow_query_log                  = ON
+slow_query_log_file             = /var/log/mysql/slow.log
+long_query_time                 = 2
