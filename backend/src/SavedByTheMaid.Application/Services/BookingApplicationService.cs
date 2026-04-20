@@ -295,19 +295,19 @@ public class BookingApplicationService : IBookingApplicationService
             if (schedule == null)
             {
                 return Result<SoftReserveResponse>.Failure(
-                    EmployeeErrors.NotAvailableOnDay(request.EmployeeId, dayOfWeek));
+                    EmployeeErrors.NotAvailableOnDay(request.EmployeeId.GetValueOrDefault(), dayOfWeek));
             }
 
             // Verify the time is within the work shift
             if (request.StartTime < schedule.StartTime || request.StartTime >= schedule.EndTime)
             {
                 return Result<SoftReserveResponse>.Failure(
-                    EmployeeErrors.OutsideWorkingHours(request.EmployeeId));
+                    EmployeeErrors.OutsideWorkingHours(request.EmployeeId.GetValueOrDefault()));
             }
 
             // Check conflicts using scheduling service
             var conflict = await _schedulingService.CheckConflictsAsync(
-                request.EmployeeId, startDateTime, endDateTime);
+                request.EmployeeId.GetValueOrDefault(), startDateTime, endDateTime);
 
             if (conflict != null)
             {
