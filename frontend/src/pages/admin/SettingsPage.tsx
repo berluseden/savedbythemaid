@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, Phone, Mail, MapPin, Clock } from 'lucide-react';
+import { Save, Phone, MapPin, Clock } from 'lucide-react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { businessInfoApi, type BusinessInfoDto } from '@/lib/api-endpoints';
 import { Spinner } from '@/shared/components/ui/spinner';

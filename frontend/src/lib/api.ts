@@ -16,7 +16,6 @@ import type {
   CleaningPlace,
   EstimateRequest,
   EstimateResponse,
-  PriceLineItem,
   AvailabilityResponse,
   SoftReserveRequest,
   SoftReserveResponse,
