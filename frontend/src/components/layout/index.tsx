@@ -3,6 +3,8 @@ import { Home, Calendar, Sparkles, Phone, User, LogOut, ChevronDown, Menu, X } f
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { businessInfoApi } from '@/lib/api-endpoints';
 
 export function Header() {
   const location = useLocation();
@@ -274,6 +276,13 @@ export function Header() {
 }
 
 export function Footer() {
+  const { data: bizData } = useQuery({
+    queryKey: ['business-info'],
+    queryFn: () => businessInfoApi.get(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const biz = bizData?.data;
+
   return (
     <footer className="border-t border-gray-200 bg-white">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -311,9 +320,11 @@ export function Footer() {
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Contact</h3>
             <ul className="mt-4 space-y-2">
-              <li className="text-sm text-gray-600">📞 (555) 123-4567</li>
-              <li className="text-sm text-gray-600">📧 hello@ecomaid.com</li>
-              <li className="text-sm text-gray-600">📍 New York, NY</li>
+              <li className="text-sm text-gray-600">📞 {biz?.phone || '(555) 123-4567'}</li>
+              <li className="text-sm text-gray-600">📧 {biz?.email || 'hello@ecomaid.com'}</li>
+              {(biz?.city || biz?.state) && (
+                <li className="text-sm text-gray-600">📍 {[biz.city, biz.state].filter(Boolean).join(', ')}</li>
+              )}
             </ul>
           </div>
         </div>
