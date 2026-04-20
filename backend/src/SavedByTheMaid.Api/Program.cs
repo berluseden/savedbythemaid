@@ -636,9 +636,10 @@ static async Task SeedMasterDataAsync(IServiceProvider services)
 
     try
     {
-        var seeder = new SavedByTheMaid.Infrastructure.Data.DataSeeder(context, 
+        var seeder = new SavedByTheMaid.Infrastructure.Data.DataSeeder(context,
             scope.ServiceProvider.GetRequiredService<ILogger<SavedByTheMaid.Infrastructure.Data.DataSeeder>>());
-        await seeder.SeedAllAsync();
+        var env = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
+        await seeder.SeedAllAsync(skipSampleData: env.IsProduction());
     }
     catch (Exception ex)
     {

@@ -54,7 +54,7 @@ public class DataSeeder
     /// missing data is inserted. A summary of created vs. skipped items
     /// is logged at the end.
     /// </summary>
-    public async Task SeedAllAsync()
+    public async Task SeedAllAsync(bool skipSampleData = false)
     {
         _logger.LogInformation("Starting master data seed...");
 
@@ -92,12 +92,15 @@ public class DataSeeder
             (c, s) = await SeedEquipmentAsync();
             created += c; skipped += s;
 
-            // ── 7. Sample Employees ──────────────────────────────────────
-            (c, s) = await SeedEmployeesAsync();
-            created += c; skipped += s;
+            // ── 7. Sample Employees (dev/test only) ──────────────────────
+            if (!skipSampleData)
+            {
+                (c, s) = await SeedEmployeesAsync();
+                created += c; skipped += s;
 
-            // ── 8. Employee Schedules and Service Area assignments ───────
-            await SeedEmployeeSchedulesAsync();
+                // ── 8. Employee Schedules and Service Area assignments ────
+                await SeedEmployeeSchedulesAsync();
+            }
 
             // ── 9. Recurrence Discounts ──────────────────────────────────
             (c, s) = await SeedRecurrenceDiscountsAsync();
