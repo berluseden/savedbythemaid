@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SavedByTheMaid.Infrastructure.Migrations
 {
     /// <inheritdoc />
+    [Migration("20260420000000_MakeEmployeeIdNullable")]
     public partial class MakeEmployeeIdNullable : Migration
     {
         /// <inheritdoc />
