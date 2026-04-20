@@ -293,7 +293,7 @@ public class BookingController : ControllerBase
 
         var allSoftReserves = await _context.SoftReserves
             .AsNoTracking()
-            .Where(s => employeeIds.Contains(s.EmployeeId)
+            .Where(s => s.EmployeeId.HasValue && employeeIds.Contains(s.EmployeeId.Value)
                         && s.ScheduledStart >= date
                         && s.ScheduledStart < datePlusOne
                         && s.Status == SoftReserveStatus.Active

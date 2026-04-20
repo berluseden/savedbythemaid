@@ -208,7 +208,7 @@ public class BookingService : IBookingService
             {
                 subtotal += addon.Price;
                 totalMinutes += addon.AdditionalMinutes;
-                lineItems.Add(new PriceLineItem(addon.Name, addon.Price));
+                lineItems.Add(new PriceLineItem(addon.Title, addon.Price));
             }
         }
 
