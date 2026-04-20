@@ -69,6 +69,31 @@ services:
         max-size: 10m
         max-file: "3"
 
+  mysql-backup:
+    image: fradelg/mysql-cron-backup:latest
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_USER: root
+      MYSQL_PASS: STPmn4ccf5XnVGz0QExvs15q
+      MYSQL_PORT: 3306
+      CRON_TIME: "0 2 * * *"
+      MAX_BACKUPS: 7
+      GZIP_LEVEL: 6
+      BACKUP_LATEST: "yes"
+    volumes:
+      - mysql_backups:/backup
+    networks:
+      - app-network
+    logging:
+      driver: json-file
+      options:
+        max-size: 5m
+        max-file: "2"
+
   frontend:
     build:
       context: ./frontend
@@ -95,6 +120,7 @@ services:
 
 volumes:
   mysql_data:
+  mysql_backups:
   dp_keys:
 
 networks:
