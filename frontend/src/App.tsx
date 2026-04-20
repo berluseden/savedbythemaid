@@ -28,6 +28,7 @@ const AdminServiceAreasPage = lazy(() => import('@/pages/admin/ServiceAreasPage'
 const AdminUsersPage = lazy(() => import('@/pages/admin/UsersPage').then(m => ({ default: m.AdminUsersPage })));
 const AdminCleaningPlacesPage = lazy(() => import('@/pages/admin/CleaningPlacesPage').then(m => ({ default: m.AdminCleaningPlacesPage })));
 const AdminAdditionalServicesPage = lazy(() => import('@/pages/admin/AdditionalServicesPage').then(m => ({ default: m.AdminAdditionalServicesPage })));
+const AdminSettingsPage = lazy(() => import('@/pages/admin/SettingsPage').then(m => ({ default: m.AdminSettingsPage })));
 // Layout wrapper for public pages (with header/footer)
 function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -155,6 +156,15 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/admin/settings"
+                element={
+                  <ProtectedRoute requiredRoles={['Admin']}>
+                    <SuspenseBoundary variant="page"><AdminSettingsPage /></SuspenseBoundary>
+                  </ProtectedRoute>
+                }
+              />
+
               {/* Error pages */}
               <Route path="/error" element={<ServerErrorPage />} />
 

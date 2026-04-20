@@ -41,6 +41,28 @@ export const contactApi = {
 };
 
 // ==========================================
+// Business Info endpoint
+// ==========================================
+
+export interface BusinessInfoDto {
+  phone: string;
+  email: string;
+  addressLine1: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  weekdayHours: string;
+  saturdayHours: string;
+  sundayHours: string;
+  responseTime: string;
+}
+
+export const businessInfoApi = {
+  get: () => api.get<BusinessInfoDto>('/businessinfo'),
+  update: (data: BusinessInfoDto) => api.put<BusinessInfoDto>('/businessinfo', data),
+};
+
+// ==========================================
 // Customer endpoints
 // ==========================================
 

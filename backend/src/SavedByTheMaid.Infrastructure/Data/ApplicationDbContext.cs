@@ -57,6 +57,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     // Password Reset Tokens
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
 
+    // Business Contact Info (singleton)
+    public DbSet<BusinessInfo> BusinessInfos => Set<BusinessInfo>();
+
     // Refresh Tokens (for JWT rotation)
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 

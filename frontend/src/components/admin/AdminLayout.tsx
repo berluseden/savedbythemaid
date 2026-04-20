@@ -14,6 +14,7 @@ import {
   Shield,
   Home,
   PlusCircle,
+  Settings,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -30,6 +31,7 @@ const navigation = [
   { name: 'Additional Services', href: '/admin/additional-services', icon: PlusCircle },
   { name: 'Service Areas', href: '/admin/service-areas', icon: MapPin },
   { name: 'Users', href: '/admin/users', icon: Shield },
+  { name: 'Settings', href: '/admin/settings', icon: Settings },
 ];
 
 export function AdminLayout({ children }: AdminLayoutProps) {

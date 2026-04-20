@@ -1,14 +1,23 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { MapPin, Phone, Mail, Clock, Send, CheckCircle } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { contactSchema, type ContactFormData } from '@/shared/schemas/contact.schema';
 import { getErrorMessage } from '@/shared/lib/error-utils';
 import api from '@/lib/api';
+import { businessInfoApi } from '@/lib/api-endpoints';
 
 export default function ContactPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
+
+  const { data: bizData } = useQuery({
+    queryKey: ['business-info'],
+    queryFn: () => businessInfoApi.get(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const biz = bizData?.data;
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
@@ -57,8 +66,10 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">Phone</h3>
-                    <p className="text-gray-600">(555) 123-4567</p>
-                    <p className="text-sm text-gray-500">Mon-Fri 8am-8pm, Sat-Sun 9am-6pm</p>
+                    <p className="text-gray-600">{biz?.phone || '(555) 123-4567'}</p>
+                    {biz?.weekdayHours && (
+                      <p className="text-sm text-gray-500">Mon–Fri {biz.weekdayHours}</p>
+                    )}
                   </div>
                 </div>
 
@@ -68,21 +79,25 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">Email</h3>
-                    <p className="text-gray-600">hello@ecomaid.com</p>
-                    <p className="text-sm text-gray-500">We reply within 24 hours</p>
+                    <p className="text-gray-600">{biz?.email || 'hello@ecomaid.com'}</p>
+                    <p className="text-sm text-gray-500">{biz?.responseTime || 'We reply within 24 hours'}</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-accent-light/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <MapPin className="w-5 h-5 text-brand" aria-hidden="true" />
+                {(biz?.addressLine1 || biz?.city) && (
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 bg-accent-light/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <MapPin className="w-5 h-5 text-brand" aria-hidden="true" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Office</h3>
+                      {biz.addressLine1 && <p className="text-gray-600">{biz.addressLine1}</p>}
+                      {(biz.city || biz.state) && (
+                        <p className="text-gray-600">{[biz.city, biz.state, biz.zipCode].filter(Boolean).join(', ')}</p>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Office</h3>
-                    <p className="text-gray-600">123 Cleaning Street</p>
-                    <p className="text-gray-600">New York, NY 10001</p>
-                  </div>
-                </div>
+                )}
 
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 bg-accent-light/20 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -90,8 +105,11 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">Business Hours</h3>
-                    <p className="text-gray-600">Monday - Friday: 8am - 8pm</p>
-                    <p className="text-gray-600">Saturday - Sunday: 9am - 6pm</p>
+                    {biz?.weekdayHours && <p className="text-gray-600">Monday – Friday: {biz.weekdayHours}</p>}
+                    {biz?.saturdayHours && <p className="text-gray-600">Saturday: {biz.saturdayHours}</p>}
+                    {!biz?.saturdayHours && biz && <p className="text-gray-500">Saturday: Closed</p>}
+                    {biz?.sundayHours && <p className="text-gray-600">Sunday: {biz.sundayHours}</p>}
+                    {!biz?.sundayHours && biz && <p className="text-gray-500">Sunday: Closed</p>}
                   </div>
                 </div>
               </div>

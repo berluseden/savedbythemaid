@@ -106,6 +106,10 @@ public class DataSeeder
             (c, s) = await SeedRecurrenceDiscountsAsync();
             created += c; skipped += s;
 
+            // ── 10. Business Info (singleton, idempotent) ─────────────────
+            (c, s) = await SeedBusinessInfoAsync();
+            created += c; skipped += s;
+
             _logger.LogInformation(
                 "Master data seed completed successfully. Created: {Created}, Skipped (already existed): {Skipped}",
                 created, skipped);
@@ -847,5 +851,29 @@ public class DataSeeder
         await _context.SaveChangesAsync();
         _logger.LogInformation("Recurrence discounts: {Created} created, {Skipped} already existed", created, skipped);
         return (created, skipped);
+    }
+
+    private async Task<(int created, int skipped)> SeedBusinessInfoAsync()
+    {
+        if (await _context.BusinessInfos.AnyAsync())
+            return (0, 1);
+
+        _context.BusinessInfos.Add(new Domain.Entities.BusinessInfo
+        {
+            Phone = "(555) 123-4567",
+            Email = "hello@ecomaid.com",
+            AddressLine1 = "123 Cleaning Street",
+            City = "New York",
+            State = "NY",
+            ZipCode = "10001",
+            WeekdayHours = "8:00 AM – 8:00 PM",
+            SaturdayHours = "9:00 AM – 6:00 PM",
+            SundayHours = "9:00 AM – 6:00 PM",
+            ResponseTime = "We reply within 24 hours",
+        });
+
+        await _context.SaveChangesAsync();
+        _logger.LogInformation("Business info: seeded default record");
+        return (1, 0);
     }
 }
