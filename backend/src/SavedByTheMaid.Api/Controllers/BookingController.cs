@@ -759,7 +759,6 @@ public class BookingController : ControllerBase
     private void SetAuthCookies(string accessToken, string refreshToken, DateTime expiresAt)
     {
         var isProduction = _env.IsProduction();
-        _antiforgery.GetAndStoreTokens(HttpContext);
         Response.Cookies.Append("accessToken", accessToken, new CookieOptions
         {
             HttpOnly = true,
