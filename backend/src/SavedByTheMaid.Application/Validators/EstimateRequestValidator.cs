@@ -64,10 +64,6 @@ public class EstimateRequestValidator : AbstractValidator<EstimateRequest>
             .IsInEnum()
             .WithMessage("Invalid dirt level specified.");
 
-        RuleFor(x => x.RecurrenceType)
-            .IsInEnum()
-            .WithMessage("Invalid recurrence type specified.");
-
         RuleForEach(x => x.Rooms).ChildRules(room =>
         {
             room.RuleFor(r => r.RoomId)
