@@ -11,9 +11,9 @@ namespace SavedByTheMaid.Domain.Entities;
 public class SlotOccupancy : BaseEntity
 {
     /// <summary>
-    /// ID of the employee who occupies this slot
+    /// ID of the employee who occupies this slot (null = unassigned capacity slot)
     /// </summary>
-    public int EmployeeId { get; set; }
+    public int? EmployeeId { get; set; }
     
     /// <summary>
     /// Start of the occupied slot (recommended granularity: 30 min)

@@ -25,7 +25,8 @@ public class CreateSoftReserveRequestValidator : AbstractValidator<CreateSoftRes
     public CreateSoftReserveRequestValidator()
     {
         RuleFor(x => x.EmployeeId)
-            .GreaterThan(0).WithMessage("Invalid employee ID.");
+            .GreaterThan(0).WithMessage("Invalid employee ID.")
+            .When(x => x.EmployeeId.HasValue);
 
         RuleFor(x => x.ZipCode)
             .NotEmpty().WithMessage("ZIP code is required.");

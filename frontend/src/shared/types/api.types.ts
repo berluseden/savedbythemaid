@@ -125,6 +125,7 @@ export interface TimeSlotDto {
   endTime: string;
   formattedTime: string;
   availableEmployeeIds: number[];
+  isAvailable: boolean;
 }
 
 export interface SoftReserveRequest {
@@ -132,7 +133,7 @@ export interface SoftReserveRequest {
   startTime: string;
   estimatedMinutes: number;
   zipCode: string;
-  employeeId: number;
+  employeeId?: number | null;
   customerId?: string;
   sessionId?: string;
 }

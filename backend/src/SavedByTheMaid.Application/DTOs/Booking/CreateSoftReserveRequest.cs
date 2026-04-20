@@ -10,9 +10,7 @@ public record CreateSoftReserveRequest
     [StringLength(100)]
     public string? CustomerId { get; init; }
 
-    [Required(ErrorMessage = "Employee is required")]
-    [Range(1, int.MaxValue, ErrorMessage = "Invalid employee ID")]
-    public int EmployeeId { get; init; }
+    public int? EmployeeId { get; init; }
 
     [Required(ErrorMessage = "ZIP code is required")]
     [StringLength(10, MinimumLength = 5)]

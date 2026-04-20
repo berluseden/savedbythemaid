@@ -357,12 +357,61 @@ public class BookingController : ControllerBase
                             StartTime = slotStart.TimeOfDay,
                             EndTime = slotEnd.TimeOfDay,
                             FormattedTime = $"{slotStart:hh:mm tt} - {slotEnd:hh:mm tt}",
-                            AvailableEmployeeIds = new List<int> { employee.Id }
+                            AvailableEmployeeIds = new List<int> { employee.Id },
+                            IsAvailable = true
                         });
                     }
                 }
 
                 slotStart = slotStart.AddMinutes(30);
+            }
+        }
+
+        // Fallback: if no employee-based slots, generate from business hours (8 AM–6 PM).
+        // This ensures bookings work before employees are configured.
+        if (slots.Count == 0)
+        {
+            var businessStart = date.AddHours(8);
+            var businessEnd = date.AddHours(18);
+            var slotDuration = TimeSpan.FromMinutes(request.EstimatedMinutes);
+
+            var unassignedOccupancies = await _context.SlotOccupancies
+                .AsNoTracking()
+                .Where(s => s.EmployeeId == null
+                            && s.SlotStart >= date
+                            && s.SlotStart < datePlusOne
+                            && (!s.ExpiresAt.HasValue || s.ExpiresAt > DateTime.UtcNow))
+                .Select(s => new { s.SlotStart, s.SlotEnd })
+                .ToListAsync(cancellationToken);
+
+            var unassignedReserves = await _context.SoftReserves
+                .AsNoTracking()
+                .Where(s => s.EmployeeId == null
+                            && s.ScheduledStart >= date
+                            && s.ScheduledStart < datePlusOne
+                            && s.Status == SoftReserveStatus.Active
+                            && s.ExpiresAt > DateTime.UtcNow)
+                .Select(s => new { s.ScheduledStart, s.ScheduledEnd })
+                .ToListAsync(cancellationToken);
+
+            var fallbackStart = businessStart;
+            while (fallbackStart.Add(slotDuration) <= businessEnd)
+            {
+                var fallbackEnd = fallbackStart.Add(slotDuration);
+                var isOccupied = unassignedOccupancies.Any(o => fallbackStart < o.SlotEnd && fallbackEnd > o.SlotStart)
+                              || unassignedReserves.Any(r => fallbackStart < r.ScheduledEnd && fallbackEnd > r.ScheduledStart);
+
+                slots.Add(new TimeSlotDto
+                {
+                    Date = date,
+                    StartTime = fallbackStart.TimeOfDay,
+                    EndTime = fallbackEnd.TimeOfDay,
+                    FormattedTime = $"{fallbackStart:hh:mm tt} - {fallbackEnd:hh:mm tt}",
+                    AvailableEmployeeIds = [],
+                    IsAvailable = !isOccupied
+                });
+
+                fallbackStart = fallbackStart.AddMinutes(30);
             }
         }
 
@@ -372,7 +421,7 @@ public class BookingController : ControllerBase
             ZipCode = request.ZipCode,
             ServiceAreaId = serviceAreaId,
             Slots = slots.OrderBy(s => s.StartTime).ToList(),
-            TotalSlotsAvailable = slots.Count
+            TotalSlotsAvailable = slots.Count(s => s.IsAvailable)
         });
     }
 
@@ -409,35 +458,59 @@ public class BookingController : ControllerBase
         var startDateTime = request.Date.Date.Add(request.StartTime);
         var endDateTime = startDateTime.AddMinutes(request.EstimatedMinutes);
 
-        // 1. Verify employee has a work schedule for that day
-        var dayOfWeek = request.Date.DayOfWeek;
-        var schedule = await _context.EmployeeSchedules
-            .FirstOrDefaultAsync(s =>
-                s.EmployeeId == request.EmployeeId &&
-                s.DayOfWeek == dayOfWeek &&
-                s.IsAvailable, cancellationToken);
-
-        if (schedule == null)
+        // When an employee is assigned, validate their schedule; otherwise fall through to capacity check.
+        if (request.EmployeeId.HasValue)
         {
-            return BadRequest(new { message = "Employee does not work on that day." });
-        }
+            var dayOfWeek = request.Date.DayOfWeek;
+            var schedule = await _context.EmployeeSchedules
+                .FirstOrDefaultAsync(s =>
+                    s.EmployeeId == request.EmployeeId.Value &&
+                    s.DayOfWeek == dayOfWeek &&
+                    s.IsAvailable, cancellationToken);
 
-        // Verify the time is within the work shift
-        if (request.StartTime < schedule.StartTime || request.StartTime >= schedule.EndTime)
-        {
-            return BadRequest(new { message = "Time is outside the employee's work shift." });
+            if (schedule == null)
+                return BadRequest(new { message = "Employee does not work on that day." });
+
+            if (request.StartTime < schedule.StartTime || request.StartTime >= schedule.EndTime)
+                return BadRequest(new { message = "Time is outside the employee's work shift." });
         }
 
         using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
 
         try
         {
-            // 2. Check conflicts inside the transaction to prevent race conditions
-            var conflict = await _schedulingService.CheckConflictsAsync(request.EmployeeId, startDateTime, endDateTime, cancellationToken: cancellationToken);
-            if (conflict != null)
+            if (request.EmployeeId.HasValue)
             {
-                _logger.LogWarning("Conflict detected creating SoftReserve: {Message}", conflict.Message);
-                return Conflict(new { message = conflict.Message, details = conflict.Details });
+                // Employee-specific conflict check (uses UNIQUE constraint at DB level)
+                var conflict = await _schedulingService.CheckConflictsAsync(request.EmployeeId.Value, startDateTime, endDateTime, cancellationToken: cancellationToken);
+                if (conflict != null)
+                {
+                    _logger.LogWarning("Conflict detected creating SoftReserve: {Message}", conflict.Message);
+                    return Conflict(new { message = conflict.Message, details = conflict.Details });
+                }
+            }
+            else
+            {
+                // Unassigned slot: application-level capacity check (1 booking per time slot)
+                var hasConflict = await _context.SoftReserves
+                    .AnyAsync(s => s.EmployeeId == null
+                                   && s.Status == SoftReserveStatus.Active
+                                   && s.ExpiresAt > DateTime.UtcNow
+                                   && s.ScheduledStart < endDateTime
+                                   && s.ScheduledEnd > startDateTime, cancellationToken);
+
+                if (!hasConflict)
+                {
+                    hasConflict = await _context.ServiceMeets
+                        .AnyAsync(m => m.AssignedEmployeeId == null
+                                       && m.Status != MeetStatus.Cancelled
+                                       && m.Status != MeetStatus.NoShow
+                                       && m.ScheduledStart < endDateTime
+                                       && m.ScheduledEnd > startDateTime, cancellationToken);
+                }
+
+                if (hasConflict)
+                    return Conflict(new { message = "This time slot is no longer available. Someone else has reserved it." });
             }
 
             // Create soft reserve first to get the ID
@@ -456,8 +529,7 @@ public class BookingController : ControllerBase
             _context.SoftReserves.Add(softReserve);
             await _context.SaveChangesAsync(cancellationToken);
 
-            // Insert SlotOccupancy rows using the service
-            // UNIQUE constraint on (EmployeeId, SlotStart) prevents double-booking
+            // Insert SlotOccupancy rows (UNIQUE constraint applies when EmployeeId is set)
             await _schedulingService.AcquireSlotsAsync(
                 request.EmployeeId,
                 startDateTime,

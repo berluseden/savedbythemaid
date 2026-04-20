@@ -31,7 +31,7 @@ public interface ISchedulingService
     /// <param name="type">Occupancy type (SoftReserve or Meeting)</param>
     /// <param name="referenceId">Reference ID (SoftReserve or ServiceMeet)</param>
     /// <param name="expiresAt">Expiration date (only for SoftReserve)</param>
-    Task AcquireSlotsAsync(int employeeId, DateTime start, DateTime end, OccupancyType type, int referenceId, DateTime? expiresAt = null, CancellationToken cancellationToken = default);
+    Task AcquireSlotsAsync(int? employeeId, DateTime start, DateTime end, OccupancyType type, int referenceId, DateTime? expiresAt = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Releases SlotOccupancy slots by referenceId and type.
@@ -293,7 +293,7 @@ public class SchedulingService : ISchedulingService
         return null; // No conflicts
     }
 
-    public async Task AcquireSlotsAsync(int employeeId, DateTime start, DateTime end, OccupancyType type, int referenceId, DateTime? expiresAt = null, CancellationToken cancellationToken = default)
+    public async Task AcquireSlotsAsync(int? employeeId, DateTime start, DateTime end, OccupancyType type, int referenceId, DateTime? expiresAt = null, CancellationToken cancellationToken = default)
     {
         // Normalize DateTimeKind — frontend may omit the Z suffix, producing Unspecified
         start = NormalizeUtc(start);

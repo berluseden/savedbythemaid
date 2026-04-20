@@ -16,4 +16,5 @@ public record TimeSlotDto
     public TimeSpan EndTime { get; init; }
     public string FormattedTime { get; init; } = "";
     public List<int> AvailableEmployeeIds { get; init; } = [];
+    public bool IsAvailable { get; init; }
 }

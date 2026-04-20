@@ -112,7 +112,7 @@ export const ScheduleStep = React.memo(function ScheduleStep({
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
               {availability?.data.slots?.map((slot) => {
-                const isAvailable = slot.availableEmployeeIds.length > 0;
+                const isAvailable = slot.isAvailable ?? slot.availableEmployeeIds.length > 0;
                 const isSelected = data.timeSlot === slot.startTime;
 
                 return (
@@ -121,8 +121,7 @@ export const ScheduleStep = React.memo(function ScheduleStep({
                     onClick={() => {
                       if (isAvailable) {
                         handleTimeSelect(slot.startTime);
-                        // Select first available employee
-                        onChange({ employeeId: slot.availableEmployeeIds[0] });
+                        onChange({ employeeId: slot.availableEmployeeIds[0] ?? null });
                       }
                     }}
                     disabled={!isAvailable}

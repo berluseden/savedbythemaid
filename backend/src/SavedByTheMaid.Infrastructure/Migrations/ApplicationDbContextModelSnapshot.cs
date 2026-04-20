@@ -1582,7 +1582,7 @@ namespace SavedByTheMaid.Infrastructure.Migrations
                     b.Property<int?>("CreatedByUserId")
                         .HasColumnType("int");
 
-                    b.Property<int>("EmployeeId")
+                    b.Property<int?>("EmployeeId")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("ExpiresAt")
@@ -1637,7 +1637,7 @@ namespace SavedByTheMaid.Infrastructure.Migrations
                     b.Property<string>("CustomerId")
                         .HasColumnType("varchar(255)");
 
-                    b.Property<int>("EmployeeId")
+                    b.Property<int?>("EmployeeId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("ExpiresAt")
@@ -2040,8 +2040,7 @@ namespace SavedByTheMaid.Infrastructure.Migrations
                     b.HasOne("SavedByTheMaid.Domain.Entities.Employee", "Employee")
                         .WithMany()
                         .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Employee");
                 });
@@ -2055,8 +2054,7 @@ namespace SavedByTheMaid.Infrastructure.Migrations
                     b.HasOne("SavedByTheMaid.Domain.Entities.Employee", "Employee")
                         .WithMany("SoftReserves")
                         .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("SavedByTheMaid.Domain.Entities.ServiceArea", "ServiceArea")
                         .WithMany()

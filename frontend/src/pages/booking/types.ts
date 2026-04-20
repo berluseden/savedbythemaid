@@ -25,7 +25,7 @@ export interface BookingData {
   isFirstTime: boolean;        // first-time-customer surcharge flag
   date: string;
   timeSlot: string;
-  employeeId: number;
+  employeeId: number | null;
   firstName: string;
   lastName: string;
   email: string;

@@ -17,7 +17,7 @@ public interface ISchedulingServiceAdapter
     /// <summary>
     /// Acquires slots in SlotOccupancy for an employee in a given time range.
     /// </summary>
-    Task AcquireSlotsAsync(int employeeId, DateTime start, DateTime end, OccupancyType type, int referenceId, DateTime? expiresAt = null);
+    Task AcquireSlotsAsync(int? employeeId, DateTime start, DateTime end, OccupancyType type, int referenceId, DateTime? expiresAt = null);
 
     /// <summary>
     /// Releases SlotOccupancy slots by referenceId and type.

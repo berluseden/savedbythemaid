@@ -223,12 +223,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
             .HasForeignKey(eq => eq.EmployeeId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Employee -> SlotOccupancies (anti-collision model)
+        // Employee -> SlotOccupancies (anti-collision model; EmployeeId nullable = unassigned slot)
         builder.Entity<SlotOccupancy>()
             .HasOne(so => so.Employee)
             .WithMany()
             .HasForeignKey(so => so.EmployeeId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
 
         // PasswordResetToken -> User
         builder.Entity<PasswordResetToken>()

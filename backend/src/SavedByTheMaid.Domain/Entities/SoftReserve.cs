@@ -21,9 +21,9 @@ public class SoftReserve : BaseEntity
     public virtual ApplicationUser? Customer { get; set; }
 
     /// <summary>
-    /// Reserved employee
+    /// Assigned employee (null = pending assignment by admin)
     /// </summary>
-    public int EmployeeId { get; set; }
+    public int? EmployeeId { get; set; }
     public virtual Employee? Employee { get; set; }
 
     /// <summary>
