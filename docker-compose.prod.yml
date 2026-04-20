@@ -1,6 +1,21 @@
 services:
   mysql:
-    ports: !reset []
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: STPmn4ccf5XnVGz0QExvs15q
+      MYSQL_DATABASE: savedbythemaid
+      MYSQL_USER: app_user
+      MYSQL_PASSWORD: rU07izZNgJPnTX0H8AxoCAYA
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
     deploy:
       resources:
         limits:
@@ -9,16 +24,31 @@ services:
         reservations:
           memory: 256M
     logging:
-      driver: "json-file"
+      driver: json-file
       options:
-        max-size: "10m"
+        max-size: 10m
         max-file: "3"
 
   api:
-    ports: !reset []
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.api
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
     environment:
-      AdminSeed__Email: ${ADMIN_EMAIL:-admin@savedbythemaid.com}
-      AdminSeed__Password: ${ADMIN_PASSWORD}
+      ConnectionStrings__DefaultConnection: "Server=mysql;Port=3306;Database=savedbythemaid;User=app_user;Password=rU07izZNgJPnTX0H8AxoCAYA;"
+      Jwt__Secret: bcm4CLy28blqT0Vii20wGCf59yVPgulSZ15xsDj7gj9Zesqk
+      ASPNETCORE_ENVIRONMENT: Production
+      Email__Provider: Resend
+      Email__Resend__ApiKey: re_4wMhSqWM_94GxFMREUWRdebx9zfM9UMTX
+      AdminSeed__Email: admin@savedbythemaid.com
+      AdminSeed__Password: YRWhcnqtZ52FWp
+    volumes:
+      - dp_keys:/app/dataprotection-keys
+    networks:
+      - app-network
     deploy:
       resources:
         limits:
@@ -33,14 +63,22 @@ services:
       retries: 3
       start_period: 60s
     logging:
-      driver: "json-file"
+      driver: json-file
       options:
-        max-size: "10m"
+        max-size: 10m
         max-file: "3"
 
   frontend:
-    ports: !override
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
       - "80:80"
+    networks:
+      - app-network
     deploy:
       resources:
         limits:
@@ -49,7 +87,14 @@ services:
         reservations:
           memory: 32M
     logging:
-      driver: "json-file"
+      driver: json-file
       options:
-        max-size: "5m"
+        max-size: 5m
         max-file: "3"
+
+volumes:
+  mysql_data:
+  dp_keys:
+
+networks:
+  app-network:
