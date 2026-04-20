@@ -62,7 +62,7 @@ export function AdminDashboardPage() {
 
   // Calculate stats from orders
   const totalRevenue = orders.reduce((acc, o) => acc + o.total, 0);
-  const pendingBookings = orders.filter(o => o.orderStatus === 'Pending').length;
+  const pendingBookings = orders.filter(o => o.orderStatus === 'PendingReview').length;
   const completedBookings = orders.filter(o => o.orderStatus === 'Completed').length;
 
   // Logic for today/next services
@@ -73,7 +73,7 @@ export function AdminDashboardPage() {
 
   // Filter active orders that have a scheduled date
   const activeOrdersWithDate = orders
-    .filter(o => o.scheduledDate && ['Confirmed', 'InProgress', 'Pending'].includes(o.orderStatus))
+    .filter(o => o.scheduledDate && ['Confirmed', 'InProgress', 'PendingReview'].includes(o.orderStatus))
     .map(o => ({ ...o, dateObj: new Date(o.scheduledDate!) }));
 
   const todayServices = activeOrdersWithDate.filter(o =>

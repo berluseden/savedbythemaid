@@ -328,25 +328,12 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Persist Data Protection keys to a Docker volume so CSRF tokens and auth cookies
-// survive container restarts and redeployments. Without this, every restart
-// regenerates keys and invalidates all existing tokens.
+// Persist Data Protection keys to a Docker volume so auth cookies survive container
+// restarts and redeployments. Without this, every restart regenerates keys and
+// invalidates all existing tokens.
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo("/app/dataprotection-keys"))
     .SetApplicationName("SavedByTheMaid");
-
-// Antiforgery (CSRF double-submit cookie pattern for SPA + HttpOnly JWT cookies)
-builder.Services.AddAntiforgery(options =>
-{
-    options.HeaderName = "X-XSRF-TOKEN";
-    options.Cookie.Name = "XSRF-TOKEN";
-    options.Cookie.HttpOnly = false;   // JS must read this to send it as header
-    options.Cookie.SameSite = SameSiteMode.Lax;
-    // SameAsRequest: nginx handles SSL termination, backend sees HTTP internally.
-    // The XSRF-TOKEN cookie is readable by JS (HttpOnly=false) so Secure=Always
-    // would block it behind SSL-only checks that fail in the Docker+nginx setup.
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-});
 
 // Controllers
 builder.Services.AddControllers()
@@ -457,7 +444,6 @@ app.UseRateLimiter();
 // Authentication & Authorization (in correct order)
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseAntiforgery();
 app.UseCsrfValidation();
 
 // SPA Hosting - Serve static files ONLY if they don't match /api/*
@@ -474,15 +460,22 @@ app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => fa
 app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = h => h.Tags.Contains("ready") }).AllowAnonymous();
 app.MapHealthChecks("/health").AllowAnonymous();
 
-// CSRF token endpoint — SPA calls this on load to get the XSRF-TOKEN cookie.
-// Returns the request token in the body so the frontend can send it as the X-XSRF-TOKEN header.
-// The cookie token (set automatically by ASP.NET antiforgery) is a different value — sending
-// the cookie value as the header would always fail validation.
-app.MapGet("/api/antiforgery/token", (Microsoft.AspNetCore.Antiforgery.IAntiforgery antiforgery, HttpContext context) =>
+// CSRF token endpoint — generates a random token, sets it as the XSRF-TOKEN cookie
+// (readable by JS), and returns the same value in the body. The middleware validates
+// that the cookie value equals the X-XSRF-TOKEN request header (double-submit cookie).
+// Token is not bound to user identity, so it survives login/logout transitions.
+app.MapGet("/api/antiforgery/token", (HttpContext context) =>
 {
-    var tokens = antiforgery.GetAndStoreTokens(context);
-    return Results.Ok(new { requestToken = tokens.RequestToken });
-}).AllowAnonymous().DisableAntiforgery();
+    var token = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+    context.Response.Cookies.Append("XSRF-TOKEN", token, new CookieOptions
+    {
+        HttpOnly = false,
+        SameSite = SameSiteMode.Lax,
+        Secure = false, // nginx handles SSL termination; backend sees plain HTTP
+        MaxAge = TimeSpan.FromDays(1),
+    });
+    return Results.Ok(new { requestToken = token });
+}).AllowAnonymous();
 
 // Fallback for SPA routing - AT THE END, ONLY for routes that DON'T start with /api
 if (app.Environment.IsDevelopment())

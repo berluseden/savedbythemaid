@@ -1,15 +1,17 @@
-using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
 
 namespace SavedByTheMaid.Api.Middleware;
 
 /// <summary>
-/// Validates the XSRF-TOKEN double-submit cookie on state-changing requests
-/// for authenticated users. Skips auth endpoints (login, register, refresh)
-/// since the user has no token yet.
+/// Validates CSRF via simple double-submit cookie: the XSRF-TOKEN cookie value must
+/// equal the X-XSRF-TOKEN request header. Token is a random value generated per session
+/// — not bound to user identity, so it survives login/logout without re-seeding issues.
 /// </summary>
 public class CsrfValidationMiddleware
 {
+    private const string CookieName = "XSRF-TOKEN";
+    private const string HeaderName = "X-XSRF-TOKEN";
+
     private static readonly HashSet<string> _mutationMethods =
         new(StringComparer.OrdinalIgnoreCase) { "POST", "PUT", "PATCH", "DELETE" };
 
@@ -25,12 +27,10 @@ public class CsrfValidationMiddleware
     };
 
     private readonly RequestDelegate _next;
-    private readonly IAntiforgery _antiforgery;
 
-    public CsrfValidationMiddleware(RequestDelegate next, IAntiforgery antiforgery)
+    public CsrfValidationMiddleware(RequestDelegate next)
     {
         _next = next;
-        _antiforgery = antiforgery;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -39,17 +39,22 @@ public class CsrfValidationMiddleware
             context.User.Identity?.IsAuthenticated == true &&
             !_skipPaths.Contains(context.Request.Path.Value ?? ""))
         {
-            // Skip CSRF for endpoints decorated with [AllowAnonymous] — an authenticated
-            // user hitting a public endpoint should not be blocked by CSRF (the endpoint
-            // does not rely on the user's session to perform sensitive operations).
             var endpoint = context.GetEndpoint();
             var isAnonymous = endpoint?.Metadata.GetMetadata<IAllowAnonymous>() != null;
 
-            if (!isAnonymous && !await _antiforgery.IsRequestValidAsync(context))
+            if (!isAnonymous)
             {
-                context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                await context.Response.WriteAsJsonAsync(new { message = "CSRF token validation failed." });
-                return;
+                var cookieToken = context.Request.Cookies[CookieName];
+                var headerToken = context.Request.Headers[HeaderName].ToString();
+
+                if (string.IsNullOrEmpty(cookieToken) ||
+                    string.IsNullOrEmpty(headerToken) ||
+                    !string.Equals(cookieToken, headerToken, StringComparison.Ordinal))
+                {
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    await context.Response.WriteAsJsonAsync(new { message = "CSRF token validation failed." });
+                    return;
+                }
             }
         }
 
